@@ -230,6 +230,9 @@ Hass-MCP provides several tools for interacting with Home Assistant:
 - `create_zone`: Create a new zone with GPS coordinates and radius
 - `update_zone`: Update an existing zone (name, location, radius, icon)
 - `delete_zone`: Delete a zone (permanent, system zones may not be deletable)
+- `get_logbook`: Get logbook entries for a time range, optionally filtered by entity
+- `get_entity_logbook`: Get logbook entries for a specific entity
+- `search_logbook`: Search logbook entries by query string
 
 ## Prompts for Guided Conversations
 
