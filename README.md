@@ -208,10 +208,284 @@ Hass-MCP provides the following resource endpoints:
 
 ## Development
 
+### Prerequisites
+
+- Python 3.13+
+- [uv](https://github.com/astral-sh/uv) package manager
+- Git
+
+### Setup Development Environment
+
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/mmornati/hass-mcp.git
+   cd hass-mcp
+   ```
+
+2. **Install dependencies:**
+   ```bash
+   uv sync --extra dev
+   ```
+
+3. **Install pre-commit hooks:**
+   ```bash
+   uv run pre-commit install
+   ```
+
+   This will install git hooks that automatically run code quality checks before commits.
+
+   Or use the setup script:
+   ```bash
+   ./scripts/setup-dev.sh
+   ```
+
+   Or use Make (if available):
+   ```bash
+   make setup
+   ```
+
+### Development Tools
+
+The project uses several tools to ensure code quality:
+
+- **Ruff**: Fast Python linter and formatter
+- **MyPy**: Static type checker
+- **Bandit**: Security vulnerability scanner
+- **Pytest**: Testing framework with coverage
+- **Pre-commit**: Git hooks for quality checks
+
 ### Running Tests
 
+**Run all tests:**
 ```bash
 uv run pytest tests/
+```
+
+**Run tests with coverage:**
+```bash
+uv run pytest tests/ --cov=app --cov-report=html
+```
+
+**Run specific test file:**
+```bash
+uv run pytest tests/test_server.py
+```
+
+**Run tests with verbose output:**
+```bash
+uv run pytest tests/ -v
+```
+
+### Quick Start with Make
+
+If you have `make` installed, you can use these convenient commands:
+
+```bash
+make setup          # Setup development environment
+make test           # Run tests
+make test-cov       # Run tests with coverage
+make lint           # Check linting
+make lint-fix       # Fix linting issues
+make format         # Format code
+make type-check     # Check types
+make security       # Run security scan
+make check          # Run all quality checks
+make all            # Run all checks and tests
+make clean          # Clean up generated files
+```
+
+See `make help` for all available commands.
+
+### Code Quality Checks
+
+**Linting (Ruff):**
+```bash
+# Check for linting issues
+uv run ruff check app/ tests/
+
+# Auto-fix linting issues
+uv run ruff check app/ tests/ --fix
+
+# Format code
+uv run ruff format app/ tests/
+
+# Check formatting without making changes
+uv run ruff format app/ tests/ --check
+```
+
+**Type Checking (MyPy):**
+```bash
+uv run mypy app/
+```
+
+**Security Scan (Bandit):**
+```bash
+uv run bandit -r app/
+```
+
+**Run all checks:**
+```bash
+# Lint, format check, type check, and security scan
+uv run ruff check app/ tests/
+uv run ruff format --check app/ tests/
+uv run mypy app/
+uv run bandit -r app/
+```
+
+### Pre-commit Hooks
+
+Pre-commit hooks automatically run when you commit code. They check:
+- Code formatting (Ruff)
+- Linting issues (Ruff)
+- Type checking (MyPy)
+- Security issues (Bandit)
+- Basic file checks (trailing whitespace, end-of-file, etc.)
+- Test suite
+
+**Manually run pre-commit hooks:**
+```bash
+# Run on staged files (default)
+uv run pre-commit run
+
+# Run on all files
+uv run pre-commit run --all-files
+
+# Run specific hook
+uv run pre-commit run ruff
+```
+
+**Bypass hooks (not recommended):**
+```bash
+git commit --no-verify
+```
+
+### Continuous Integration (CI)
+
+The project uses GitHub Actions for CI/CD validation:
+
+#### Workflows
+
+1. **Test Workflow** (`.github/workflows/test.yml`)
+   - Runs on: push, pull_request
+   - Executes: Test suite with coverage
+   - Uploads: Coverage reports as artifacts
+
+2. **Validate Workflow** (`.github/workflows/validate.yml`)
+   - Runs on: push, pull_request
+   - Includes:
+     - **Lint**: Ruff linting and format checking
+     - **Type Check**: MyPy type validation
+     - **Security**: Bandit security scanning
+     - **Coverage**: Test coverage reporting
+     - **Pre-commit**: All pre-commit hooks
+
+3. **Release Workflow** (`.github/workflows/release.yml`)
+   - Runs on: tag push
+   - Builds and publishes Docker image and PyPI package
+
+4. **Docker Workflow** (`.github/workflows/docker.yml`)
+   - Builds Docker image for testing
+
+All workflows must pass before merging pull requests.
+
+### Development Guidelines
+
+#### Code Style
+
+- Follow PEP 8 style guide (enforced by Ruff)
+- Line length: 100 characters
+- Use type hints for all function signatures
+- Use async/await for asynchronous operations
+- Document all public functions and classes
+
+#### Type Hints
+
+All functions should have type hints:
+```python
+async def get_entity(entity_id: str, fields: Optional[List[str]] = None) -> dict:
+    """Get entity state with optional field filtering."""
+    ...
+```
+
+#### Testing
+
+- Write tests for all new features
+- Maintain test coverage above 80%
+- Use descriptive test names
+- Test both success and error cases
+- Mock external API calls in tests
+
+#### Commit Messages
+
+Follow conventional commit format:
+```
+feat: Add new automation management tools
+fix: Fix entity state retrieval error
+docs: Update README with new features
+test: Add tests for area management
+refactor: Simplify error handling
+```
+
+#### Pull Requests
+
+Before creating a PR:
+1. Ensure all tests pass: `uv run pytest tests/`
+2. Run code quality checks: `uv run pre-commit run --all-files`
+3. Update documentation if needed
+4. Add tests for new features
+5. Ensure CI workflows pass
+
+### Project Structure
+
+```
+hass-mcp/
+├── app/                # Main application code
+│   ├── __main__.py     # Entry point
+│   ├── config.py       # Configuration management
+│   ├── hass.py         # Home Assistant API client
+│   ├── run.py          # Server runner
+│   └── server.py       # MCP server implementation
+├── tests/              # Test suite
+│   ├── conftest.py     # Pytest configuration
+│   ├── test_config.py  # Config tests
+│   ├── test_hass.py    # API client tests
+│   └── test_server.py  # Server tests
+├── .github/
+│   └── workflows/      # GitHub Actions workflows
+├── .pre-commit-config.yaml  # Pre-commit hooks config
+├── pyproject.toml      # Project configuration
+└── README.md          # This file
+```
+
+### Troubleshooting
+
+**Pre-commit hooks failing:**
+```bash
+# Update hooks to latest versions
+uv run pre-commit autoupdate
+
+# Run specific hook to see detailed error
+uv run pre-commit run ruff --verbose
+```
+
+**Type checking errors:**
+```bash
+# See detailed MyPy errors
+uv run mypy app/ --show-error-codes
+
+# Ignore specific errors (add to pyproject.toml)
+```
+
+**Test failures:**
+```bash
+# Run with more verbose output
+uv run pytest tests/ -vv
+
+# Run with print statements visible
+uv run pytest tests/ -s
+
+# Run specific test
+uv run pytest tests/test_server.py::TestMCPServer::test_tool_functions_exist
 ```
 
 ## License

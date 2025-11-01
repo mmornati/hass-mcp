@@ -31,3 +31,13 @@ jobs:
 
       - name: Run tests
         run: uv run test
+      
+      - name: Upload coverage reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-reports
+          path: |
+            htmlcov/
+            coverage.xml
+          retention-days: 7
