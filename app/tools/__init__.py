@@ -5,6 +5,28 @@ Tools are thin wrappers around API functions that expose
 Home Assistant functionality via the Model Context Protocol.
 """
 
-from app.tools import areas, automations, devices, entities, scripts
+from app.tools import (
+    areas,
+    automations,
+    devices,
+    entities,
+    integrations,
+    scenes,
+    scripts,
+    services,
+    system,
+    templates,
+)
 
-__all__ = ["areas", "automations", "devices", "entities", "scripts"]
+__all__ = [
+    "areas",
+    "automations",
+    "devices",
+    "entities",
+    "integrations",
+    "scenes",
+    "scripts",
+    "services",
+    "system",
+    "templates",
+]

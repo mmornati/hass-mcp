@@ -15,12 +15,10 @@ from mcp.server.fastmcp import FastMCP
 
 from app.core import async_handler
 from app.hass import (
-    activate_scene,
     analyze_usage_patterns,
     create_automation_from_blueprint,
     create_backup,
     create_calendar_event,
-    create_scene,
     create_tag,
     create_zone,
     delete_backup,
@@ -36,40 +34,26 @@ from app.hass import (
     get_blueprints,
     get_calendar_events,
     get_calendars,
-    get_core_config,
     get_domain_statistics,
     get_entities,
-    get_entity_history,
     get_entity_logbook_entries,
     get_entity_state,
     get_entity_statistics,
     get_event_types,
-    get_hass_error_log,
-    get_hass_version,
     get_helper_details,
     get_helpers,
-    get_integration_config,
-    get_integrations,
     get_logbook_entries,
     get_notification_services,
     get_recent_events,
-    get_scene_config,
-    get_scenes,
-    get_system_health,
-    get_system_overview,
     get_tag_automations,
     get_tags,
     get_webhooks,
     get_zones,
     import_blueprint_from_url,
-    reload_integration,
-    reload_scenes,
     restore_backup,
     search_logbook_entries,
     send_notification,
-    summarize_domain,
     test_notification_delivery,
-    test_template,
     test_webhook_endpoint,
     update_helper_value,
     update_zone,
@@ -79,7 +63,18 @@ mcp = FastMCP("Hass-MCP")
 
 # Import and register tools from tools modules
 # Tools are registered manually to avoid circular imports
-from app.tools import areas, automations, devices, entities, scripts  # noqa: E402
+from app.tools import (
+    areas,
+    automations,
+    devices,
+    entities,
+    integrations,
+    scenes,
+    scripts,
+    services,
+    system,
+    templates,
+)  # noqa: E402
 
 # Register entity tools with MCP instance
 mcp.tool()(async_handler("get_entity")(entities.get_entity))
@@ -121,6 +116,34 @@ mcp.tool()(async_handler("update_area")(areas.update_area_tool))
 mcp.tool()(async_handler("delete_area")(areas.delete_area_tool))
 mcp.tool()(async_handler("get_area_summary")(areas.get_area_summary_tool))
 
+# Register scene tools with MCP instance
+mcp.tool()(async_handler("list_scenes")(scenes.list_scenes_tool))
+mcp.tool()(async_handler("get_scene")(scenes.get_scene_tool))
+mcp.tool()(async_handler("create_scene")(scenes.create_scene_tool))
+mcp.tool()(async_handler("activate_scene")(scenes.activate_scene_tool))
+mcp.tool()(async_handler("reload_scenes")(scenes.reload_scenes_tool))
+
+# Register integration tools with MCP instance
+mcp.tool()(async_handler("list_integrations")(integrations.list_integrations))
+mcp.tool()(async_handler("get_integration_config")(integrations.get_integration_config_tool))
+mcp.tool()(async_handler("reload_integration")(integrations.reload_integration_tool))
+
+# Register system tools with MCP instance
+mcp.tool()(async_handler("get_version")(system.get_version))
+mcp.tool()(async_handler("system_overview")(system.system_overview))
+mcp.tool()(async_handler("get_error_log")(system.get_error_log))
+mcp.tool()(async_handler("system_health")(system.system_health))
+mcp.tool()(async_handler("core_config")(system.core_config))
+mcp.tool()(async_handler("restart_ha")(system.restart_ha))
+mcp.tool()(async_handler("get_history")(system.get_history))
+mcp.tool()(async_handler("domain_summary")(system.domain_summary_tool))
+
+# Register service tools with MCP instance
+mcp.tool()(async_handler("call_service")(services.call_service_tool))
+
+# Register template tools with MCP instance
+mcp.tool()(async_handler("test_template")(templates.test_template_tool))
+
 # Re-export all tools for backward compatibility
 # This allows tests and other code to import them from app.server
 get_entity = entities.get_entity
@@ -151,19 +174,28 @@ create_area_tool = areas.create_area_tool
 update_area_tool = areas.update_area_tool
 delete_area_tool = areas.delete_area_tool
 get_area_summary_tool = areas.get_area_summary_tool
+list_scenes_tool = scenes.list_scenes_tool
+get_scene_tool = scenes.get_scene_tool
+create_scene_tool = scenes.create_scene_tool
+activate_scene_tool = scenes.activate_scene_tool
+reload_scenes_tool = scenes.reload_scenes_tool
+list_integrations = integrations.list_integrations
+get_integration_config_tool = integrations.get_integration_config_tool
+reload_integration_tool = integrations.reload_integration_tool
+get_version = system.get_version
+system_overview = system.system_overview
+get_error_log = system.get_error_log
+system_health = system.system_health
+core_config = system.core_config
+restart_ha = system.restart_ha
+get_history = system.get_history
+domain_summary_tool = system.domain_summary_tool
+call_service_tool = services.call_service_tool
+test_template_tool = templates.test_template_tool
 
 
-@mcp.tool()
-@async_handler("get_version")
-async def get_version() -> str:
-    """
-    Get the Home Assistant version
-
-    Returns:
-        A string with the Home Assistant version (e.g., "2025.3.0")
-    """
-    logger.info("Getting Home Assistant version")
-    return await get_hass_version()
+# All tools are now in app.tools.* modules
+# They are registered above after creating the mcp instance
 
 
 # Entity tools are now in app.tools.entities module
@@ -480,58 +512,8 @@ async def search_entities_resource_with_limit(query: str, limit: str) -> str:
     return result
 
 
-# The domain_summary_tool is already implemented, no need to duplicate it
-
-
-@mcp.tool()
-@async_handler("domain_summary")
-async def domain_summary_tool(domain: str, example_limit: int = 3) -> dict[str, Any]:
-    """
-    Get a summary of entities in a specific domain
-
-    Args:
-        domain: The domain to summarize (e.g., 'light', 'switch', 'sensor')
-        example_limit: Maximum number of examples to include for each state
-
-    Returns:
-        A dictionary containing:
-        - total_count: Number of entities in the domain
-        - state_distribution: Count of entities in each state
-        - examples: Sample entities for each state
-        - common_attributes: Most frequently occurring attributes
-
-    Examples:
-        domain="light" - get light summary
-        domain="climate", example_limit=5 - climate summary with more examples
-    Best Practices:
-        - Use this before retrieving all entities in a domain to understand what's available"""
-    logger.info(f"Getting domain summary for: {domain}")
-    return await summarize_domain(domain, example_limit)
-
-
-@mcp.tool()
-@async_handler("system_overview")
-async def system_overview() -> dict[str, Any]:
-    """
-    Get a comprehensive overview of the entire Home Assistant system
-
-    Returns:
-        A dictionary containing:
-        - total_entities: Total count of all entities
-        - domains: Dictionary of domains with their entity counts and state distributions
-        - domain_samples: Representative sample entities for each domain (2-3 per domain)
-        - domain_attributes: Common attributes for each domain
-        - area_distribution: Entities grouped by area (if available)
-
-    Examples:
-        Returns domain counts, sample entities, and common attributes
-    Best Practices:
-        - Use this as the first call when exploring an unfamiliar Home Assistant instance
-        - Perfect for building context about the structure of the smart home
-        - After getting an overview, use domain_summary_tool to dig deeper into specific domains
-    """
-    logger.info("Generating complete system overview")
-    return await get_system_overview()
+# Domain and system overview tools are now in app.tools.system module
+# They are registered above after creating the mcp instance
 
 
 @mcp.resource("hass://entities/{entity_id}/detailed")
@@ -711,192 +693,9 @@ async def list_states_by_domain_resource(domain: str) -> str:
 # They are registered above after creating the mcp instance
 
 # Device tools are now in app.tools.devices module
+# Template tools are now in app.tools.templates module
+# Scene tools are now in app.tools.scenes module
 # They are registered above after creating the mcp instance
-
-
-@mcp.tool()
-@async_handler("test_template")
-async def test_template_tool(
-    template_string: str,
-    entity_context: dict[str, Any] | None = None,  # noqa: PT028
-) -> dict[str, Any]:
-    """
-    Test Jinja2 template rendering
-
-    Args:
-        template_string: The Jinja2 template string to test
-        entity_context: Optional dictionary of entity IDs to provide as context
-                         (e.g., {"entity_id": "light.living_room"})
-
-    Returns:
-        Dictionary containing:
-        - result: The rendered template result
-        - listeners: Entity listeners (if applicable)
-        - error: Error message if template rendering failed
-
-    Examples:
-        template_string="{{ states('sensor.temperature') }}" - test simple template
-        template_string="{{ states('light.living_room') }}", entity_context={"entity_id": "light.living_room"}
-
-    Note:
-        Template testing API might not be available in all Home Assistant versions.
-        If unavailable, returns a helpful error message.
-
-    Best Practices:
-        - Test templates before using them in automations or scripts
-        - Use entity_context to test templates with specific entity context
-        - Check for errors in the response
-    """
-    logger.info(
-        f"Testing template: {template_string[:50]}..."
-        + (f" with context: {entity_context}" if entity_context else "")
-    )
-    return await test_template(template_string, entity_context)
-
-
-@mcp.tool()
-@async_handler("list_scenes")
-async def list_scenes_tool() -> list[dict[str, Any]]:
-    """
-    Get a list of all scenes in Home Assistant
-
-    Returns:
-        List of scene dictionaries containing:
-        - entity_id: The scene entity ID (e.g., 'scene.living_room_dim')
-        - state: Current state of the scene
-        - friendly_name: Display name of the scene
-        - entity_id_list: List of entity IDs included in the scene
-        - snapshot: Snapshot of entity states when scene was created
-
-    Examples:
-        Returns all scenes with their configuration
-
-    Best Practices:
-        - Use this to discover available scenes
-        - Check entity_id_list to see what entities a scene affects
-        - Review snapshots to understand scene states
-    """
-    logger.info("Getting list of scenes")
-    return await get_scenes()
-
-
-@mcp.tool()
-@async_handler("get_scene")
-async def get_scene_tool(scene_id: str) -> dict[str, Any]:
-    """
-    Get scene configuration (what entities/values it saves)
-
-    Args:
-        scene_id: The scene ID to get (with or without 'scene.' prefix)
-
-    Returns:
-        Scene configuration dictionary with:
-        - entity_id: The scene entity ID
-        - friendly_name: Display name of the scene
-        - entity_id_list: List of entity IDs included in the scene
-        - snapshot: Snapshot of entity states when scene was created
-
-    Examples:
-        scene_id="living_room_dim" - get config for scene with ID living_room_dim
-        scene_id="scene.living_room_dim" - also works with full entity ID
-
-    Note:
-        Scene configuration shows what entities are included in the scene
-        and what states they were in when the scene was created.
-
-    Best Practices:
-        - Use this to inspect what entities a scene affects
-        - Check snapshot to see what states will be restored
-    """
-    logger.info(f"Getting scene config for: {scene_id}")
-    return await get_scene_config(scene_id)
-
-
-@mcp.tool()
-@async_handler("create_scene")
-async def create_scene_tool(
-    name: str,
-    entity_ids: list[str],
-    states: dict[str, Any] | None = None,
-) -> dict[str, Any]:
-    """
-    Create a new scene
-
-    Args:
-        name: Display name for the scene
-        entity_ids: List of entity IDs to include in the scene
-        states: Optional dictionary of entity states to capture (if None, captures current states)
-
-    Returns:
-        Response from the create operation, or error message with YAML example if creation fails
-
-    Examples:
-        name="Living Room Dim", entity_ids=["light.living_room", "light.kitchen"]
-        name="Movie Mode", entity_ids=["light.living_room"], states={"light.living_room": {"state": "on", "brightness": 50}}
-
-    Note:
-        ⚠️ Scene creation via API may not be available in all Home Assistant versions.
-        If it fails, a helpful YAML configuration example is returned.
-
-    Best Practices:
-        - Try creating via API first
-        - If it fails, use the provided YAML example for manual creation
-        - Include states parameter to specify exact entity states
-    """
-    logger.info(f"Creating scene: {name} with entities: {entity_ids}")
-    return await create_scene(name, entity_ids, states)
-
-
-@mcp.tool()
-@async_handler("activate_scene")
-async def activate_scene_tool(scene_id: str) -> dict[str, Any]:
-    """
-    Activate/restore a scene
-
-    Args:
-        scene_id: The scene ID to activate (with or without 'scene.' prefix)
-
-    Returns:
-        Response from the activate operation
-
-    Examples:
-        scene_id="living_room_dim" - activate scene with ID living_room_dim
-        scene_id="scene.living_room_dim" - also works with full entity ID
-
-    Note:
-        Activating a scene restores all entities to their saved states.
-        The scene entity_id can be provided with or without the 'scene.' prefix.
-
-    Best Practices:
-        - Use this to restore lighting presets and room configurations
-        - Get scene config first to see what will be restored
-    """
-    logger.info(f"Activating scene: {scene_id}")
-    return await activate_scene(scene_id)
-
-
-@mcp.tool()
-@async_handler("reload_scenes")
-async def reload_scenes_tool() -> dict[str, Any]:
-    """
-    Reload scenes from configuration
-
-    Returns:
-        Response from the reload operation
-
-    Examples:
-        Reloads all scene configurations after modifying YAML files
-
-    Note:
-        Reloading scenes reloads all scene configurations from YAML files.
-        This is useful after modifying scene configuration files.
-
-    Best Practices:
-        - Reload scenes after making configuration changes
-        - Use this after updating scene YAML files
-    """
-    logger.info("Reloading scenes")
-    return await reload_scenes()
 
 
 @mcp.tool()
@@ -1008,97 +807,8 @@ async def get_integration_errors_tool(domain: str | None = None) -> dict[str, An
     return await find_integration_errors(domain)
 
 
-@mcp.tool()
-@async_handler("list_integrations")
-async def list_integrations(domain: str | None = None) -> list[dict[str, Any]]:
-    """
-    Get a list of all configuration entries (integrations) from Home Assistant
-
-    Args:
-        domain: Optional domain to filter integrations by (e.g., 'mqtt', 'zwave')
-
-    Returns:
-        List of integration entries with their status and configuration.
-        Each entry contains:
-        - entry_id: Unique identifier for the integration entry
-        - domain: The integration domain (e.g., 'mqtt', 'zwave')
-        - title: Display name of the integration
-        - source: Where the integration was configured (user, discovery, etc.)
-        - state: Current state (loaded, setup_error, etc.)
-        - supports_options: Whether the integration supports configuration options
-        - pref_disable_new_entities: Preference to disable new entities
-        - pref_disable_polling: Preference to disable polling
-
-    Examples:
-        domain=None - get all integrations
-        domain="mqtt" - get only MQTT integrations
-
-    Best Practices:
-        - Use domain filter to find specific integration types
-        - Check state field to identify integrations with errors
-        - Use get_integration_config for detailed information
-    """
-    logger.info("Getting integrations" + (f" for domain: {domain}" if domain else ""))
-    return await get_integrations(domain)
-
-
-@mcp.tool()
-@async_handler("get_integration_config")
-async def get_integration_config_tool(entry_id: str) -> dict[str, Any]:
-    """
-    Get detailed configuration for a specific integration entry
-
-    Args:
-        entry_id: The entry ID of the integration to get
-
-    Returns:
-        Detailed configuration dictionary for the integration entry, including:
-        - entry_id: Unique identifier
-        - domain: Integration domain
-        - title: Display name
-        - source: Configuration source
-        - state: Current state (loaded, setup_error, etc.)
-        - options: Integration-specific configuration options
-        - pref_disable_new_entities: Preference setting
-        - pref_disable_polling: Preference setting
-
-    Examples:
-        entry_id="abc123" - get configuration for entry with ID abc123
-
-    Error Handling:
-        - Returns error dict if entry_id doesn't exist (404)
-        - Error handling is managed by handle_api_errors decorator
-    """
-    logger.info(f"Getting integration config for entry: {entry_id}")
-    return await get_integration_config(entry_id)
-
-
-@mcp.tool()
-@async_handler("reload_integration")
-async def reload_integration_tool(entry_id: str) -> dict[str, Any]:
-    """
-    Reload a specific integration
-
-    Args:
-        entry_id: The entry ID of the integration to reload
-
-    Returns:
-        Response from the reload service call
-
-    Examples:
-        entry_id="abc123" - reload integration with ID abc123
-
-    Note:
-        ⚠️ Reloading an integration may cause temporary unavailability of its entities.
-        Use with caution, especially for critical integrations like MQTT or Z-Wave.
-
-    Best Practices:
-        - Check integration state before reloading
-        - Reload integrations that are showing setup errors
-        - Avoid reloading during active automation execution
-    """
-    logger.info(f"Reloading integration: {entry_id}")
-    return await reload_integration(entry_id)
+# Integration tools are now in app.tools.integrations module
+# They are registered above after creating the mcp instance
 
 
 @mcp.tool()
@@ -2601,199 +2311,5 @@ You'll help the user create optimized dashboards by:
     ]
 
 
-# Documentation endpoint
-@mcp.tool()
-@async_handler("get_history")
-async def get_history(entity_id: str, hours: int = 24) -> dict[str, Any]:
-    """
-    Get the history of an entity's state changes
-
-    Args:
-        entity_id: The entity ID to get history for
-        hours: Number of hours of history to retrieve (default: 24)
-
-    Returns:
-        A dictionary containing:
-        - entity_id: The entity ID requested
-        - states: List of state objects with timestamps
-        - count: Number of state changes found
-        - first_changed: Timestamp of earliest state change
-        - last_changed: Timestamp of most recent state change
-
-    Examples:
-        entity_id="light.living_room" - get 24h history
-        entity_id="sensor.temperature", hours=168 - get 7 day history
-    Best Practices:
-        - Keep hours reasonable (24-72) for token efficiency
-        - Use for entities with discrete state changes rather than continuously changing sensors
-        - Consider the state distribution rather than every individual state
-    """
-    logger.info(f"Getting history for entity: {entity_id}, hours: {hours}")
-
-    try:
-        # Call the new hass function to get history
-        history_data = await get_entity_history(entity_id, hours)
-
-        # Check for errors from the API call
-        if isinstance(history_data, dict) and "error" in history_data:
-            return {
-                "entity_id": entity_id,
-                "error": history_data["error"],
-                "states": [],
-                "count": 0,
-            }
-
-        # The result from the API is a list of lists of state changes
-        # We need to flatten it and process it
-        states = []
-        if history_data and isinstance(history_data, list):
-            for state_list in history_data:
-                states.extend(state_list)
-
-        if not states:
-            return {
-                "entity_id": entity_id,
-                "states": [],
-                "count": 0,
-                "first_changed": None,
-                "last_changed": None,
-                "note": "No state changes found in the specified timeframe.",
-            }
-
-        # Sort states by last_changed timestamp
-        states.sort(key=lambda x: x.get("last_changed", ""))
-
-        # Extract first and last changed timestamps
-        first_changed = states[0].get("last_changed")
-        last_changed = states[-1].get("last_changed")
-
-        return {
-            "entity_id": entity_id,
-            "states": states,
-            "count": len(states),
-            "first_changed": first_changed,
-            "last_changed": last_changed,
-        }
-    except Exception as e:
-        logger.error(f"Error processing history for {entity_id}: {str(e)}")
-        return {
-            "entity_id": entity_id,
-            "error": f"Error processing history: {str(e)}",
-            "states": [],
-            "count": 0,
-        }
-
-
-@mcp.tool()
-@async_handler("get_error_log")
-async def get_error_log() -> dict[str, Any]:
-    """
-    Get the Home Assistant error log for troubleshooting
-
-    Returns:
-        A dictionary containing:
-        - log_text: The full error log text
-        - error_count: Number of ERROR entries found
-        - warning_count: Number of WARNING entries found
-        - integration_mentions: Map of integration names to mention counts
-        - error: Error message if retrieval failed
-
-    Examples:
-        Returns errors, warnings count and integration mentions
-    Best Practices:
-        - Use this tool when troubleshooting specific Home Assistant errors
-        - Look for patterns in repeated errors
-        - Pay attention to timestamps to correlate errors with events
-        - Focus on integrations with many mentions in the log
-    """
-    logger.info("Getting Home Assistant error log")
-    return await get_hass_error_log()
-
-
-@mcp.tool()
-@async_handler("get_system_health")
-async def system_health() -> dict[str, Any]:
-    """
-    Get system health information from Home Assistant
-
-    Returns:
-        A dictionary containing system health information for each component.
-        Each component includes health status and version information.
-
-        Example response:
-        {
-            "homeassistant": {
-                "healthy": true,
-                "version": "2025.3.0"
-            },
-            "supervisor": {
-                "healthy": true,
-                "version": "2025.03.1"
-            }
-        }
-
-    Examples:
-        Check overall system health and component status
-
-    Best Practices:
-        - Use this tool to monitor system resources and health
-        - Check after updates or when experiencing issues
-        - Review all component health statuses, not just overall health
-        - Note that some components may not be available in all HA installations
-          (e.g., supervisor is only available on Home Assistant OS)
-
-    Error Handling:
-        - Returns error if endpoint is not available (some HA versions/configurations)
-        - Gracefully handles missing components
-        - Returns helpful error messages for permission issues
-    """
-    logger.info("Getting Home Assistant system health")
-    return await get_system_health()
-
-
-@mcp.tool()
-@async_handler("get_core_config")
-async def core_config() -> dict[str, Any]:
-    """
-    Get core configuration from Home Assistant
-
-    Returns:
-        A dictionary containing core configuration information including:
-        - location_name: The name of the location
-        - time_zone: Configured timezone
-        - unit_system: Unit system configuration (temperature, length, mass, volume)
-        - components: List of all loaded components/integrations
-        - version: Home Assistant version
-        - latitude/longitude: Location coordinates
-        - elevation: Elevation above sea level
-        - currency: Configured currency
-        - country: Configured country code
-        - language: Configured language
-
-        Example response:
-        {
-            "location_name": "Home",
-            "time_zone": "America/New_York",
-            "unit_system": {
-                "length": "km",
-                "mass": "g",
-                "temperature": "°C",
-                "volume": "L"
-            },
-            "version": "2025.3.0",
-            "components": ["mqtt", "hue", "automation", ...]
-        }
-
-    Examples:
-        Get timezone, unit system, and location information
-        List all loaded components/integrations
-        Check Home Assistant version and configuration details
-
-    Best Practices:
-        - Use to understand the HA instance configuration
-        - Check which components are loaded before using specific integrations
-        - Verify timezone and unit system settings for automations
-        - Use for debugging location-based automations
-    """
-    logger.info("Getting Home Assistant core configuration")
-    return await get_core_config()
+# System tools (get_history, get_error_log, system_health, core_config) are now in app.tools.system module
+# They are registered above after creating the mcp instance
