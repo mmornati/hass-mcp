@@ -13,9 +13,11 @@ def pytest_collection_modifyitems(config, items):
     """Filter out test items from application code (not test files)."""
     filtered_items = []
     for item in items:
-        # Skip test_template function - it's an application function, not a test
-        # When imported into test files, pytest tries to collect it as a test
-        if hasattr(item, "name") and item.name == "test_template":
+        # Skip test_* functions from application code - they're application functions, not tests
+        # When imported into test files, pytest tries to collect them as tests
+        if hasattr(item, "name") and (
+            item.name == "test_template" or item.name == "test_notification_delivery"
+        ):
             # Check if this is actually the function from app/api/templates.py
             # by checking the item's location
             try:
@@ -23,9 +25,14 @@ def pytest_collection_modifyitems(config, items):
                     location = item.location
                     if location and len(location) > 0:
                         file_path = location[0]
-                        # Skip if it's from the templates module
-                        if "app/api/templates.py" in file_path or (
-                            "templates.py" in file_path and "/app/" in file_path
+                        # Skip if it's from the templates or notifications module
+                        if (
+                            "app/api/templates.py" in file_path
+                            or "app/api/notifications.py" in file_path
+                            or (
+                                ("templates.py" in file_path or "notifications.py" in file_path)
+                                and "/app/" in file_path
+                            )
                         ):
                             continue
             except Exception:
@@ -33,11 +40,23 @@ def pytest_collection_modifyitems(config, items):
                 if hasattr(item, "nodeid"):
                     nodeid = str(item.nodeid)
                     # Skip if nodeid doesn't match a real test pattern
-                    # (all real tests are test_test_template_*)
-                    if "test_template" in nodeid and "test_test_template" not in nodeid:
+                    # (all real tests are test_test_*_*)
+                    if (
+                        ("test_template" in nodeid or "test_notification_delivery" in nodeid)
+                        and "test_test_template" not in nodeid
+                        and "test_test_notification" not in nodeid
+                    ):
                         # Check if it's actually from app/ modules
-                        if "app/api/templates" in nodeid or (
-                            "test_api_templates" in nodeid and "::test_template" in nodeid
+                        if (
+                            "app/api/templates" in nodeid
+                            or "app/api/notifications" in nodeid
+                            or (
+                                ("test_api_templates" in nodeid and "::test_template" in nodeid)
+                                or (
+                                    "test_api_notifications" in nodeid
+                                    and "::test_notification_delivery" in nodeid
+                                )
+                            )
                         ):
                             continue
 
