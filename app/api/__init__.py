@@ -40,6 +40,11 @@ from app.api.entities import (
     get_entity_history,
     get_entity_state,
 )
+from app.api.integrations import (
+    get_integration_config,
+    get_integrations,
+    reload_integration,
+)
 from app.api.scenes import (
     activate_scene,
     create_scene,
@@ -52,6 +57,14 @@ from app.api.scripts import (
     get_scripts,
     reload_scripts,
     run_script,
+)
+from app.api.system import (
+    get_core_config,
+    get_hass_error_log,
+    get_hass_version,
+    get_system_health,
+    get_system_overview,
+    restart_home_assistant,
 )
 
 __all__ = [
@@ -91,4 +104,13 @@ __all__ = [
     "create_scene",
     "activate_scene",
     "reload_scenes",
+    "get_integrations",
+    "get_integration_config",
+    "reload_integration",
+    "get_hass_version",
+    "get_system_overview",
+    "get_system_health",
+    "get_hass_error_log",
+    "get_core_config",
+    "restart_home_assistant",
 ]
