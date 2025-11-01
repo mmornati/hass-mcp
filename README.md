@@ -252,6 +252,8 @@ Hass-MCP provides several tools for interacting with Home Assistant:
 - `list_helpers`: Get a list of all input helpers in Home Assistant
 - `get_helper`: Get helper state and configuration
 - `update_helper`: Update helper value (supports all helper types)
+- `list_webhooks`: Get a list of registered webhooks in Home Assistant
+- `test_webhook`: Test webhook endpoint with optional payload
 
 ## Prompts for Guided Conversations
 
