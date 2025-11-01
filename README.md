@@ -242,6 +242,9 @@ Hass-MCP provides several tools for interacting with Home Assistant:
 - `list_notification_services`: Get a list of all available notification platforms
 - `send_notification`: Send a notification to a specific platform or default
 - `test_notification`: Test notification delivery to a specific platform
+- `fire_event`: Fire a custom event
+- `list_event_types`: List common event types used in Home Assistant
+- `get_events`: Get recent events for an entity (via logbook)
 
 ## Prompts for Guided Conversations
 
