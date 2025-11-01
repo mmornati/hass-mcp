@@ -188,6 +188,11 @@ Hass-MCP provides several tools for interacting with Home Assistant:
 - `trigger_automation`: Manually trigger an automation for testing
 - `get_automation_execution_log`: Get automation execution history from logbook
 - `validate_automation_config`: Validate an automation configuration before creating/updating
+- `list_scripts`: Get a list of all scripts in Home Assistant
+- `get_script`: Get script configuration and details
+- `run_script`: Execute a script with optional variables
+- `reload_scripts`: Reload all scripts from configuration
+- `test_template`: Test Jinja2 template rendering
 - `call_service_tool`: Call any Home Assistant service
 - `restart_ha`: Restart Home Assistant
 - `system_overview`: Get a comprehensive overview of the entire Home Assistant system

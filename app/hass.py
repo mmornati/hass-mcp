@@ -785,6 +785,189 @@ async def restart_home_assistant() -> dict[str, Any]:
 
 
 @handle_api_errors
+async def get_scripts() -> list[dict[str, Any]]:
+    """
+    Get list of all scripts
+
+    Returns:
+        List of script dictionaries containing:
+        - entity_id: The script entity ID (e.g., 'script.turn_on_lights')
+        - state: Current state of the script
+        - friendly_name: Display name of the script
+        - last_triggered: Timestamp of last execution (if available)
+        - alias: Script alias/name
+    """
+    # Scripts can be retrieved via states API
+    script_entities = await get_entities(domain="script")
+
+    # Extract script information
+    scripts = []
+    for entity in script_entities:
+        script_info = {
+            "entity_id": entity.get("entity_id"),
+            "state": entity.get("state"),
+        }
+
+        # Add attributes if available
+        attributes = entity.get("attributes", {})
+        if "friendly_name" in attributes:
+            script_info["friendly_name"] = attributes["friendly_name"]
+        if "alias" in attributes:
+            script_info["alias"] = attributes["alias"]
+        if "last_triggered" in attributes:
+            script_info["last_triggered"] = attributes["last_triggered"]
+
+        scripts.append(script_info)
+
+    return scripts
+
+
+@handle_api_errors
+async def get_script_config(script_id: str) -> dict[str, Any]:
+    """
+    Get script configuration (sequence of actions)
+
+    Args:
+        script_id: The script ID to get (without 'script.' prefix)
+
+    Returns:
+        Script configuration dictionary with:
+        - entity_id: The script entity ID
+        - state: Current state
+        - attributes: Script attributes including configuration
+        - config: Script configuration if available via config API
+
+    Note:
+        Script configuration might be available via config API or
+        only through entity state depending on Home Assistant version.
+        This function tries the config API first, then falls back to entity state.
+    """
+    entity_id = f"script.{script_id}"
+
+    # Try to get config via config API if available
+    try:
+        client = await get_client()
+        response = await client.get(
+            f"{HA_URL}/api/config/scripts/{script_id}",
+            headers=get_ha_headers(),
+        )
+        if response.status_code == 200:
+            config_data = response.json()
+            # Merge with entity state for complete information
+            entity = await get_entity_state(entity_id, detailed=True)
+            config_data["entity"] = entity
+            return config_data
+    except Exception:  # nosec B110
+        # Config API not available, fall through to entity state
+        pass
+
+    # Fallback to entity state
+    return await get_entity_state(entity_id, detailed=True)
+
+
+@handle_api_errors
+async def run_script(script_id: str, variables: dict[str, Any] | None = None) -> dict[str, Any]:
+    """
+    Execute a script with optional variables
+
+    Args:
+        script_id: The script ID to execute (without 'script.' prefix)
+        variables: Optional dictionary of variables to pass to the script
+
+    Returns:
+        Response from the script execution
+
+    Examples:
+        # Run script without variables
+        result = await run_script("turn_on_lights")
+
+        # Run script with variables
+        result = await run_script("notify", {"message": "Hello", "target": "user1"})
+
+    Note:
+        Scripts execute asynchronously. The response indicates the script was started,
+        not necessarily that it completed.
+    """
+    data: dict[str, Any] = {}
+    if variables:
+        data["variables"] = variables
+
+    return await call_service("script", script_id, data)
+
+
+@handle_api_errors
+async def reload_scripts() -> dict[str, Any]:
+    """
+    Reload all scripts from configuration
+
+    Returns:
+        Response from the reload operation
+
+    Note:
+        Reloading scripts reloads all script configurations from YAML files.
+        This is useful after modifying script configuration files.
+    """
+    return await call_service("script", "reload", {})
+
+
+@handle_api_errors
+async def test_template(
+    template_string: str,
+    entity_context: dict[str, Any] | None = None,  # noqa: PT028
+) -> dict[str, Any]:
+    """
+    Test Jinja2 template rendering
+
+    Args:
+        template_string: The Jinja2 template string to test
+        entity_context: Optional dictionary of entity IDs to provide as context
+                         (e.g., {"entity_id": "light.living_room"})
+
+    Returns:
+        Dictionary containing:
+        - result: The rendered template result
+        - listeners: Entity listeners (if applicable)
+        - error: Error message if template rendering failed
+
+    Examples:
+        # Test a simple template
+        result = await test_template("{{ states('sensor.temperature') }}")
+
+        # Test with entity context
+        result = await test_template(
+            "{{ states('light.living_room') }}",
+            {"entity_id": "light.living_room"}
+        )
+
+    Note:
+        Template testing API might not be available in all Home Assistant versions.
+        If unavailable, returns a helpful error message.
+    """
+    client = await get_client()
+
+    payload: dict[str, Any] = {"template": template_string}
+    if entity_context:
+        payload["entity_id"] = entity_context
+
+    response = await client.post(
+        f"{HA_URL}/api/template",
+        headers=get_ha_headers(),
+        json=payload,
+    )
+
+    if response.status_code == 404:
+        # Template API might not be available
+        return {
+            "error": "Template testing API not available in this Home Assistant version",
+            "note": "Try using the script developer tools in Home Assistant UI",
+            "template": template_string,
+        }
+
+    response.raise_for_status()
+    return response.json()
+
+
+@handle_api_errors
 async def get_integrations(domain: str | None = None) -> list[dict[str, Any]]:
     """
     Get list of all configuration entries (integrations)

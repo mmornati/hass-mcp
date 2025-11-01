@@ -28,11 +28,16 @@ from app.hass import (
     get_hass_version,
     get_integration_config,
     get_integrations,
+    get_script_config,
+    get_scripts,
     get_system_health,
     get_system_overview,
     reload_integration,
+    reload_scripts,
     restart_home_assistant,
+    run_script,
     summarize_domain,
+    test_template,
     trigger_automation,
     update_automation,
     validate_automation_config,
@@ -1230,6 +1235,161 @@ async def validate_automation_config_tool(config: dict[str, Any]) -> dict[str, A
     """
     logger.info("Validating automation config")
     return await validate_automation_config(config)
+
+
+@mcp.tool()
+@async_handler("list_scripts")
+async def list_scripts_tool() -> list[dict[str, Any]]:
+    """
+    Get a list of all scripts in Home Assistant
+
+    Returns:
+        List of script dictionaries containing:
+        - entity_id: The script entity ID (e.g., 'script.turn_on_lights')
+        - state: Current state of the script
+        - friendly_name: Display name of the script
+        - alias: Script alias/name
+        - last_triggered: Timestamp of last execution (if available)
+
+    Examples:
+        Returns all scripts with their current state and metadata
+
+    Best Practices:
+        - Use this to discover available scripts before executing
+        - Check state to see if script is currently running
+        - Use last_triggered to see when script was last executed
+    """
+    logger.info("Getting list of scripts")
+    return await get_scripts()
+
+
+@mcp.tool()
+@async_handler("get_script")
+async def get_script_tool(script_id: str) -> dict[str, Any]:
+    """
+    Get script configuration and details
+
+    Args:
+        script_id: The script ID to get (without 'script.' prefix)
+
+    Returns:
+        Script configuration dictionary with:
+        - entity_id: The script entity ID
+        - state: Current state
+        - attributes: Script attributes including configuration
+        - config: Script configuration if available via config API
+
+    Examples:
+        script_id="turn_on_lights" - get config for script with ID turn_on_lights
+
+    Note:
+        Script configuration might be available via config API or
+        only through entity state depending on Home Assistant version.
+
+    Best Practices:
+        - Use this to inspect what actions a script performs
+        - Check configuration before executing scripts
+    """
+    logger.info(f"Getting script config for: {script_id}")
+    return await get_script_config(script_id)
+
+
+@mcp.tool()
+@async_handler("run_script")
+async def run_script_tool(
+    script_id: str, variables: dict[str, Any] | None = None
+) -> dict[str, Any]:
+    """
+    Execute a script with optional variables
+
+    Args:
+        script_id: The script ID to execute (without 'script.' prefix)
+        variables: Optional dictionary of variables to pass to the script
+
+    Returns:
+        Response from the script execution
+
+    Examples:
+        script_id="turn_on_lights" - execute script with ID turn_on_lights
+        script_id="notify", variables={"message": "Hello", "target": "user1"} - execute with variables
+
+    Note:
+        Scripts execute asynchronously. The response indicates the script was started,
+        not necessarily that it completed.
+
+    Best Practices:
+        - Get script config first to understand what variables are needed
+        - Check script state before executing
+        - Use variables to customize script behavior
+    """
+    logger.info(
+        f"Running script: {script_id}" + (f" with variables: {variables}" if variables else "")
+    )
+    return await run_script(script_id, variables)
+
+
+@mcp.tool()
+@async_handler("reload_scripts")
+async def reload_scripts_tool() -> dict[str, Any]:
+    """
+    Reload all scripts from configuration
+
+    Returns:
+        Response from the reload operation
+
+    Examples:
+        Reloads all script configurations after modifying YAML files
+
+    Note:
+        Reloading scripts reloads all script configurations from YAML files.
+        This is useful after modifying script configuration files.
+
+    Best Practices:
+        - Reload scripts after making configuration changes
+        - Use this after updating script YAML files
+    """
+    logger.info("Reloading scripts")
+    return await reload_scripts()
+
+
+@mcp.tool()
+@async_handler("test_template")
+async def test_template_tool(
+    template_string: str,
+    entity_context: dict[str, Any] | None = None,  # noqa: PT028
+) -> dict[str, Any]:
+    """
+    Test Jinja2 template rendering
+
+    Args:
+        template_string: The Jinja2 template string to test
+        entity_context: Optional dictionary of entity IDs to provide as context
+                         (e.g., {"entity_id": "light.living_room"})
+
+    Returns:
+        Dictionary containing:
+        - result: The rendered template result
+        - listeners: Entity listeners (if applicable)
+        - error: Error message if template rendering failed
+
+    Examples:
+        template_string="{{ states('sensor.temperature') }}" - test simple template
+        template_string="{{ states('light.living_room') }}", entity_context={"entity_id": "light.living_room"}
+
+    Note:
+        Template testing API might not be available in all Home Assistant versions.
+        If unavailable, returns a helpful error message.
+
+    Best Practices:
+        - Test templates before using them in automations or scripts
+        - Use entity_context to test templates with specific entity context
+        - Check for errors in the response
+    """
+    logger.info(
+        f"Testing template: {template_string[:50]}..."
+        + (f" with context: {entity_context}" if entity_context else "")
+    )
+    return await test_template(template_string, entity_context)
 
 
 @mcp.tool()
