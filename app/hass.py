@@ -57,6 +57,7 @@ from app.api.scripts import (
     reload_scripts,
     run_script,
 )
+from app.api.services import call_service
 from app.api.system import (
     get_core_config,
     get_hass_error_log,
@@ -65,6 +66,7 @@ from app.api.system import (
     get_system_overview,
     restart_home_assistant,
 )
+from app.api.templates import test_template
 from app.config import HA_URL, get_ha_headers
 from app.core import (
     get_client,
@@ -79,21 +81,8 @@ logger = logging.getLogger(__name__)
 # Re-export get_hass_version from api/system for backwards compatibility
 # All system functions have been moved to app/api/system.py
 
-
-@handle_api_errors
-async def call_service(
-    domain: str, service: str, data: dict[str, Any] | None = None
-) -> dict[str, Any]:
-    """Call a Home Assistant service"""
-    if data is None:
-        data = {}
-
-    client = await get_client()
-    response = await client.post(
-        f"{HA_URL}/api/services/{domain}/{service}", headers=get_ha_headers(), json=data
-    )
-    response.raise_for_status()
-    return response.json()
+# Re-export call_service from api/services for backwards compatibility
+# All service functions have been moved to app/api/services.py
 
 
 @handle_api_errors
@@ -163,7 +152,7 @@ async def summarize_domain(domain: str, example_limit: int = 3) -> dict[str, Any
         return {"error": f"Error generating domain summary: {str(e)}"}
 
 
-# Re-export automation, script, device, area, scene, integration, and system functions from api/ for backwards compatibility
+# Re-export automation, script, device, area, scene, integration, system, service, and template functions from api/ for backwards compatibility
 # All automation functions have been moved to app/api/automations.py
 # All script functions have been moved to app/api/scripts.py
 # All device functions have been moved to app/api/devices.py
@@ -171,6 +160,8 @@ async def summarize_domain(domain: str, example_limit: int = 3) -> dict[str, Any
 # All scene functions have been moved to app/api/scenes.py
 # All integration functions have been moved to app/api/integrations.py
 # All system functions have been moved to app/api/system.py
+# All service functions have been moved to app/api/services.py
+# All template functions have been moved to app/api/templates.py
 # These are imported at the top, so they're available in this module's namespace
 __all__ = [
     "create_automation",
@@ -212,68 +203,16 @@ __all__ = [
     "get_hass_error_log",
     "get_core_config",
     "restart_home_assistant",
+    "call_service",
+    "test_template",
 ]
 
 
 # Re-export restart_home_assistant from api/system for backwards compatibility
 # All system functions have been moved to app/api/system.py
 
-
-@handle_api_errors
-async def test_template(
-    template_string: str,
-    entity_context: dict[str, Any] | None = None,  # noqa: PT028
-) -> dict[str, Any]:
-    """
-    Test Jinja2 template rendering
-
-    Args:
-        template_string: The Jinja2 template string to test
-        entity_context: Optional dictionary of entity IDs to provide as context
-                         (e.g., {"entity_id": "light.living_room"})
-
-    Returns:
-        Dictionary containing:
-        - result: The rendered template result
-        - listeners: Entity listeners (if applicable)
-        - error: Error message if template rendering failed
-
-    Examples:
-        # Test a simple template
-        result = await test_template("{{ states('sensor.temperature') }}")
-
-        # Test with entity context
-        result = await test_template(
-            "{{ states('light.living_room') }}",
-            {"entity_id": "light.living_room"}
-        )
-
-    Note:
-        Template testing API might not be available in all Home Assistant versions.
-        If unavailable, returns a helpful error message.
-    """
-    client = await get_client()
-
-    payload: dict[str, Any] = {"template": template_string}
-    if entity_context:
-        payload["entity_id"] = entity_context
-
-    response = await client.post(
-        f"{HA_URL}/api/template",
-        headers=get_ha_headers(),
-        json=payload,
-    )
-
-    if response.status_code == 404:
-        # Template API might not be available
-        return {
-            "error": "Template testing API not available in this Home Assistant version",
-            "note": "Try using the script developer tools in Home Assistant UI",
-            "template": template_string,
-        }
-
-    response.raise_for_status()
-    return response.json()
+# Re-export test_template from api/templates for backwards compatibility
+# All template functions have been moved to app/api/templates.py
 
 
 @handle_api_errors

@@ -58,6 +58,7 @@ from app.api.scripts import (
     reload_scripts,
     run_script,
 )
+from app.api.services import call_service
 from app.api.system import (
     get_core_config,
     get_hass_error_log,
@@ -66,6 +67,7 @@ from app.api.system import (
     get_system_overview,
     restart_home_assistant,
 )
+from app.api.templates import test_template
 
 __all__ = [
     "BaseAPI",
@@ -113,4 +115,6 @@ __all__ = [
     "get_hass_error_log",
     "get_core_config",
     "restart_home_assistant",
+    "call_service",
+    "test_template",
 ]

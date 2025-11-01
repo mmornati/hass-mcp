@@ -9,6 +9,52 @@ import pytest
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 
+def pytest_collection_modifyitems(config, items):
+    """Filter out test items from application code (not test files)."""
+    filtered_items = []
+    for item in items:
+        # Skip test_template function - it's an application function, not a test
+        # When imported into test files, pytest tries to collect it as a test
+        if hasattr(item, "name") and item.name == "test_template":
+            # Check if this is actually the function from app/api/templates.py
+            # by checking the item's location
+            try:
+                if hasattr(item, "location"):
+                    location = item.location
+                    if location and len(location) > 0:
+                        file_path = location[0]
+                        # Skip if it's from the templates module
+                        if "app/api/templates.py" in file_path or (
+                            "templates.py" in file_path and "/app/" in file_path
+                        ):
+                            continue
+            except Exception:
+                # If we can't determine location, skip if nodeid suggests it's from app/
+                if hasattr(item, "nodeid"):
+                    nodeid = str(item.nodeid)
+                    # Skip if nodeid doesn't match a real test pattern
+                    # (all real tests are test_test_template_*)
+                    if "test_template" in nodeid and "test_test_template" not in nodeid:
+                        # Check if it's actually from app/ modules
+                        if "app/api/templates" in nodeid or (
+                            "test_api_templates" in nodeid and "::test_template" in nodeid
+                        ):
+                            continue
+
+        # Skip functions from app/ directory that aren't in test files
+        item_path = None
+        if hasattr(item, "fspath"):
+            item_path = str(item.fspath)
+        elif hasattr(item, "path"):
+            item_path = str(item.path)
+
+        if item_path and "/app/" in item_path and "/tests/" not in item_path:
+            continue
+
+        filtered_items.append(item)
+    items[:] = filtered_items
+
+
 # Mock environment variables before imports
 @pytest.fixture(autouse=True)
 def mock_env_vars():
@@ -54,6 +100,8 @@ def mock_get_client(mock_httpx_client):
         patch("app.api.scenes.get_client", return_value=mock_httpx_client),
         patch("app.api.integrations.get_client", return_value=mock_httpx_client),
         patch("app.api.system.get_client", return_value=mock_httpx_client),
+        patch("app.api.services.get_client", return_value=mock_httpx_client),
+        patch("app.api.templates.get_client", return_value=mock_httpx_client),
     ):
         yield mock_httpx_client
 

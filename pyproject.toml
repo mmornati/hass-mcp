@@ -41,6 +41,7 @@ testpaths = ["tests"]
 python_files = "test_*.py"
 python_classes = "Test*"
 python_functions = "test_*"
+norecursedirs = ["app", ".git", ".venv", "venv", "build", "dist"]
 log_cli = true
 log_cli_level = "INFO"
 markers = [
