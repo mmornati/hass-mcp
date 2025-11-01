@@ -628,6 +628,16 @@ The project uses GitHub Actions for CI/CD validation:
 
 All workflows must pass before merging pull requests.
 
+### GitHub Pages Configuration
+
+If documentation deployment fails with "Getting signed artifact URL failed" errors, ensure GitHub Pages is properly configured:
+
+1. **Enable GitHub Pages**: Go to Settings → Pages → Source → Select "GitHub Actions"
+2. **Create Environment**: Go to Settings → Environments → Create `github-pages` environment
+3. **Verify Permissions**: Ensure workflow has `pages: write` and `id-token: write` permissions
+
+See `docs/GITHUB_PAGES_SETUP.md` for detailed setup instructions.
+
 ### Adding New Features
 
 When adding new features to Hass-MCP:
