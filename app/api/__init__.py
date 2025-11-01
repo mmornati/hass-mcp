@@ -40,6 +40,13 @@ from app.api.entities import (
     get_entity_history,
     get_entity_state,
 )
+from app.api.scenes import (
+    activate_scene,
+    create_scene,
+    get_scene_config,
+    get_scenes,
+    reload_scenes,
+)
 from app.api.scripts import (
     get_script_config,
     get_scripts,
@@ -79,4 +86,9 @@ __all__ = [
     "update_area",
     "delete_area",
     "get_area_summary",
+    "get_scenes",
+    "get_scene_config",
+    "create_scene",
+    "activate_scene",
+    "reload_scenes",
 ]
