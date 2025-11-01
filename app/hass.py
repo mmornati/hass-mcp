@@ -10,8 +10,16 @@ import httpx
 
 from app.api.automations import (
     create_automation,
+    delete_automation,
+    disable_automation,
+    enable_automation,
     get_automation_config,
+    get_automation_execution_log,
     get_automations,
+    reload_automations,
+    trigger_automation,
+    update_automation,
+    validate_automation_config,
 )
 from app.api.entities import (
     filter_fields,
@@ -126,6 +134,20 @@ async def summarize_domain(domain: str, example_limit: int = 3) -> dict[str, Any
 
 # Re-export automation functions from api/automations for backwards compatibility
 # All automation functions have been moved to app/api/automations.py
+# These are imported at the top, so they're available in this module's namespace
+__all__ = [
+    "create_automation",
+    "delete_automation",
+    "disable_automation",
+    "enable_automation",
+    "get_automation_config",
+    "get_automation_execution_log",
+    "get_automations",
+    "reload_automations",
+    "trigger_automation",
+    "update_automation",
+    "validate_automation_config",
+]
 
 
 @handle_api_errors
@@ -1239,7 +1261,7 @@ async def find_automation_conflicts() -> dict[str, Any]:
                     "type": "opposing_actions",
                     "automations": conflicting_automations,
                     "description": f"Multiple automations control {eid} with opposing actions",
-            }
+                }
             )
 
     return conflicts

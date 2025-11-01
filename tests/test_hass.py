@@ -159,7 +159,10 @@ class TestHassAPI:
             with patch("app.config.HA_URL", mock_config["hass_url"]):
                 # For get_automations we need to mock the get_entities function
                 # Since get_automations uses app.api.entities.get_entities, we patch that
-                with patch("app.api.automations.get_entities", AsyncMock(return_value=mock_automation_states)):
+                with patch(
+                    "app.api.automations.get_entities",
+                    AsyncMock(return_value=mock_automation_states),
+                ):
                     # Test function
                     automations = await get_automations()
 
