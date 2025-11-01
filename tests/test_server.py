@@ -263,7 +263,14 @@ class TestMCPServer:
             "common_attributes": [("friendly_name", 2), ("brightness", 1)],
         }
 
-        with patch("app.server.summarize_domain", return_value=mock_summary) as mock_summarize:
+        with (
+            patch(
+                "app.tools.system.summarize_domain",
+                new_callable=AsyncMock,
+                return_value=mock_summary,
+            ) as mock_summarize,
+            patch("app.hass.summarize_domain", new_callable=AsyncMock, return_value=mock_summary),
+        ):
             # Test the function
             result = await domain_summary_tool(domain="light", example_limit=3)
 
@@ -335,7 +342,11 @@ class TestMCPServer:
             "recorder": {"healthy": True},
         }
 
-        with patch("app.server.get_system_health", return_value=mock_health_data) as mock_get:
+        with patch(
+            "app.tools.system.get_system_health",
+            new_callable=AsyncMock,
+            return_value=mock_health_data,
+        ) as mock_get:
             # Test the function
             result = await system_health()
 
@@ -369,7 +380,11 @@ class TestMCPServer:
             "longitude": -74.0060,
         }
 
-        with patch("app.server.get_core_config", return_value=mock_config_data) as mock_get:
+        with patch(
+            "app.tools.system.get_core_config",
+            new_callable=AsyncMock,
+            return_value=mock_config_data,
+        ) as mock_get:
             # Test the function
             result = await core_config()
 
