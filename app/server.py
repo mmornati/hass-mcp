@@ -16,6 +16,7 @@ from app.hass import (
     activate_scene,
     call_service,
     create_area,
+    create_automation_from_blueprint,
     create_scene,
     delete_area,
     delete_automation,
@@ -31,6 +32,8 @@ from app.hass import (
     get_automation_config,
     get_automation_execution_log,
     get_automations,
+    get_blueprint_definition,
+    get_blueprints,
     get_core_config,
     get_device_details,
     get_device_entities,
@@ -49,6 +52,7 @@ from app.hass import (
     get_scripts,
     get_system_health,
     get_system_overview,
+    import_blueprint_from_url,
     reload_integration,
     reload_scenes,
     reload_scripts,
@@ -2062,6 +2066,132 @@ async def reload_integration_tool(entry_id: str) -> dict[str, Any]:
     """
     logger.info(f"Reloading integration: {entry_id}")
     return await reload_integration(entry_id)
+
+
+@mcp.tool()
+@async_handler("list_blueprints")
+async def list_blueprints_tool(domain: str | None = None) -> list[dict[str, Any]]:
+    """
+    Get a list of all available blueprints, optionally filtered by domain
+
+    Args:
+        domain: Optional domain to filter blueprints by (e.g., 'automation')
+
+    Returns:
+        List of blueprint dictionaries containing:
+        - path: Blueprint path
+        - domain: Blueprint domain
+        - name: Blueprint name
+        - metadata: Blueprint metadata
+
+    Examples:
+        domain=None - get all blueprints
+        domain="automation" - get only automation blueprints
+
+    Best Practices:
+        - Use domain filter to find blueprints for specific use cases
+        - Check blueprint metadata to understand what inputs are required
+        - Use get_blueprint to get full blueprint definition before using
+    """
+    logger.info("Getting blueprints" + (f" for domain: {domain}" if domain else ""))
+    return await get_blueprints(domain)
+
+
+@mcp.tool()
+@async_handler("get_blueprint")
+async def get_blueprint_tool(blueprint_id: str, domain: str | None = None) -> dict[str, Any]:
+    """
+    Get blueprint definition and metadata
+
+    Args:
+        blueprint_id: The blueprint ID to get (may include domain and path)
+        domain: Optional domain for the blueprint (e.g., 'automation')
+
+    Returns:
+        Blueprint definition dictionary with:
+        - path: Blueprint path
+        - domain: Blueprint domain
+        - name: Blueprint name
+        - metadata: Blueprint metadata including inputs, description
+        - definition: Blueprint YAML definition
+
+    Examples:
+        blueprint_id="motion_light", domain="automation" - get automation blueprint
+        blueprint_id="automation/motion_light" - get blueprint with full path
+
+    Best Practices:
+        - Use this to inspect blueprint inputs before creating automation
+        - Check metadata to understand what the blueprint does
+        - Review definition to understand blueprint structure
+    """
+    logger.info(f"Getting blueprint: {blueprint_id}" + (f" for domain: {domain}" if domain else ""))
+    return await get_blueprint_definition(blueprint_id, domain)
+
+
+@mcp.tool()
+@async_handler("import_blueprint")
+async def import_blueprint_tool(url: str) -> dict[str, Any]:
+    """
+    Import blueprint from URL
+
+    Args:
+        url: The URL to import the blueprint from
+
+    Returns:
+        Response dictionary containing imported blueprint information
+
+    Examples:
+        url="https://www.home-assistant.io/blueprints/..." - import from community
+        url="https://github.com/user/repo/blob/main/blueprint.yaml" - import from GitHub
+
+    Note:
+        This imports a blueprint from a community URL or external source.
+        The URL is automatically URL-encoded when making the API request.
+
+    Best Practices:
+        - Use community blueprint URLs from Home Assistant documentation
+        - Verify blueprint source before importing
+        - Check blueprint definition after import before using
+    """
+    logger.info(f"Importing blueprint from URL: {url}")
+    return await import_blueprint_from_url(url)
+
+
+@mcp.tool()
+@async_handler("create_automation_from_blueprint")
+async def create_automation_from_blueprint_tool(
+    blueprint_id: str, inputs: dict[str, Any], domain: str | None = None
+) -> dict[str, Any]:
+    """
+    Create automation from blueprint with specified inputs
+
+    Args:
+        blueprint_id: The blueprint ID to use (may include domain and path)
+        inputs: Dictionary of input values for the blueprint (must match blueprint input schema)
+        domain: Optional domain for the blueprint (e.g., 'automation')
+
+    Returns:
+        Response from the automation creation operation
+
+    Examples:
+        blueprint_id="motion_light", domain="automation", inputs={
+            "motion_entity": "binary_sensor.motion",
+            "light_entity": "light.living_room",
+            "delay": "00:00:05"
+        }
+
+    Note:
+        This creates a new automation using a blueprint as a template.
+        The inputs dictionary must match the blueprint's input schema.
+        An automation ID will be automatically generated if not provided in inputs.
+
+    Best Practices:
+        - Get blueprint definition first to see required inputs
+        - Validate inputs match blueprint schema
+        - Use descriptive automation_id in inputs for better organization
+    """
+    logger.info(f"Creating automation from blueprint: {blueprint_id}")
+    return await create_automation_from_blueprint(blueprint_id, inputs, domain)
 
 
 # Prompt functionality
