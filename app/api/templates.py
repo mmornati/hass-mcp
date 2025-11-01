@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 @handle_api_errors
-async def test_template(
+async def test_template(  # noqa: PT001 (function name not matching pytest naming convention)
     template_string: str,
     entity_context: dict[str, Any] | None = None,  # noqa: PT028
 ) -> dict[str, Any]:

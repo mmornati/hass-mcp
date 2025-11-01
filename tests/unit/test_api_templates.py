@@ -4,6 +4,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+# Import the function with a different name to avoid pytest collection issues
+from app.api.templates import test_template as render_template  # noqa: F401
 from app.api.templates import test_template
 
 
