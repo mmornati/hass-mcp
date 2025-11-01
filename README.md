@@ -283,11 +283,22 @@ Hass-MCP provides the following resource endpoints:
 
 ## Development
 
+Hass-MCP has undergone a comprehensive refactoring to improve maintainability, testability, and extensibility. The project now features a modular architecture with clear separation of concerns.
+
+### Architecture Overview
+
+The project is organized into three main layers:
+
+1. **Core Layer** (`app/core/`): Shared infrastructure (HTTP client, decorators, error handling, types)
+2. **API Layer** (`app/api/`): Business logic for interacting with Home Assistant (entities, automations, system, etc.)
+3. **Tools Layer** (`app/tools/`): Thin MCP tool wrappers that register with the MCP server
+
 ### Prerequisites
 
 - Python 3.13+
 - [uv](https://github.com/astral-sh/uv) package manager
 - Git
+- Home Assistant instance (for testing)
 
 ### Setup Development Environment
 
@@ -319,6 +330,12 @@ Hass-MCP provides the following resource endpoints:
    make setup
    ```
 
+4. **Configure environment variables:**
+   ```bash
+   export HA_URL="http://localhost:8123"
+   export HA_TOKEN="your_long_lived_token"
+   ```
+
 ### Development Tools
 
 The project uses several tools to ensure code quality:
@@ -346,10 +363,146 @@ uv run pytest tests/ --cov=app --cov-report=html
 uv run pytest tests/test_server.py
 ```
 
+**Run integration tests:**
+```bash
+uv run pytest tests/integration/
+```
+
+**Run unit tests:**
+```bash
+uv run pytest tests/unit/
+```
+
 **Run tests with verbose output:**
 ```bash
 uv run pytest tests/ -v
 ```
+
+### Debugging with MCP Inspector
+
+The [MCP Inspector](https://modelcontextprotocol.io/docs/tools/inspector) is an interactive developer tool for testing and debugging MCP servers. It provides a web-based interface to interact with your MCP server and test tools, prompts, and resources.
+
+#### Installation
+
+The MCP Inspector runs directly through `npx` without requiring installation:
+
+```bash
+npx @modelcontextprotocol/inspector <command>
+```
+
+#### Basic Usage
+
+**For locally developed servers (Python):**
+
+```bash
+# Using uv
+npx @modelcontextprotocol/inspector uv run -m app
+
+# Or with environment variables
+HA_URL=http://localhost:8123 HA_TOKEN=your_token \
+  npx @modelcontextprotocol/inspector uv run -m app
+```
+
+**Using uvx (if published to PyPI):**
+
+```bash
+npx @modelcontextprotocol/inspector uvx -m hass-mcp
+```
+
+**With Docker:**
+
+```bash
+npx @modelcontextprotocol/inspector docker run -i --rm \
+  -e HA_URL=http://homeassistant.local:8123 \
+  -e HA_TOKEN=your_token \
+  mmornati/hass-mcp:latest
+```
+
+#### Inspector Features
+
+The MCP Inspector provides several features for debugging your server:
+
+1. **Server Connection Pane**
+   - Select transport for connecting to the server
+   - Customize command-line arguments and environment variables
+   - Configure connection settings
+
+2. **Tools Tab**
+   - Lists all 86+ available tools
+   - Shows tool schemas and descriptions
+   - Enables tool testing with custom inputs
+   - Displays tool execution results
+   - Useful for verifying tool parameters and responses
+
+3. **Prompts Tab**
+   - Displays available prompt templates
+   - Shows prompt arguments and descriptions
+   - Enables prompt testing with custom arguments
+   - Previews generated messages
+   - Tests guided conversation flows
+
+4. **Resources Tab**
+   - Lists all available resources
+   - Shows resource metadata (MIME types, descriptions)
+   - Allows resource content inspection
+   - Supports subscription testing
+
+5. **Notifications Pane**
+   - Presents all logs recorded from the server
+   - Shows notifications received from the server
+   - Useful for debugging and monitoring
+
+#### Development Workflow with Inspector
+
+1. **Start Development:**
+   ```bash
+   # Terminal 1: Start the MCP Inspector
+   npx @modelcontextprotocol/inspector uv run -m app
+
+   # The Inspector will open in your browser
+   # Configure environment variables in the Inspector UI
+   ```
+
+2. **Test Tools:**
+   - Navigate to the **Tools** tab
+   - Select a tool (e.g., `get_entity`)
+   - Enter test parameters (e.g., `entity_id: "light.living_room"`)
+   - Execute and review results
+
+3. **Test Prompts:**
+   - Navigate to the **Prompts** tab
+   - Select a prompt (e.g., `create_automation`)
+   - Test with different arguments
+   - Preview generated messages
+
+4. **Monitor Logs:**
+   - Check the **Notifications** pane
+   - Review server logs
+   - Debug connection issues
+
+#### Debugging Tips
+
+- **Connection Issues**: Verify `HA_URL` and `HA_TOKEN` are set correctly in the Inspector's environment configuration
+- **Tool Failures**: Check the Notifications pane for error messages
+- **Parameter Validation**: Use the Tools tab to test parameter combinations
+- **Response Validation**: Verify tool responses match expected formats
+
+#### Example: Testing a Tool
+
+1. Open MCP Inspector
+2. Go to **Tools** tab
+3. Select `get_entity` tool
+4. Enter parameters:
+   ```json
+   {
+     "entity_id": "light.living_room",
+     "detailed": false
+   }
+   ```
+5. Click **Execute**
+6. Review results and verify response structure
+
+This allows you to test tools independently without needing Claude Desktop or other MCP clients.
 
 ### Quick Start with Make
 
@@ -444,6 +597,7 @@ The project uses GitHub Actions for CI/CD validation:
    - Runs on: push, pull_request
    - Executes: Test suite with coverage
    - Uploads: Coverage reports as artifacts
+   - Validates: All unit and integration tests pass
 
 2. **Validate Workflow** (`.github/workflows/validate.yml`)
    - Runs on: push, pull_request
@@ -451,7 +605,7 @@ The project uses GitHub Actions for CI/CD validation:
      - **Lint**: Ruff linting and format checking
      - **Type Check**: MyPy type validation
      - **Security**: Bandit security scanning
-     - **Coverage**: Test coverage reporting
+     - **Coverage**: Test coverage reporting (target: 80%+)
      - **Pre-commit**: All pre-commit hooks
 
 3. **Release Workflow** (`.github/workflows/release.yml`)
@@ -460,8 +614,73 @@ The project uses GitHub Actions for CI/CD validation:
 
 4. **Docker Workflow** (`.github/workflows/docker.yml`)
    - Builds Docker image for testing
+   - Validates: Docker image can run successfully
+
+5. **Documentation Deployment** (`.github/workflows/docs-deploy.yml`)
+   - Runs on: push to main (docs changes)
+   - Deploys: Documentation to GitHub Pages
+   - Updates: Documentation automatically on changes
+
+6. **Documentation Preview** (`.github/workflows/docs-preview.yml`)
+   - Runs on: pull requests (docs changes)
+   - Provides: Preview links for documentation changes
+   - Comments: PRs with preview URLs
 
 All workflows must pass before merging pull requests.
+
+### Adding New Features
+
+When adding new features to Hass-MCP:
+
+1. **Create API Module** (`app/api/{domain}.py`):
+   - Inherit from `BaseAPI` for common patterns
+   - Implement business logic
+   - Add error handling
+   - Add unit tests
+
+2. **Create Tools Module** (`app/tools/{domain}.py`):
+   - Create thin wrappers around API functions
+   - Add MCP tool registration in `server.py`
+   - Add integration tests
+
+3. **Add Documentation**:
+   - Add user documentation in `docs/{domain}.md`
+   - Update `mkdocs.yml` navigation
+   - Add examples and use cases
+
+4. **Test with MCP Inspector**:
+   ```bash
+   npx @modelcontextprotocol/inspector uv run -m app
+   ```
+   - Verify tools appear correctly
+   - Test tool parameters
+   - Verify responses
+
+5. **Update README**:
+   - Add new tools to the "Available Tools" section
+   - Update project structure if needed
+
+### Recent Improvements
+
+#### Major Refactoring (Completed)
+
+The project has undergone a comprehensive refactoring to improve maintainability and testability:
+
+#### ✅ Completed Phases
+
+- **Phase 1: Core Infrastructure** - Extracted shared infrastructure (HTTP client, decorators, error handling)
+- **Phase 2: API Layer** - Modularized all Home Assistant API interactions into domain-specific modules
+- **Phase 3: Tools Layer** - Extracted MCP tools into separate modules
+- **Phase 4: New Features** - Added support for calendars, helpers, tags, webhooks, backups
+- **Phase 5: Legacy Cleanup** - Removed deprecated `hass.py` module
+
+#### 🎯 Benefits
+
+- **86+ tools** organized across 20+ tool categories
+- **Modular architecture** with clear separation of concerns
+- **Comprehensive test coverage** with unit and integration tests
+- **Better maintainability** with domain-specific modules
+- **Easier extensibility** following established patterns
 
 ### Development Guidelines
 
@@ -477,10 +696,37 @@ All workflows must pass before merging pull requests.
 
 All functions should have type hints:
 ```python
-async def get_entity(entity_id: str, fields: Optional[List[str]] = None) -> dict:
+async def get_entity(entity_id: str, fields: list[str] | None = None) -> dict:
     """Get entity state with optional field filtering."""
     ...
 ```
+
+#### Architecture Patterns
+
+When adding new features, follow these patterns:
+
+1. **API Module** (`app/api/{domain}.py`):
+   ```python
+   from app.api.base import BaseAPI
+
+   class DomainAPI(BaseAPI):
+       async def get_domain_entities(self, ...):
+           # Business logic here
+   ```
+
+2. **Tools Module** (`app/tools/{domain}.py`):
+   ```python
+   from app.api.domain import DomainAPI
+
+   async def get_domain_tool(...):
+       # Thin wrapper calling API
+       return await DomainAPI().get_domain_entities(...)
+   ```
+
+3. **Server Registration** (`app/server.py`):
+   ```python
+   mcp.tool()(async_handler("get_domain")(tools.domain.get_domain_tool))
+   ```
 
 #### Testing
 
@@ -489,6 +735,11 @@ async def get_entity(entity_id: str, fields: Optional[List[str]] = None) -> dict
 - Use descriptive test names
 - Test both success and error cases
 - Mock external API calls in tests
+- Add integration tests for new tools
+
+**Test Structure:**
+- **Unit tests** (`tests/unit/`): Test API modules in isolation
+- **Integration tests** (`tests/integration/`): Test complete tool workflows
 
 #### Commit Messages
 
@@ -507,30 +758,154 @@ Before creating a PR:
 1. Ensure all tests pass: `uv run pytest tests/`
 2. Run code quality checks: `uv run pre-commit run --all-files`
 3. Update documentation if needed
-4. Add tests for new features
+4. Add tests for new features (unit + integration)
 5. Ensure CI workflows pass
+6. Test with MCP Inspector (if adding new tools)
+7. Update `docs/` if adding user-facing features
 
 ### Project Structure
 
+The project follows a modular architecture with clear separation of concerns:
+
 ```
 hass-mcp/
-├── app/                # Main application code
-│   ├── __main__.py     # Entry point
-│   ├── config.py       # Configuration management
-│   ├── hass.py         # Home Assistant API client
-│   ├── run.py          # Server runner
-│   └── server.py       # MCP server implementation
-├── tests/              # Test suite
-│   ├── conftest.py     # Pytest configuration
-│   ├── test_config.py  # Config tests
-│   ├── test_hass.py    # API client tests
-│   └── test_server.py  # Server tests
+├── app/                      # Main application code
+│   ├── __main__.py           # Entry point
+│   ├── config.py             # Configuration management
+│   ├── run.py                # Server runner
+│   ├── server.py             # MCP server orchestration (~800 lines)
+│   ├── prompts.py            # Guided conversation prompts
+│   │
+│   ├── core/                 # Core infrastructure layer
+│   │   ├── __init__.py
+│   │   ├── client.py         # HTTP client management
+│   │   ├── decorators.py     # Async handlers, error decorators
+│   │   ├── errors.py         # Error handling utilities
+│   │   └── types.py          # Shared type definitions
+│   │
+│   ├── api/                  # API layer (business logic)
+│   │   ├── __init__.py
+│   │   ├── base.py           # BaseAPI class for common patterns
+│   │   ├── entities.py       # Entity management (get, list, search)
+│   │   ├── automations.py    # Automation CRUD & execution
+│   │   ├── scripts.py        # Script management
+│   │   ├── devices.py        # Device management
+│   │   ├── areas.py          # Area management
+│   │   ├── scenes.py         # Scene management
+│   │   ├── integrations.py   # Integration management
+│   │   ├── system.py         # System functions (version, health, config)
+│   │   ├── services.py       # Service calls
+│   │   ├── templates.py      # Template testing
+│   │   ├── logbook.py        # Logbook access
+│   │   ├── statistics.py     # Statistics & analytics
+│   │   ├── diagnostics.py    # Debugging tools
+│   │   ├── blueprints.py     # Blueprint management
+│   │   ├── zones.py          # Zone management
+│   │   ├── events.py         # Event firing
+│   │   ├── notifications.py  # Notification services
+│   │   ├── calendars.py     # Calendar & event management
+│   │   ├── helpers.py        # Input helpers (booleans, numbers, etc.)
+│   │   ├── tags.py           # RFID/NFC tag management
+│   │   ├── webhooks.py       # Webhook management
+│   │   └── backups.py        # Backup & restore (Supervisor API)
+│   │
+│   └── tools/                # MCP Tool layer (thin wrappers)
+│       ├── __init__.py
+│       ├── entities.py       # Entity MCP tools
+│       ├── automations.py    # Automation MCP tools
+│       ├── scripts.py        # Script MCP tools
+│       ├── devices.py        # Device MCP tools
+│       ├── areas.py          # Area MCP tools
+│       ├── scenes.py         # Scene MCP tools
+│       ├── integrations.py   # Integration MCP tools
+│       ├── system.py         # System MCP tools
+│       ├── services.py       # Service MCP tools
+│       ├── templates.py      # Template MCP tools
+│       ├── logbook.py        # Logbook MCP tools
+│       ├── statistics.py    # Statistics MCP tools
+│       ├── diagnostics.py   # Diagnostics MCP tools
+│       ├── blueprints.py     # Blueprint MCP tools
+│       ├── zones.py          # Zone MCP tools
+│       ├── events.py         # Event MCP tools
+│       ├── notifications.py  # Notification MCP tools
+│       ├── calendars.py     # Calendar MCP tools
+│       ├── helpers.py        # Helper MCP tools
+│       ├── tags.py           # Tag MCP tools
+│       ├── webhooks.py       # Webhook MCP tools
+│       └── backups.py        # Backup MCP tools
+│
+├── tests/                    # Test suite
+│   ├── conftest.py           # Pytest configuration & fixtures
+│   ├── test_config.py        # Configuration tests
+│   ├── test_server.py        # Server tests
+│   ├── test_hass.py          # Legacy API tests (maintained for compatibility)
+│   │
+│   ├── unit/                 # Unit tests for API layer
+│   │   ├── test_api_entities.py
+│   │   ├── test_api_automations.py
+│   │   ├── test_api_areas.py
+│   │   ├── test_api_scenes.py
+│   │   ├── test_api_calendars.py
+│   │   ├── test_api_helpers.py
+│   │   ├── test_api_tags.py
+│   │   ├── test_api_webhooks.py
+│   │   ├── test_api_backups.py
+│   │   └── ...               # Tests for all API modules
+│   │
+│   └── integration/          # Integration tests
+│       ├── test_mcp_server_integration.py  # Comprehensive MCP server tests
+│       └── test_tools_entities.py          # Entity tools integration tests
+│
+├── docs/                     # User documentation (MkDocs)
+│   ├── index.md              # Documentation home
+│   ├── getting-started.md    # Setup guide
+│   ├── configuration.md      # Configuration options
+│   ├── entities.md            # Entities tools documentation
+│   ├── automations.md        # Automations tools documentation
+│   └── ...                   # Documentation for all tool categories
+│
 ├── .github/
-│   └── workflows/      # GitHub Actions workflows
-├── .pre-commit-config.yaml  # Pre-commit hooks config
-├── pyproject.toml      # Project configuration
-└── README.md          # This file
+│   └── workflows/             # GitHub Actions workflows
+│       ├── test.yml          # Test workflow
+│       ├── validate.yml      # Code quality validation
+│       ├── release.yml       # Release workflow
+│       ├── docker.yml        # Docker build workflow
+│       ├── docs-deploy.yml   # Documentation deployment
+│       └── docs-preview.yml  # Documentation preview
+│
+├── scripts/                  # Utility scripts
+│   ├── setup-dev.sh          # Development environment setup
+│   └── check-and-fix-ci.sh   # CI/CD validation script
+│
+├── .pre-commit-config.yaml   # Pre-commit hooks configuration
+├── mkdocs.yml                # MkDocs configuration
+├── pyproject.toml            # Project configuration & dependencies
+├── Makefile                  # Development convenience commands
+├── Dockerfile                # Docker image definition
+├── REFACTORING_GUIDE.md      # Detailed refactoring documentation
+└── README.md                 # This file
 ```
+
+### Architecture Principles
+
+1. **Separation of Concerns**:
+   - **Core**: Infrastructure and shared utilities
+   - **API**: Business logic for Home Assistant interactions
+   - **Tools**: MCP tool registration (thin wrappers)
+
+2. **Testability**:
+   - Unit tests for each API module
+   - Integration tests for tool functionality
+   - Comprehensive test coverage (>80%)
+
+3. **Extensibility**:
+   - New features can be added by creating API modules and corresponding tools
+   - Follows established patterns for consistency
+
+4. **Maintainability**:
+   - Modular structure makes it easy to locate and modify code
+   - Clear naming conventions
+   - Comprehensive documentation
 
 ### Troubleshooting
 
@@ -561,7 +936,30 @@ uv run pytest tests/ -s
 
 # Run specific test
 uv run pytest tests/test_server.py::TestMCPServer::test_tool_functions_exist
+
+# Run only integration tests
+uv run pytest tests/integration/ -v
+
+# Run only unit tests
+uv run pytest tests/unit/ -v
 ```
+
+**MCP Inspector connection issues:**
+```bash
+# Verify environment variables are set
+echo $HA_URL
+echo $HA_TOKEN
+
+# Test server directly
+uv run python -m app
+
+# Check server logs in Inspector's Notifications pane
+```
+
+**Import errors after refactoring:**
+- Ensure you're importing from new modules (`app.api.*`, `app.tools.*`)
+- Legacy `app.hass` module has been removed
+- Check `app/server.py` for correct import paths
 
 ## License
 

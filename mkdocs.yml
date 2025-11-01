@@ -1,0 +1,88 @@
+site_name: Hass-MCP Documentation
+site_description: Comprehensive documentation for the Home Assistant Model Context Protocol server
+site_url: https://mmornati.github.io/hass-mcp
+site_author: Hass-MCP Contributors
+
+repo_name: mmornati/hass-mcp
+repo_url: https://github.com/mmornati/hass-mcp
+edit_uri: edit/main/docs/
+
+theme:
+  name: material
+  palette:
+    - scheme: default
+      primary: blue
+      accent: blue
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: blue
+      accent: blue
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.code.annotate
+  icon:
+    repo: fontawesome/brands/github
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          # format: !!python/name:pymdownx.superfences.fence_code_format
+  - admonition
+  - pymdownx.details
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - attr_list
+  - md_in_html
+
+nav:
+  - Home: index.md
+  - Getting Started:
+    - Installation: getting-started.md
+    - Configuration: configuration.md
+  - Tools:
+    - Entities: entities.md
+    - Automations: automations.md
+    - Devices & Areas: devices-areas.md
+    - Scenes & Scripts: scenes-scripts.md
+    - System Management: system.md
+    - Services: services.md
+    - Statistics & Diagnostics: statistics-diagnostics.md
+    - Integrations: integrations.md
+    - Helpers: helpers.md
+    - Calendars: calendars.md
+    - Notifications: notifications.md
+    - Webhooks: webhooks.md
+    - Tags: tags.md
+    - Backups: backups.md
+    - Blueprints: blueprints.md
+    - Zones: zones.md
+    - Events: events.md
+    - Logbook: logbook.md
+    - Templates: templates.md
+  - Advanced:
+    - Prompts: prompts.md
+    - Best Practices: best-practices.md
+    - Troubleshooting: troubleshooting.md
+
+plugins:
+  - search
+  - git-revision-date-localized:
+      enable_creation_date: true
