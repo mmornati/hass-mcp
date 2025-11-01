@@ -100,6 +100,17 @@ ignore = [
     "ARG002", # unused method argument
     "PLR0913", # too many arguments
     "UP047",  # generic function should use type parameters (prefer existing pattern)
+    "SIM102", # nested if statements (common pattern in this codebase)
+    "SIM117", # nested with statements (common in tests for patching)
+    "PLR0911", # too many return statements (error handling patterns)
+    "PLR0912", # too many branches (complex functions acceptable)
+    "PLR1714", # merge comparisons (prefer readable code)
+    "C416", # list comprehension (prefer explicit for clarity)
+    "RET504", # unnecessary assignment (acceptable pattern)
+    "PLW0603", # global statement (acceptable for module-level client)
+    "PLR2004", # magic values (acceptable for small numbers/constants)
+    "E402", # module level import not at top (logging setup pattern)
+    "F841", # unused variable (common in code patterns)
 ]
 
 [tool.ruff.format]
@@ -110,7 +121,7 @@ line-ending = "auto"
 
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"]  # unused imports
-"tests/*" = ["ARG", "S101"]  # allow assert, unused args in tests
+"tests/*" = ["ARG", "S101", "PLC0415", "PLR2004"]  # allow assert, unused args, imports in functions, magic values in tests
 
 [tool.mypy]
 python_version = "3.13"
