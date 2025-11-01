@@ -245,6 +245,10 @@ Hass-MCP provides several tools for interacting with Home Assistant:
 - `fire_event`: Fire a custom event
 - `list_event_types`: List common event types used in Home Assistant
 - `get_events`: Get recent events for an entity (via logbook)
+- `list_tags`: Get a list of all RFID/NFC tags in Home Assistant
+- `create_tag`: Create a new tag for NFC-based automations
+- `delete_tag`: Delete a tag
+- `get_tag_automations`: Get automations triggered by a tag
 
 ## Prompts for Guided Conversations
 
