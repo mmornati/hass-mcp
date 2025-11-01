@@ -25,6 +25,7 @@ from app.tools import (
     system,
     tags,
     templates,
+    webhooks,
     zones,
 )
 
@@ -48,5 +49,6 @@ __all__ = [
     "system",
     "tags",
     "templates",
+    "webhooks",
     "zones",
 ]

@@ -20,9 +20,7 @@ from app.hass import (
     get_backups,
     get_entities,
     get_entity_state,
-    get_webhooks,
     restore_backup,
-    test_webhook_endpoint,
 )
 
 mcp = FastMCP("Hass-MCP")
@@ -49,6 +47,7 @@ from app.tools import (
     system,
     tags,
     templates,
+    webhooks,
     zones,
 )  # noqa: E402
 
@@ -182,6 +181,10 @@ mcp.tool()(async_handler("create_tag")(tags.create_tag_tool))
 mcp.tool()(async_handler("delete_tag")(tags.delete_tag_tool))
 mcp.tool()(async_handler("get_tag_automations")(tags.get_tag_automations_tool))
 
+# Register webhooks tools with MCP instance
+mcp.tool()(async_handler("list_webhooks")(webhooks.list_webhooks_tool))
+mcp.tool()(async_handler("test_webhook")(webhooks.test_webhook_tool))
+
 # Re-export all tools for backward compatibility
 # This allows tests and other code to import them from app.server
 get_entity = entities.get_entity
@@ -264,6 +267,8 @@ list_tags_tool = tags.list_tags_tool
 create_tag_tool = tags.create_tag_tool
 delete_tag_tool = tags.delete_tag_tool
 get_tag_automations_tool = tags.get_tag_automations_tool
+list_webhooks_tool = webhooks.list_webhooks_tool
+test_webhook_tool = webhooks.test_webhook_tool
 
 
 # All tools are now in app.tools.* modules
@@ -776,82 +781,8 @@ async def list_states_by_domain_resource(domain: str) -> str:
 # Tag tools are now in app.tools.tags module
 # They are registered above after creating the mcp instance
 
-
-@mcp.tool()
-@async_handler("list_webhooks")
-async def list_webhooks_tool() -> list[dict[str, Any]]:
-    """
-    Get a list of registered webhooks in Home Assistant
-
-    Returns:
-        List of webhook information dictionaries containing:
-        - note: Information about webhook configuration
-        - common_webhook_id_pattern: Pattern for webhook IDs
-        - usage: Usage instructions
-        - webhook_url_format: Webhook URL format
-        - authentication: Authentication requirements
-
-    Examples:
-        Returns webhook patterns and usage information
-
-    Note:
-        Webhooks are typically defined in configuration.yaml or through automations/scripts.
-        They might not have entities, so they need to be parsed from configuration.
-        In a real implementation, this might need to:
-        - Parse configuration.yaml
-        - Use a config API if available
-        - Document webhooks from automations/scripts
-        For now, this returns common webhook patterns and usage information.
-
-    Best Practices:
-        - Webhooks are typically created via configuration files
-        - Use test_webhook to test webhook endpoints
-        - Webhook IDs are defined in automations/scripts
-        - Check configuration.yaml for webhook definitions
-    """
-    logger.info("Getting list of webhooks")
-    return await get_webhooks()
-
-
-@mcp.tool()
-@async_handler("test_webhook")
-async def test_webhook_tool(
-    webhook_id: str,
-    payload: dict[str, Any] | None = None,  # noqa: PT028
-) -> dict[str, Any]:
-    """
-    Test webhook endpoint
-
-    Args:
-        webhook_id: The webhook ID to test
-        payload: Optional payload to send with the webhook request
-
-    Returns:
-        Dictionary containing webhook response:
-        - status: Response status ("success" or "error")
-        - status_code: HTTP status code
-        - response_text: Response text (limited to 500 characters)
-        - response_json: Response JSON if available
-
-    Examples:
-        webhook_id="my_webhook", payload=None
-        webhook_id="automation_trigger", payload={"entity_id": "light.living_room"}
-
-    Note:
-        Webhooks allow external systems to trigger Home Assistant actions via HTTP POST requests.
-        Webhook URL format: /api/webhook/{webhook_id}
-        Webhooks don't require authentication token.
-        Webhooks return 200 on success, but might not return JSON.
-
-    Best Practices:
-        - Use to test webhook endpoints
-        - Test with various payloads
-        - Verify webhook triggers correct actions
-        - Use to debug webhook configurations
-        - Check webhook response to verify it's working correctly
-    """
-    logger.info(f"Testing webhook: {webhook_id}" + (f" with payload: {payload}" if payload else ""))
-    return await test_webhook_endpoint(webhook_id, payload)
+# Webhook tools are now in app.tools.webhooks module
+# They are registered above after creating the mcp instance
 
 
 @mcp.tool()

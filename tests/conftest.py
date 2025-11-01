@@ -16,21 +16,28 @@ def pytest_collection_modifyitems(config, items):
         # Skip test_* functions from application code - they're application functions, not tests
         # When imported into test files, pytest tries to collect them as tests
         if hasattr(item, "name") and (
-            item.name == "test_template" or item.name == "test_notification_delivery"
+            item.name == "test_template"
+            or item.name == "test_notification_delivery"
+            or item.name == "test_webhook"
         ):
-            # Check if this is actually the function from app/api/templates.py
+            # Check if this is actually the function from app/api modules
             # by checking the item's location
             try:
                 if hasattr(item, "location"):
                     location = item.location
                     if location and len(location) > 0:
                         file_path = location[0]
-                        # Skip if it's from the templates or notifications module
+                        # Skip if it's from the templates, notifications, or webhooks module
                         if (
                             "app/api/templates.py" in file_path
                             or "app/api/notifications.py" in file_path
+                            or "app/api/webhooks.py" in file_path
                             or (
-                                ("templates.py" in file_path or "notifications.py" in file_path)
+                                (
+                                    "templates.py" in file_path
+                                    or "notifications.py" in file_path
+                                    or "webhooks.py" in file_path
+                                )
                                 and "/app/" in file_path
                             )
                         ):
@@ -42,20 +49,27 @@ def pytest_collection_modifyitems(config, items):
                     # Skip if nodeid doesn't match a real test pattern
                     # (all real tests are test_test_*_*)
                     if (
-                        ("test_template" in nodeid or "test_notification_delivery" in nodeid)
+                        (
+                            "test_template" in nodeid
+                            or "test_notification_delivery" in nodeid
+                            or "test_webhook" in nodeid
+                        )
                         and "test_test_template" not in nodeid
                         and "test_test_notification" not in nodeid
+                        and "test_test_webhook" not in nodeid
                     ):
                         # Check if it's actually from app/ modules
                         if (
                             "app/api/templates" in nodeid
                             or "app/api/notifications" in nodeid
+                            or "app/api/webhooks" in nodeid
                             or (
                                 ("test_api_templates" in nodeid and "::test_template" in nodeid)
                                 or (
                                     "test_api_notifications" in nodeid
                                     and "::test_notification_delivery" in nodeid
                                 )
+                                or ("test_api_webhooks" in nodeid and "::test_webhook" in nodeid)
                             )
                         ):
                             continue
@@ -121,6 +135,7 @@ def mock_get_client(mock_httpx_client):
         patch("app.api.system.get_client", return_value=mock_httpx_client),
         patch("app.api.services.get_client", return_value=mock_httpx_client),
         patch("app.api.templates.get_client", return_value=mock_httpx_client),
+        patch("app.api.webhooks.get_client", return_value=mock_httpx_client),
     ):
         yield mock_httpx_client
 
