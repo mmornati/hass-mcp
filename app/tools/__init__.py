@@ -23,6 +23,7 @@ from app.tools import (
     services,
     statistics,
     system,
+    tags,
     templates,
     zones,
 )
@@ -45,6 +46,7 @@ __all__ = [
     "services",
     "statistics",
     "system",
+    "tags",
     "templates",
     "zones",
 ]
