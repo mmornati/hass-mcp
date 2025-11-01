@@ -5,6 +5,14 @@ It's organized by domain (entities, automations, scripts, etc.) for better maint
 """
 
 # Re-export main modules for easy importing
+from app.api.areas import (
+    create_area,
+    delete_area,
+    get_area_entities,
+    get_area_summary,
+    get_areas,
+    update_area,
+)
 from app.api.automations import (
     create_automation,
     delete_automation,
@@ -65,4 +73,10 @@ __all__ = [
     "get_device_details",
     "get_device_entities",
     "get_device_statistics",
+    "get_areas",
+    "get_area_entities",
+    "create_area",
+    "update_area",
+    "delete_area",
+    "get_area_summary",
 ]
