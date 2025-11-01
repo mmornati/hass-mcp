@@ -254,6 +254,10 @@ Hass-MCP provides several tools for interacting with Home Assistant:
 - `update_helper`: Update helper value (supports all helper types)
 - `list_webhooks`: Get a list of registered webhooks in Home Assistant
 - `test_webhook`: Test webhook endpoint with optional payload
+- `list_backups`: List available backups (if Supervisor API available)
+- `create_backup`: Create a full or partial backup (if Supervisor API available)
+- `restore_backup`: Restore a backup (if Supervisor API available)
+- `delete_backup`: Delete a backup (if Supervisor API available)
 
 ## Prompts for Guided Conversations
 
