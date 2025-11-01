@@ -40,9 +40,7 @@ async def get_entity(
     return await get_entity_state(entity_id, lean=True)
 
 
-async def entity_action(
-    entity_id: str, action: str, params: dict[str, Any] | None = None
-) -> dict:
+async def entity_action(entity_id: str, action: str, params: dict[str, Any] | None = None) -> dict:
     """
     Perform an action on a Home Assistant entity (on, off, toggle).
 
@@ -275,4 +273,3 @@ async def search_entities_tool(query: str, limit: int = 20) -> dict[str, Any]:
         "results": simplified_entities,
         "domains": domains_count,
     }
-

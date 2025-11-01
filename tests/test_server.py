@@ -199,7 +199,9 @@ class TestMCPServer:
             },
         ]
 
-        with patch("app.tools.entities.get_entities", new_callable=AsyncMock, return_value=mock_entities) as mock_get:
+        with patch(
+            "app.tools.entities.get_entities", new_callable=AsyncMock, return_value=mock_entities
+        ) as mock_get:
             # Test search with a valid query
             result = await search_entities_tool(query="living")
 
@@ -282,7 +284,11 @@ class TestMCPServer:
         mock_filtered = {"entity_id": "light.living_room", "state": "on"}
 
         # Set up mock for get_entity_state to handle different calls
-        with patch("app.tools.entities.get_entity_state", new_callable=AsyncMock, return_value=mock_filtered) as mock_get_state:
+        with patch(
+            "app.tools.entities.get_entity_state",
+            new_callable=AsyncMock,
+            return_value=mock_filtered,
+        ) as mock_get_state:
             # Test with field filtering
             result = await get_entity(entity_id="light.living_room", fields=["state"])
 

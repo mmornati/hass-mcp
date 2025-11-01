@@ -8,4 +8,3 @@ Home Assistant functionality via the Model Context Protocol.
 from app.tools import entities
 
 __all__ = ["entities"]
-
