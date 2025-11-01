@@ -63,6 +63,8 @@ jobs:
     steps:
       - name: Download artifact
         uses: actions/download-pages-artifact@v3
+        with:
+          path: ./site
 
       - name: Deploy to GitHub Pages
         id: deployment
