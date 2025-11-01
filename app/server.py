@@ -22,14 +22,11 @@ from app.hass import (
     get_backups,
     get_entities,
     get_entity_state,
-    get_helper_details,
-    get_helpers,
     get_tag_automations,
     get_tags,
     get_webhooks,
     restore_backup,
     test_webhook_endpoint,
-    update_helper_value,
 )
 
 mcp = FastMCP("Hass-MCP")
@@ -45,6 +42,7 @@ from app.tools import (
     diagnostics,
     entities,
     events,
+    helpers,
     integrations,
     logbook,
     notifications,
@@ -176,6 +174,11 @@ mcp.tool()(async_handler("list_calendars")(calendars.list_calendars_tool))
 mcp.tool()(async_handler("get_calendar_events")(calendars.get_calendar_events_tool))
 mcp.tool()(async_handler("create_calendar_event")(calendars.create_calendar_event_tool))
 
+# Register helpers tools with MCP instance
+mcp.tool()(async_handler("list_helpers")(helpers.list_helpers_tool))
+mcp.tool()(async_handler("get_helper")(helpers.get_helper_tool))
+mcp.tool()(async_handler("update_helper")(helpers.update_helper_tool))
+
 # Re-export all tools for backward compatibility
 # This allows tests and other code to import them from app.server
 get_entity = entities.get_entity
@@ -251,6 +254,9 @@ test_notification_tool = notifications.test_notification_tool
 list_calendars_tool = calendars.list_calendars_tool
 get_calendar_events_tool = calendars.get_calendar_events_tool
 create_calendar_event_tool = calendars.create_calendar_event_tool
+list_helpers_tool = helpers.list_helpers_tool
+get_helper_tool = helpers.get_helper_tool
+update_helper_tool = helpers.update_helper_tool
 
 
 # All tools are now in app.tools.* modules
@@ -882,125 +888,6 @@ async def get_tag_automations_tool(tag_id: str) -> list[dict[str, Any]]:
     """
     logger.info(f"Getting automations for tag: {tag_id}")
     return await get_tag_automations(tag_id)
-
-
-@mcp.tool()
-@async_handler("list_helpers")
-async def list_helpers_tool(helper_type: str | None = None) -> list[dict[str, Any]]:
-    """
-    Get a list of all input helpers in Home Assistant
-
-    Args:
-        helper_type: Optional helper type to filter by
-                     (e.g., 'input_boolean', 'input_number', 'input_text', etc.)
-                     If not provided, returns all helpers
-
-    Returns:
-        List of helper dictionaries containing:
-        - entity_id: The helper entity ID
-        - domain: The helper domain (e.g., 'input_boolean')
-        - state: Current state of the helper
-        - friendly_name: Display name of the helper
-        - attributes: Helper attributes
-
-    Examples:
-        helper_type=None - get all helpers
-        helper_type="input_boolean" - get only input_boolean helpers
-        helper_type="input_number" - get only input_number helpers
-
-    Note:
-        Helper types include:
-        - input_boolean, input_number, input_text, input_select
-        - input_datetime, input_button, counter, timer, schedule
-        Helpers are virtual entities used for storing values and controlling automations.
-
-    Best Practices:
-        - Use helper_type to filter specific helper types
-        - Use to discover configured helpers
-        - Use to manage virtual entities for automations
-        - Check helper types before updating values
-    """
-    logger.info("Getting list of helpers" + (f" of type: {helper_type}" if helper_type else ""))
-    return await get_helpers(helper_type)
-
-
-@mcp.tool()
-@async_handler("get_helper")
-async def get_helper_tool(helper_id: str) -> dict[str, Any]:
-    """
-    Get helper state and configuration
-
-    Args:
-        helper_id: The helper entity ID or name
-                   (e.g., 'input_boolean.work_from_home' or 'work_from_home')
-
-    Returns:
-        Dictionary containing helper state and configuration
-
-    Examples:
-        helper_id="input_boolean.work_from_home"
-        helper_id="work_from_home" - will search for matching helper
-
-    Note:
-        If helper_id doesn't include domain, the function searches for matching helpers.
-        Returns full entity state with all attributes.
-        Useful for getting current value and configuration of helpers.
-
-    Best Practices:
-        - Use full entity_id (with domain) when possible
-        - Check helper exists before updating
-        - Use to inspect helper configuration and current value
-    """
-    logger.info(f"Getting helper details: {helper_id}")
-    return await get_helper_details(helper_id)
-
-
-@mcp.tool()
-@async_handler("update_helper")
-async def update_helper_tool(helper_id: str, value: Any) -> dict[str, Any]:
-    """
-    Update helper value
-
-    Args:
-        helper_id: The helper entity ID (e.g., 'input_boolean.work_from_home')
-        value: The value to set, depends on helper type:
-               - input_boolean: True/False or "on"/"off"
-               - input_number: Numeric value (float)
-               - input_text: String value
-               - input_select: Option string (must match available options)
-               - counter: Integer value, or "+" to increment, "-" to decrement
-               - timer: "start", "pause", or "cancel"
-               - input_button: Any value (triggers press action)
-
-    Returns:
-        Response dictionary from the service call
-
-    Examples:
-        helper_id="input_boolean.work_from_home", value=True
-        helper_id="input_number.temperature", value=22.5
-        helper_id="input_text.name", value="John"
-        helper_id="counter.steps", value="+"
-        helper_id="timer.countdown", value="start"
-
-    Note:
-        Different helper types require different service calls:
-        - input_boolean: turn_on/turn_off
-        - input_number: set_value
-        - input_text: set_value
-        - input_select: select_option
-        - counter: increment/decrement/set_value
-        - timer: start/pause/cancel
-        - input_button: press
-
-    Best Practices:
-        - Use appropriate value types for each helper type
-        - Check helper type before updating
-        - Verify value is valid for the helper type
-        - Use counters with "+" or "-" for increment/decrement
-        - Use timers with "start", "pause", or "cancel"
-    """
-    logger.info(f"Updating helper: {helper_id} with value: {value}")
-    return await update_helper_value(helper_id, value)
 
 
 @mcp.tool()
