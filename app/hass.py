@@ -831,7 +831,7 @@ async def get_scene_config(scene_id: str) -> dict[str, Any]:
     """
     entity_id = f"scene.{scene_id}" if not scene_id.startswith("scene.") else scene_id
 
-    entity = await get_entity_state(entity_id, detailed=True)
+    entity = await get_entity_state(entity_id, lean=False)
 
     # Extract scene data
     attributes = entity.get("attributes", {})
@@ -990,7 +990,7 @@ async def diagnose_entity(entity_id: str) -> dict[str, Any]:
     }
 
     # Get entity state
-    entity = await get_entity_state(entity_id, detailed=True)
+    entity = await get_entity_state(entity_id, lean=False)
 
     # Check availability
     state = entity.get("state")
@@ -1239,7 +1239,7 @@ async def find_automation_conflicts() -> dict[str, Any]:
                     "type": "opposing_actions",
                     "automations": conflicting_automations,
                     "description": f"Multiple automations control {eid} with opposing actions",
-                }
+            }
             )
 
     return conflicts

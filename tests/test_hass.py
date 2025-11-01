@@ -158,7 +158,8 @@ class TestHassAPI:
         ):
             with patch("app.config.HA_URL", mock_config["hass_url"]):
                 # For get_automations we need to mock the get_entities function
-                with patch("app.hass.get_entities", AsyncMock(return_value=mock_automation_states)):
+                # Since get_automations uses app.api.entities.get_entities, we patch that
+                with patch("app.api.automations.get_entities", AsyncMock(return_value=mock_automation_states)):
                     # Test function
                     automations = await get_automations()
 
@@ -174,7 +175,7 @@ class TestHassAPI:
 
                 # Test error response
                 with patch(
-                    "app.hass.get_entities",
+                    "app.api.automations.get_entities",
                     AsyncMock(return_value={"error": "HTTP error: 404 - Not Found"}),
                 ):
                     # Test function with error
