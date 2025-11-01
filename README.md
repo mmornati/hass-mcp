@@ -181,8 +181,11 @@ Hass-MCP provides several tools for interacting with Home Assistant:
 - `list_automations`: Get a list of all automations
 - `call_service_tool`: Call any Home Assistant service
 - `restart_ha`: Restart Home Assistant
+- `system_overview`: Get a comprehensive overview of the entire Home Assistant system
 - `get_history`: Get the state history of an entity
 - `get_error_log`: Get the Home Assistant error log
+- `system_health`: Get system health information for all components
+- `core_config`: Get core configuration (location, timezone, unit system, components)
 
 ## Prompts for Guided Conversations
 
