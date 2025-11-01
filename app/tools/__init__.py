@@ -15,6 +15,7 @@ from app.tools import (
     scenes,
     scripts,
     services,
+    statistics,
     system,
     templates,
 )
@@ -29,6 +30,7 @@ __all__ = [
     "scenes",
     "scripts",
     "services",
+    "statistics",
     "system",
     "templates",
 ]
