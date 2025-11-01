@@ -34,8 +34,11 @@ class TestHassAPI:
 
         # Setup client mocking
         with patch("app.hass.get_client", return_value=mock_client):
-            with patch("app.hass.HA_URL", mock_config["hass_url"]):
-                with patch("app.hass.HA_TOKEN", mock_config["hass_token"]):
+            with patch("app.config.HA_URL", mock_config["hass_url"]):
+                with (
+                    patch("app.config.HA_TOKEN", mock_config["hass_token"]),
+                    patch("app.core.decorators.HA_TOKEN", mock_config["hass_token"]),
+                ):
                     # Test function
                     states = await get_entities()
 
@@ -65,8 +68,11 @@ class TestHassAPI:
 
         # Patch the client
         with patch("app.hass.get_client", return_value=mock_client):
-            with patch("app.hass.HA_URL", mock_config["hass_url"]):
-                with patch("app.hass.HA_TOKEN", mock_config["hass_token"]):
+            with patch("app.config.HA_URL", mock_config["hass_url"]):
+                with (
+                    patch("app.config.HA_TOKEN", mock_config["hass_token"]),
+                    patch("app.core.decorators.HA_TOKEN", mock_config["hass_token"]),
+                ):
                     # Test function - use_cache parameter has been removed
                     state = await get_entity_state("light.living_room")
 
@@ -98,8 +104,11 @@ class TestHassAPI:
 
         # Patch the client
         with patch("app.hass.get_client", return_value=mock_client):
-            with patch("app.hass.HA_URL", mock_config["hass_url"]):
-                with patch("app.hass.HA_TOKEN", mock_config["hass_token"]):
+            with patch("app.config.HA_URL", mock_config["hass_url"]):
+                with (
+                    patch("app.config.HA_TOKEN", mock_config["hass_token"]),
+                    patch("app.core.decorators.HA_TOKEN", mock_config["hass_token"]),
+                ):
                     # Test function
                     result = await call_service(domain, service, data)
 
@@ -137,8 +146,11 @@ class TestHassAPI:
         ]
 
         # Patch the token to avoid the "No token" error
-        with patch("app.hass.HA_TOKEN", mock_config["hass_token"]):
-            with patch("app.hass.HA_URL", mock_config["hass_url"]):
+        with (
+            patch("app.config.HA_TOKEN", mock_config["hass_token"]),
+            patch("app.core.decorators.HA_TOKEN", mock_config["hass_token"]),
+        ):
+            with patch("app.config.HA_URL", mock_config["hass_url"]):
                 # For get_automations we need to mock the get_entities function
                 with patch("app.hass.get_entities", AsyncMock(return_value=mock_automation_states)):
                     # Test function
@@ -200,8 +212,11 @@ class TestHassAPI:
 
         # Patch the client and HA_URL/HA_TOKEN
         with patch("app.hass.get_client", return_value=mock_client):
-            with patch("app.hass.HA_URL", mock_config["hass_url"]):
-                with patch("app.hass.HA_TOKEN", mock_config["hass_token"]):
+            with patch("app.config.HA_URL", mock_config["hass_url"]):
+                with (
+                    patch("app.config.HA_TOKEN", mock_config["hass_token"]),
+                    patch("app.core.decorators.HA_TOKEN", mock_config["hass_token"]),
+                ):
                     from app.hass import get_entity_history
 
                     history = await get_entity_history(entity_id, hours)
@@ -268,8 +283,11 @@ class TestHassAPI:
 
         # Patch the client
         with patch("app.hass.get_client", return_value=mock_client):
-            with patch("app.hass.HA_URL", mock_config["hass_url"]):
-                with patch("app.hass.HA_TOKEN", mock_config["hass_token"]):
+            with patch("app.config.HA_URL", mock_config["hass_url"]):
+                with (
+                    patch("app.config.HA_TOKEN", mock_config["hass_token"]),
+                    patch("app.core.decorators.HA_TOKEN", mock_config["hass_token"]),
+                ):
                     from app.hass import get_system_health
 
                     health = await get_system_health()
@@ -321,8 +339,11 @@ class TestHassAPI:
 
         # Patch the client
         with patch("app.hass.get_client", return_value=mock_client):
-            with patch("app.hass.HA_URL", mock_config["hass_url"]):
-                with patch("app.hass.HA_TOKEN", mock_config["hass_token"]):
+            with patch("app.config.HA_URL", mock_config["hass_url"]):
+                with (
+                    patch("app.config.HA_TOKEN", mock_config["hass_token"]),
+                    patch("app.core.decorators.HA_TOKEN", mock_config["hass_token"]),
+                ):
                     from app.hass import get_core_config
 
                     config = await get_core_config()

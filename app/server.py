@@ -1,8 +1,6 @@
-import functools
 import json
 import logging
-from collections.abc import Awaitable, Callable
-from typing import Any, TypeVar, cast
+from typing import Any
 
 # Set up logging
 logging.basicConfig(
@@ -12,6 +10,10 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Create an MCP server
+from mcp.server.fastmcp import FastMCP
+
+from app.core import async_handler
 from app.hass import (
     activate_scene,
     analyze_usage_patterns,
@@ -101,32 +103,7 @@ from app.hass import (
     create_automation as create_automation_api,
 )
 
-# Type variable for generic functions
-T = TypeVar("T")
-
-# Create an MCP server
-from mcp.server.fastmcp import FastMCP
-
 mcp = FastMCP("Hass-MCP")
-
-
-def async_handler(command_type: str):
-    """
-    Simple decorator that logs the command
-
-    Args:
-        command_type: The type of command (for logging)
-    """
-
-    def decorator(func: Callable[..., Awaitable[T]]) -> Callable[..., Awaitable[T]]:
-        @functools.wraps(func)
-        async def wrapper(*args: Any, **kwargs: Any) -> T:
-            logger.info(f"Executing command: {command_type}")
-            return await func(*args, **kwargs)
-
-        return cast(Callable[..., Awaitable[T]], wrapper)
-
-    return decorator
 
 
 @mcp.tool()
