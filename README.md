@@ -236,6 +236,9 @@ Hass-MCP provides several tools for interacting with Home Assistant:
 - `get_entity_statistics`: Get statistics for an entity (min, max, mean, median)
 - `get_domain_statistics`: Get aggregate statistics for all entities in a domain
 - `analyze_usage_patterns`: Analyze usage patterns (when device is used most)
+- `list_calendars`: Get a list of all calendar entities in Home Assistant
+- `get_calendar_events`: Get calendar events for a date range
+- `create_calendar_event`: Create a calendar event
 
 ## Prompts for Guided Conversations
 
