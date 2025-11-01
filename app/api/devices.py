@@ -157,6 +157,10 @@ async def get_device_entities(device_id: str) -> list[dict[str, Any]]:
     """
     device = await get_device_details(device_id)
 
+    # Check if we got an error response
+    if isinstance(device, dict) and "error" in device:
+        return [device]  # Return list with error dict for consistency
+
     entity_ids = device.get("entities", [])
     entities = []
     for entity_id in entity_ids:
