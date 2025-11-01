@@ -97,7 +97,9 @@ class TestMCPServer:
 
         # Mock the get_automations function with different scenarios
         # Note: list_automations is now in app.tools.automations, which calls app.api.automations.get_automations
-        with patch("app.tools.automations.get_automations", new_callable=AsyncMock) as mock_get_automations:
+        with patch(
+            "app.tools.automations.get_automations", new_callable=AsyncMock
+        ) as mock_get_automations:
             # Case 1: Test with 404 error response format (list with single dict with error key)
             mock_get_automations.return_value = [{"error": "HTTP error: 404 - Not Found"}]
 

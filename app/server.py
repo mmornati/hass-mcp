@@ -17,7 +17,6 @@ from app.core import async_handler
 from app.hass import (
     activate_scene,
     analyze_usage_patterns,
-    call_service,
     create_area,
     create_automation_from_blueprint,
     create_backup,
@@ -125,15 +124,9 @@ mcp.tool()(async_handler("enable_automation")(automations.enable_automation_tool
 mcp.tool()(async_handler("disable_automation")(automations.disable_automation_tool))
 mcp.tool()(async_handler("trigger_automation")(automations.trigger_automation_tool))
 mcp.tool()(
-    async_handler("get_automation_execution_log")(
-        automations.get_automation_execution_log_tool
-    )
+    async_handler("get_automation_execution_log")(automations.get_automation_execution_log_tool)
 )
-mcp.tool()(
-    async_handler("validate_automation_config")(
-        automations.validate_automation_config_tool
-    )
-)
+mcp.tool()(async_handler("validate_automation_config")(automations.validate_automation_config_tool))
 
 # Register script tools with MCP instance
 mcp.tool()(async_handler("list_scripts")(scripts.list_scripts_tool))
