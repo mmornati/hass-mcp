@@ -455,6 +455,96 @@ async def restart_home_assistant() -> dict[str, Any]:
 
 
 @handle_api_errors
+async def get_integrations(domain: str | None = None) -> list[dict[str, Any]]:
+    """
+    Get list of all configuration entries (integrations)
+
+    Args:
+        domain: Optional domain to filter integrations by (e.g., 'mqtt', 'zwave')
+
+    Returns:
+        List of integration entries with their status and configuration
+
+    Example response:
+        [
+            {
+                "entry_id": "abc123",
+                "domain": "mqtt",
+                "title": "MQTT",
+                "source": "user",
+                "state": "loaded",
+                "supports_options": true,
+                "pref_disable_new_entities": false,
+                "pref_disable_polling": false
+            }
+        ]
+    """
+    client = await get_client()
+    response = await client.get(
+        f"{HA_URL}/api/config/config_entries/entry",
+        headers=get_ha_headers(),
+    )
+    response.raise_for_status()
+    entries = response.json()
+
+    # Filter by domain if specified
+    if domain:
+        entries = [e for e in entries if e.get("domain") == domain]
+
+    return entries
+
+
+@handle_api_errors
+async def get_integration_config(entry_id: str) -> dict[str, Any]:
+    """
+    Get detailed configuration for a specific integration entry
+
+    Args:
+        entry_id: The entry ID of the integration to get
+
+    Returns:
+        Detailed configuration dictionary for the integration entry
+
+    Example response:
+        {
+            "entry_id": "abc123",
+            "domain": "mqtt",
+            "title": "MQTT",
+            "source": "user",
+            "state": "loaded",
+            "options": {...},
+            "pref_disable_new_entities": false,
+            "pref_disable_polling": false
+        }
+    """
+    client = await get_client()
+    response = await client.get(
+        f"{HA_URL}/api/config/config_entries/entry/{entry_id}",
+        headers=get_ha_headers(),
+    )
+    response.raise_for_status()
+    return response.json()
+
+
+@handle_api_errors
+async def reload_integration(entry_id: str) -> dict[str, Any]:
+    """
+    Reload a specific integration
+
+    Args:
+        entry_id: The entry ID of the integration to reload
+
+    Returns:
+        Response from the reload service call
+
+    Note:
+        Reloading an integration may cause temporary unavailability of its entities.
+        Use with caution.
+    """
+    return await call_service("config", "reload_entry", {"entry_id": entry_id})
+
+
+@handle_api_errors
 async def get_hass_error_log() -> dict[str, Any]:
     """
     Get the Home Assistant error log for troubleshooting
