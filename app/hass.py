@@ -10,14 +10,12 @@ import httpx
 
 from app.api.entities import (
     filter_fields,
-    get_all_entity_states,
     get_entities,
     get_entity_history,
     get_entity_state,
 )
 from app.config import HA_URL, get_ha_headers
 from app.core import (
-    DEFAULT_LEAN_FIELDS,
     DOMAIN_IMPORTANT_ATTRIBUTES,
     get_client,
     handle_api_errors,
@@ -571,7 +569,7 @@ async def get_script_config(script_id: str) -> dict[str, Any]:
         if response.status_code == 200:
             config_data = response.json()
             # Merge with entity state for complete information
-            entity = await get_entity_state(entity_id, detailed=True)
+            entity = await get_entity_state(entity_id, lean=False)
             config_data["entity"] = entity
             return config_data
     except Exception:  # nosec B110
@@ -579,7 +577,7 @@ async def get_script_config(script_id: str) -> dict[str, Any]:
         pass
 
     # Fallback to entity state
-    return await get_entity_state(entity_id, detailed=True)
+    return await get_entity_state(entity_id, lean=False)
 
 
 @handle_api_errors

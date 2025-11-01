@@ -5,7 +5,7 @@ interacting with the Home Assistant REST API, reducing code duplication.
 """
 
 import logging
-from typing import Any
+from typing import Any, cast
 
 import httpx
 
@@ -59,11 +59,9 @@ class BaseAPI:
         url = f"{HA_URL}{endpoint}"
         response = await client.get(url, headers=get_ha_headers(), params=params)
         response.raise_for_status()
-        return response.json()
+        return cast(dict[str, Any], response.json())
 
-    async def post(
-        self, endpoint: str, data: dict[str, Any] | None = None
-    ) -> dict[str, Any]:
+    async def post(self, endpoint: str, data: dict[str, Any] | None = None) -> dict[str, Any]:
         """
         Perform a POST request to the Home Assistant API.
 
@@ -82,11 +80,9 @@ class BaseAPI:
         url = f"{HA_URL}{endpoint}"
         response = await client.post(url, headers=get_ha_headers(), json=data or {})
         response.raise_for_status()
-        return response.json()
+        return cast(dict[str, Any], response.json())
 
-    async def put(
-        self, endpoint: str, data: dict[str, Any] | None = None
-    ) -> dict[str, Any]:
+    async def put(self, endpoint: str, data: dict[str, Any] | None = None) -> dict[str, Any]:
         """
         Perform a PUT request to the Home Assistant API.
 
@@ -105,7 +101,7 @@ class BaseAPI:
         url = f"{HA_URL}{endpoint}"
         response = await client.put(url, headers=get_ha_headers(), json=data or {})
         response.raise_for_status()
-        return response.json()
+        return cast(dict[str, Any], response.json())
 
     async def delete(self, endpoint: str) -> dict[str, Any]:
         """
@@ -125,11 +121,9 @@ class BaseAPI:
         url = f"{HA_URL}{endpoint}"
         response = await client.delete(url, headers=get_ha_headers())
         response.raise_for_status()
-        return response.json()
+        return cast(dict[str, Any], response.json())
 
-    async def patch(
-        self, endpoint: str, data: dict[str, Any] | None = None
-    ) -> dict[str, Any]:
+    async def patch(self, endpoint: str, data: dict[str, Any] | None = None) -> dict[str, Any]:
         """
         Perform a PATCH request to the Home Assistant API.
 
@@ -148,5 +142,4 @@ class BaseAPI:
         url = f"{HA_URL}{endpoint}"
         response = await client.patch(url, headers=get_ha_headers(), json=data or {})
         response.raise_for_status()
-        return response.json()
-
+        return cast(dict[str, Any], response.json())

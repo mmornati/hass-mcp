@@ -157,8 +157,9 @@ class TestGetEntityState:
         mock_response.raise_for_status = MagicMock()
         mock_client.get = AsyncMock(return_value=mock_response)
 
-        with patch("app.api.entities.get_client", return_value=mock_client), patch(
-            "app.core.decorators.HA_TOKEN", "test_token"
+        with (
+            patch("app.api.entities.get_client", return_value=mock_client),
+            patch("app.core.decorators.HA_TOKEN", "test_token"),
         ):
             result = await get_entity_state("light.test")
 
@@ -178,8 +179,9 @@ class TestGetEntityState:
         mock_response.raise_for_status = MagicMock()
         mock_client.get = AsyncMock(return_value=mock_response)
 
-        with patch("app.api.entities.get_client", return_value=mock_client), patch(
-            "app.core.decorators.HA_TOKEN", "test_token"
+        with (
+            patch("app.api.entities.get_client", return_value=mock_client),
+            patch("app.core.decorators.HA_TOKEN", "test_token"),
         ):
             result = await get_entity_state("light.test", fields=["state", "attr.brightness"])
 
@@ -201,8 +203,9 @@ class TestGetEntityState:
         mock_response.raise_for_status = MagicMock()
         mock_client.get = AsyncMock(return_value=mock_response)
 
-        with patch("app.api.entities.get_client", return_value=mock_client), patch(
-            "app.core.decorators.HA_TOKEN", "test_token"
+        with (
+            patch("app.api.entities.get_client", return_value=mock_client),
+            patch("app.core.decorators.HA_TOKEN", "test_token"),
         ):
             result = await get_entity_state("light.test", lean=True)
 
@@ -227,8 +230,9 @@ class TestGetEntities:
         mock_response.raise_for_status = MagicMock()
         mock_client.get = AsyncMock(return_value=mock_response)
 
-        with patch("app.api.entities.get_client", return_value=mock_client), patch(
-            "app.core.decorators.HA_TOKEN", "test_token"
+        with (
+            patch("app.api.entities.get_client", return_value=mock_client),
+            patch("app.core.decorators.HA_TOKEN", "test_token"),
         ):
             result = await get_entities()
 
@@ -248,8 +252,9 @@ class TestGetEntities:
         mock_response.raise_for_status = MagicMock()
         mock_client.get = AsyncMock(return_value=mock_response)
 
-        with patch("app.api.entities.get_client", return_value=mock_client), patch(
-            "app.core.decorators.HA_TOKEN", "test_token"
+        with (
+            patch("app.api.entities.get_client", return_value=mock_client),
+            patch("app.core.decorators.HA_TOKEN", "test_token"),
         ):
             result = await get_entities(domain="light")
 
@@ -263,14 +268,23 @@ class TestGetEntities:
         mock_client = AsyncMock()
         mock_response = MagicMock()
         mock_response.json.return_value = [
-            {"entity_id": "light.kitchen", "state": "on", "attributes": {"friendly_name": "Kitchen Light"}},
-            {"entity_id": "light.bedroom", "state": "off", "attributes": {"friendly_name": "Bedroom Light"}},
+            {
+                "entity_id": "light.kitchen",
+                "state": "on",
+                "attributes": {"friendly_name": "Kitchen Light"},
+            },
+            {
+                "entity_id": "light.bedroom",
+                "state": "off",
+                "attributes": {"friendly_name": "Bedroom Light"},
+            },
         ]
         mock_response.raise_for_status = MagicMock()
         mock_client.get = AsyncMock(return_value=mock_response)
 
-        with patch("app.api.entities.get_client", return_value=mock_client), patch(
-            "app.core.decorators.HA_TOKEN", "test_token"
+        with (
+            patch("app.api.entities.get_client", return_value=mock_client),
+            patch("app.core.decorators.HA_TOKEN", "test_token"),
         ):
             result = await get_entities(search_query="kitchen")
 
@@ -289,8 +303,9 @@ class TestGetEntities:
         mock_response.raise_for_status = MagicMock()
         mock_client.get = AsyncMock(return_value=mock_response)
 
-        with patch("app.api.entities.get_client", return_value=mock_client), patch(
-            "app.core.decorators.HA_TOKEN", "test_token"
+        with (
+            patch("app.api.entities.get_client", return_value=mock_client),
+            patch("app.core.decorators.HA_TOKEN", "test_token"),
         ):
             result = await get_entities(limit=5)
 
@@ -308,8 +323,9 @@ class TestGetEntities:
         mock_response.raise_for_status = MagicMock()
         mock_client.get = AsyncMock(return_value=mock_response)
 
-        with patch("app.api.entities.get_client", return_value=mock_client), patch(
-            "app.core.decorators.HA_TOKEN", "test_token"
+        with (
+            patch("app.api.entities.get_client", return_value=mock_client),
+            patch("app.core.decorators.HA_TOKEN", "test_token"),
         ):
             result = await get_entities(fields=["state", "attr.brightness"])
 
@@ -335,8 +351,9 @@ class TestGetEntities:
         mock_response.raise_for_status = MagicMock()
         mock_client.get = AsyncMock(return_value=mock_response)
 
-        with patch("app.api.entities.get_client", return_value=mock_client), patch(
-            "app.core.decorators.HA_TOKEN", "test_token"
+        with (
+            patch("app.api.entities.get_client", return_value=mock_client),
+            patch("app.core.decorators.HA_TOKEN", "test_token"),
         ):
             result = await get_entities(lean=True)
 
@@ -366,8 +383,9 @@ class TestGetEntityHistory:
         mock_response.raise_for_status = MagicMock()
         mock_client.get = AsyncMock(return_value=mock_response)
 
-        with patch("app.api.entities.get_client", return_value=mock_client), patch(
-            "app.core.decorators.HA_TOKEN", "test_token"
+        with (
+            patch("app.api.entities.get_client", return_value=mock_client),
+            patch("app.core.decorators.HA_TOKEN", "test_token"),
         ):
             result = await get_entity_history("light.test", hours=24)
 
@@ -383,8 +401,9 @@ class TestGetEntityHistory:
         mock_response.raise_for_status = MagicMock()
         mock_client.get = AsyncMock(return_value=mock_response)
 
-        with patch("app.api.entities.get_client", return_value=mock_client), patch(
-            "app.core.decorators.HA_TOKEN", "test_token"
+        with (
+            patch("app.api.entities.get_client", return_value=mock_client),
+            patch("app.core.decorators.HA_TOKEN", "test_token"),
         ):
             await get_entity_history("light.test", hours=12)
 
@@ -392,4 +411,3 @@ class TestGetEntityHistory:
             assert "/api/history/period/" in call_args[0][0]
             assert call_args[1]["params"]["filter_entity_id"] == "light.test"
             assert "end_time" in call_args[1]["params"]
-

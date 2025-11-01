@@ -204,7 +204,7 @@ async def get_entity_resource(entity_id: str) -> str:
     logger.info(f"Getting entity resource: {entity_id}")
 
     # Get the entity state with caching (using lean format for token efficiency)
-    state = await get_entity_state(entity_id, use_cache=True, lean=True)
+    state = await get_entity_state(entity_id, lean=True)
 
     # Check if there was an error
     if "error" in state:
@@ -767,7 +767,7 @@ async def get_entity_resource_detailed(entity_id: str) -> str:
     logger.info(f"Getting detailed entity resource: {entity_id}")
 
     # Get all fields, no filtering (detailed view explicitly requests all data)
-    state = await get_entity_state(entity_id, use_cache=True, lean=False)
+    state = await get_entity_state(entity_id, lean=False)
 
     # Check if there was an error
     if "error" in state:

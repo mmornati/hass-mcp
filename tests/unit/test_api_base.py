@@ -175,4 +175,3 @@ class TestBaseAPI:
         with patch("app.api.base.get_client", return_value=mock_client):
             with pytest.raises(httpx.HTTPStatusError):
                 await api.get("/api/states/nonexistent")
-

@@ -22,4 +22,3 @@ __all__ = [
     "get_entity_history",
     "get_entity_state",
 ]
-

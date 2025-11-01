@@ -5,7 +5,7 @@ This module provides functions for interacting with Home Assistant entities.
 
 import logging
 from datetime import UTC, datetime, timedelta
-from typing import Any
+from typing import Any, cast
 
 from app.config import HA_URL, get_ha_headers
 from app.core import DEFAULT_LEAN_FIELDS, DOMAIN_IMPORTANT_ATTRIBUTES, get_client
@@ -72,7 +72,7 @@ async def get_all_entity_states() -> dict[str, dict[str, Any]]:
     entities = response.json()
 
     # Create a mapping for easier access
-    return {entity["entity_id"]: entity for entity in entities}
+    return cast(dict[str, dict[str, Any]], {entity["entity_id"]: entity for entity in entities})
 
 
 @handle_api_errors
@@ -93,9 +93,7 @@ async def get_entity_state(
     """
     # Fetch directly
     client = await get_client()
-    response = await client.get(
-        f"{HA_URL}/api/states/{entity_id}", headers=get_ha_headers()
-    )
+    response = await client.get(f"{HA_URL}/api/states/{entity_id}", headers=get_ha_headers())
     response.raise_for_status()
     entity_data = response.json()
 
@@ -115,7 +113,7 @@ async def get_entity_state(
 
         return filter_fields(entity_data, lean_fields)
     # Return full entity data
-    return entity_data
+    return cast(dict[str, Any], entity_data)
 
 
 @handle_api_errors
@@ -149,9 +147,7 @@ async def get_entities(
 
     # Filter by domain if specified
     if domain:
-        entities = [
-            entity for entity in entities if entity["entity_id"].startswith(f"{domain}.")
-        ]
+        entities = [entity for entity in entities if entity["entity_id"].startswith(f"{domain}.")]
 
     # Search if query is provided
     if search_query and search_query.strip():
@@ -165,9 +161,7 @@ async def get_entities(
                 continue
 
             # Search in friendly_name
-            friendly_name = (
-                entity.get("attributes", {}).get("friendly_name", "").lower()
-            )
+            friendly_name = entity.get("attributes", {}).get("friendly_name", "").lower()
             if friendly_name and search_term in friendly_name:
                 filtered_entities.append(entity)
                 continue
@@ -215,7 +209,7 @@ async def get_entities(
 
         return result
     # Return full entities
-    return entities
+    return cast(list[dict[str, Any]], entities)
 
 
 @handle_api_errors
@@ -256,4 +250,3 @@ async def get_entity_history(entity_id: str, hours: int) -> list[dict[str, Any]]
 
     # Return the JSON response
     return response.json()
-
