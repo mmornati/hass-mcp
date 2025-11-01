@@ -208,6 +208,10 @@ Hass-MCP provides several tools for interacting with Home Assistant:
 - `create_scene`: Create a new scene (may provide YAML example if API unavailable)
 - `activate_scene`: Activate/restore a scene to restore saved states
 - `reload_scenes`: Reload scenes from configuration
+- `diagnose_entity`: Comprehensive entity diagnostics with issues and recommendations
+- `check_entity_dependencies`: Find what depends on an entity (automations, scripts, scenes)
+- `analyze_automation_conflicts`: Detect conflicting automations (opposing actions, etc.)
+- `get_integration_errors`: Get errors specific to integrations
 - `call_service_tool`: Call any Home Assistant service
 - `restart_ha`: Restart Home Assistant
 - `system_overview`: Get a comprehensive overview of the entire Home Assistant system
