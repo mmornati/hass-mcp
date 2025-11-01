@@ -32,8 +32,11 @@ class TestHassAPI:
         mock_client = MagicMock()
         mock_client.get = AsyncMock(return_value=mock_response)
 
-        # Setup client mocking
-        with patch("app.hass.get_client", return_value=mock_client):
+        # Setup client mocking - patch both locations since functions were moved to api.entities
+        with (
+            patch("app.api.entities.get_client", return_value=mock_client),
+            patch("app.hass.get_client", return_value=mock_client),
+        ):
             with patch("app.config.HA_URL", mock_config["hass_url"]):
                 with (
                     patch("app.config.HA_TOKEN", mock_config["hass_token"]),
@@ -66,8 +69,11 @@ class TestHassAPI:
         mock_client = MagicMock()
         mock_client.get = AsyncMock(return_value=mock_response)
 
-        # Patch the client
-        with patch("app.hass.get_client", return_value=mock_client):
+        # Patch the client - patch both locations since functions were moved to api.entities
+        with (
+            patch("app.api.entities.get_client", return_value=mock_client),
+            patch("app.hass.get_client", return_value=mock_client),
+        ):
             with patch("app.config.HA_URL", mock_config["hass_url"]):
                 with (
                     patch("app.config.HA_TOKEN", mock_config["hass_token"]),
@@ -210,8 +216,11 @@ class TestHassAPI:
         mock_client = MagicMock()
         mock_client.get = AsyncMock(return_value=mock_response)
 
-        # Patch the client and HA_URL/HA_TOKEN
-        with patch("app.hass.get_client", return_value=mock_client):
+        # Patch the client and HA_URL/HA_TOKEN - patch both locations since functions were moved to api.entities
+        with (
+            patch("app.api.entities.get_client", return_value=mock_client),
+            patch("app.hass.get_client", return_value=mock_client),
+        ):
             with patch("app.config.HA_URL", mock_config["hass_url"]):
                 with (
                     patch("app.config.HA_TOKEN", mock_config["hass_token"]),
