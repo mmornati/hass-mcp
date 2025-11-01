@@ -222,6 +222,10 @@ Hass-MCP provides several tools for interacting with Home Assistant:
 - `list_integrations`: Get a list of all configuration entries (integrations) with optional domain filtering
 - `get_integration_config`: Get detailed configuration for a specific integration entry
 - `reload_integration`: Reload a specific integration (use with caution)
+- `list_blueprints`: Get a list of all available blueprints, optionally filtered by domain
+- `get_blueprint`: Get blueprint definition and metadata
+- `import_blueprint`: Import blueprint from URL
+- `create_automation_from_blueprint`: Create automation from blueprint with specified inputs
 
 ## Prompts for Guided Conversations
 
