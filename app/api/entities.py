@@ -250,3 +250,89 @@ async def get_entity_history(entity_id: str, hours: int) -> list[dict[str, Any]]
 
     # Return the JSON response
     return response.json()
+
+
+@handle_api_errors
+async def summarize_domain(domain: str, example_limit: int = 3) -> dict[str, Any]:
+    """
+    Generate a summary of entities in a domain.
+
+    Args:
+        domain: The domain to summarize (e.g., 'light', 'switch')
+        example_limit: Maximum number of examples to include for each state
+
+    Returns:
+        Dictionary with summary information containing:
+        - domain: The domain name
+        - total_count: Total number of entities in the domain
+        - state_distribution: Count of entities in each state
+        - examples: Sample entities for each state
+        - common_attributes: Most common attributes across entities
+
+    Examples:
+        domain="light", example_limit=3 - summarize light entities
+
+    Note:
+        This function aggregates entity data to provide a summary view.
+        Useful for understanding the state distribution and common patterns
+        within a domain.
+
+    Best Practices:
+        - Use to get an overview of entities in a domain
+        - Check state_distribution to understand entity states
+        - Review common_attributes to see important attributes
+        - Use example_limit to control detail level
+    """
+    entities = await get_entities(domain=domain)
+
+    # Check if we got an error response
+    if isinstance(entities, dict) and "error" in entities:
+        return entities  # Just pass through the error
+
+    try:
+        # Initialize summary data
+        total_count = len(entities)
+        state_counts = {}
+        state_examples = {}
+        attributes_summary = {}
+
+        # Process entities to build the summary
+        for entity in entities:
+            state = entity.get("state", "unknown")
+
+            # Count states
+            if state not in state_counts:
+                state_counts[state] = 0
+                state_examples[state] = []
+            state_counts[state] += 1
+
+            # Add examples (up to the limit)
+            if len(state_examples[state]) < example_limit:
+                example = {
+                    "entity_id": entity["entity_id"],
+                    "friendly_name": entity.get("attributes", {}).get(
+                        "friendly_name", entity["entity_id"]
+                    ),
+                }
+                state_examples[state].append(example)
+
+            # Collect attribute keys for summary
+            for attr_key in entity.get("attributes", {}):
+                if attr_key not in attributes_summary:
+                    attributes_summary[attr_key] = 0
+                attributes_summary[attr_key] += 1
+
+        # Create the summary
+        summary = {
+            "domain": domain,
+            "total_count": total_count,
+            "state_distribution": state_counts,
+            "examples": state_examples,
+            "common_attributes": sorted(
+                [(k, v) for k, v in attributes_summary.items()], key=lambda x: x[1], reverse=True
+            )[:10],  # Top 10 most common attributes
+        }
+
+        return summary
+    except Exception as e:
+        return {"error": f"Error generating domain summary: {str(e)}"}

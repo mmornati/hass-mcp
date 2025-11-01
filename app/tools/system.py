@@ -7,7 +7,7 @@ These tools are thin wrappers around the system API layer.
 import logging
 from typing import Any
 
-from app.api.entities import get_entity_history
+from app.api.entities import get_entity_history, summarize_domain
 from app.api.system import (
     get_core_config,
     get_hass_error_log,
@@ -16,7 +16,6 @@ from app.api.system import (
     get_system_overview,
     restart_home_assistant,
 )
-from app.hass import summarize_domain
 
 logger = logging.getLogger(__name__)
 

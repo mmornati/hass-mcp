@@ -269,7 +269,11 @@ class TestMCPServer:
                 new_callable=AsyncMock,
                 return_value=mock_summary,
             ) as mock_summarize,
-            patch("app.hass.summarize_domain", new_callable=AsyncMock, return_value=mock_summary),
+            patch(
+                "app.api.entities.summarize_domain",
+                new_callable=AsyncMock,
+                return_value=mock_summary,
+            ),
         ):
             # Test the function
             result = await domain_summary_tool(domain="light", example_limit=3)
