@@ -11,6 +11,10 @@ on:
       - '.github/workflows/docs-deploy.yml'
   workflow_dispatch:
 
+permissions:
+  contents: read
+  pages: write
+  id-token: write
 
 concurrency:
   group: "pages"
