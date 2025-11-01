@@ -48,7 +48,7 @@ Hass-MCP enables AI assistants like Claude to interact directly with your Home A
 1. Pull the Docker image:
 
    ```bash
-   docker pull voska/hass-mcp:latest
+   docker pull mmornati/hass-mcp:latest
    ```
 
 2. Add the MCP server to Claude Desktop:
@@ -70,7 +70,7 @@ Hass-MCP enables AI assistants like Claude to interact directly with your Home A
            "HA_URL",
            "-e",
            "HA_TOKEN",
-           "voska/hass-mcp"
+           "mmornati/hass-mcp"
          ],
          "env": {
            "HA_URL": "http://homeassistant.local:8123",

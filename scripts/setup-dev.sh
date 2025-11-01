@@ -28,4 +28,3 @@ echo "  2. Check code quality: uv run pre-commit run --all-files"
 echo "  3. Format code: uv run ruff format app/ tests/"
 echo "  4. Type check: uv run mypy app/"
 echo ""
-

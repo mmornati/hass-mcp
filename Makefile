@@ -65,4 +65,3 @@ clean: ## Clean up generated files
 	find . -type f -name "*.pyc" -delete
 
 all: check test-cov ## Run all checks and tests (full CI simulation)
-
