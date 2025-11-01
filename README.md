@@ -226,6 +226,10 @@ Hass-MCP provides several tools for interacting with Home Assistant:
 - `get_blueprint`: Get blueprint definition and metadata
 - `import_blueprint`: Import blueprint from URL
 - `create_automation_from_blueprint`: Create automation from blueprint with specified inputs
+- `list_zones`: Get a list of all zones (GPS coordinates) in Home Assistant
+- `create_zone`: Create a new zone with GPS coordinates and radius
+- `update_zone`: Update an existing zone (name, location, radius, icon)
+- `delete_zone`: Delete a zone (permanent, system zones may not be deletable)
 
 ## Prompts for Guided Conversations
 
