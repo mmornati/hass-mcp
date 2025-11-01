@@ -236,7 +236,11 @@ class TestHassAPI:
             return ""
 
         # Verify that both functions have their return type annotations preserved
-        assert "Dict" in str(inspect.signature(test_dict_function).return_annotation)
+        # Python 3.13 uses built-in dict, not typing.Dict
+        dict_annotation = str(inspect.signature(test_dict_function).return_annotation)
+        assert "dict" in dict_annotation.lower(), (
+            f"Expected 'dict' in annotation, got: {dict_annotation}"
+        )
         assert "str" in str(inspect.signature(test_str_function).return_annotation)
 
         # Verify that both functions have a docstring
