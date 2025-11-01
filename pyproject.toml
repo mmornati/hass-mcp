@@ -97,6 +97,7 @@ ignore = [
     "ARG001", # unused function argument
     "ARG002", # unused method argument
     "PLR0913", # too many arguments
+    "UP047",  # generic function should use type parameters (prefer existing pattern)
 ]
 
 [tool.ruff.format]
@@ -123,6 +124,8 @@ warn_unused_ignores = true
 warn_no_return = true
 strict_equality = true
 strict = false
+namespace_packages = true
+explicit_package_bases = true
 
 [[tool.mypy.overrides]]
 module = "tests.*"

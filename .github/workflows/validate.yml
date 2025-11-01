@@ -51,7 +51,7 @@ jobs:
         run: uv sync --extra dev
       
       - name: Run MyPy
-        run: uv run mypy app/
+        run: uv run mypy -p app
         continue-on-error: false
   
   security:
