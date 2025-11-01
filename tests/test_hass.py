@@ -294,8 +294,11 @@ class TestHassAPI:
         mock_client = MagicMock()
         mock_client.get = AsyncMock(return_value=mock_response)
 
-        # Patch the client
-        with patch("app.hass.get_client", return_value=mock_client):
+        # Patch the client (system functions are now in app.api.system)
+        with (
+            patch("app.api.system.get_client", return_value=mock_client),
+            patch("app.hass.get_client", return_value=mock_client),
+        ):
             with patch("app.config.HA_URL", mock_config["hass_url"]):
                 with (
                     patch("app.config.HA_TOKEN", mock_config["hass_token"]),
@@ -350,8 +353,11 @@ class TestHassAPI:
         mock_client = MagicMock()
         mock_client.get = AsyncMock(return_value=mock_response)
 
-        # Patch the client
-        with patch("app.hass.get_client", return_value=mock_client):
+        # Patch the client (system functions are now in app.api.system)
+        with (
+            patch("app.api.system.get_client", return_value=mock_client),
+            patch("app.hass.get_client", return_value=mock_client),
+        ):
             with patch("app.config.HA_URL", mock_config["hass_url"]):
                 with (
                     patch("app.config.HA_TOKEN", mock_config["hass_token"]),

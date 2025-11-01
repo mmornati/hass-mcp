@@ -35,10 +35,14 @@ from app.api.devices import (
     get_devices,
 )
 from app.api.entities import (
-    filter_fields,
     get_entities,
     get_entity_history,
     get_entity_state,
+)
+from app.api.integrations import (
+    get_integration_config,
+    get_integrations,
+    reload_integration,
 )
 from app.api.scenes import (
     activate_scene,
@@ -53,9 +57,16 @@ from app.api.scripts import (
     reload_scripts,
     run_script,
 )
+from app.api.system import (
+    get_core_config,
+    get_hass_error_log,
+    get_hass_version,
+    get_system_health,
+    get_system_overview,
+    restart_home_assistant,
+)
 from app.config import HA_URL, get_ha_headers
 from app.core import (
-    DOMAIN_IMPORTANT_ATTRIBUTES,
     get_client,
     handle_api_errors,
 )
@@ -65,14 +76,8 @@ logger = logging.getLogger(__name__)
 
 
 # API Functions
-@handle_api_errors
-async def get_hass_version() -> str:
-    """Get the Home Assistant version from the API"""
-    client = await get_client()
-    response = await client.get(f"{HA_URL}/api/config", headers=get_ha_headers())
-    response.raise_for_status()
-    data = response.json()
-    return data.get("version", "unknown")
+# Re-export get_hass_version from api/system for backwards compatibility
+# All system functions have been moved to app/api/system.py
 
 
 @handle_api_errors
@@ -158,12 +163,14 @@ async def summarize_domain(domain: str, example_limit: int = 3) -> dict[str, Any
         return {"error": f"Error generating domain summary: {str(e)}"}
 
 
-# Re-export automation, script, device, area, and scene functions from api/ for backwards compatibility
+# Re-export automation, script, device, area, scene, integration, and system functions from api/ for backwards compatibility
 # All automation functions have been moved to app/api/automations.py
 # All script functions have been moved to app/api/scripts.py
 # All device functions have been moved to app/api/devices.py
 # All area functions have been moved to app/api/areas.py
 # All scene functions have been moved to app/api/scenes.py
+# All integration functions have been moved to app/api/integrations.py
+# All system functions have been moved to app/api/system.py
 # These are imported at the top, so they're available in this module's namespace
 __all__ = [
     "create_automation",
@@ -196,17 +203,20 @@ __all__ = [
     "create_scene",
     "activate_scene",
     "reload_scenes",
+    "get_integrations",
+    "get_integration_config",
+    "reload_integration",
+    "get_hass_version",
+    "get_system_overview",
+    "get_system_health",
+    "get_hass_error_log",
+    "get_core_config",
+    "restart_home_assistant",
 ]
 
 
-@handle_api_errors
-async def restart_home_assistant() -> dict[str, Any]:
-    """Restart Home Assistant"""
-    return await call_service("homeassistant", "restart", {})
-
-
-# Re-export script functions from api/scripts for backwards compatibility
-# All script functions have been moved to app/api/scripts.py
+# Re-export restart_home_assistant from api/system for backwards compatibility
+# All system functions have been moved to app/api/system.py
 
 
 @handle_api_errors
@@ -345,8 +355,8 @@ async def diagnose_entity(entity_id: str) -> dict[str, Any]:
             diagnosis["issues"].append(f"Entity hasn't updated in {age / 3600:.1f} hours")
             diagnosis["recommendations"].append("Check if device is powered on and connected")
 
-    # Check for errors in related integrations
-    domain = entity_id.split(".")[0]
+        # Check for errors in related integrations
+        domain = entity_id.split(".")[0]
     integrations = await get_integrations(domain=domain)
     for integration in integrations:
         integration_state = integration.get("state")
@@ -644,355 +654,8 @@ async def find_integration_errors(domain: str | None = None) -> dict[str, Any]:
     }
 
 
-@handle_api_errors
-async def get_integrations(domain: str | None = None) -> list[dict[str, Any]]:
-    """
-    Get list of all configuration entries (integrations)
-
-    Args:
-        domain: Optional domain to filter integrations by (e.g., 'mqtt', 'zwave')
-
-    Returns:
-        List of integration entries with their status and configuration
-
-    Example response:
-        [
-            {
-                "entry_id": "abc123",
-                "domain": "mqtt",
-                "title": "MQTT",
-                "source": "user",
-                "state": "loaded",
-                "supports_options": true,
-                "pref_disable_new_entities": false,
-                "pref_disable_polling": false
-            }
-        ]
-    """
-    client = await get_client()
-    response = await client.get(
-        f"{HA_URL}/api/config/config_entries/entry",
-        headers=get_ha_headers(),
-    )
-    response.raise_for_status()
-    entries = response.json()
-
-    # Filter by domain if specified
-    if domain:
-        entries = [e for e in entries if e.get("domain") == domain]
-
-    return entries
-
-
-@handle_api_errors
-async def get_integration_config(entry_id: str) -> dict[str, Any]:
-    """
-    Get detailed configuration for a specific integration entry
-
-    Args:
-        entry_id: The entry ID of the integration to get
-
-    Returns:
-        Detailed configuration dictionary for the integration entry
-
-    Example response:
-        {
-            "entry_id": "abc123",
-            "domain": "mqtt",
-            "title": "MQTT",
-            "source": "user",
-            "state": "loaded",
-            "options": {...},
-            "pref_disable_new_entities": false,
-            "pref_disable_polling": false
-        }
-    """
-    client = await get_client()
-    response = await client.get(
-        f"{HA_URL}/api/config/config_entries/entry/{entry_id}",
-        headers=get_ha_headers(),
-    )
-    response.raise_for_status()
-    return response.json()
-
-
-@handle_api_errors
-async def reload_integration(entry_id: str) -> dict[str, Any]:
-    """
-    Reload a specific integration
-
-    Args:
-        entry_id: The entry ID of the integration to reload
-
-    Returns:
-        Response from the reload service call
-
-    Note:
-        Reloading an integration may cause temporary unavailability of its entities.
-        Use with caution.
-    """
-    return await call_service("config", "reload_entry", {"entry_id": entry_id})
-
-
-@handle_api_errors
-async def get_hass_error_log() -> dict[str, Any]:
-    """
-    Get the Home Assistant error log for troubleshooting
-
-    Returns:
-        A dictionary containing:
-        - log_text: The full error log text
-        - error_count: Number of ERROR entries found
-        - warning_count: Number of WARNING entries found
-        - integration_mentions: Map of integration names to mention counts
-        - error: Error message if retrieval failed
-    """
-    try:
-        # Call the Home Assistant API error_log endpoint
-        url = f"{HA_URL}/api/error_log"
-        headers = get_ha_headers()
-
-        async with httpx.AsyncClient() as client:
-            response = await client.get(url, headers=headers, timeout=30)
-
-            if response.status_code == 200:
-                log_text = response.text
-
-                # Count errors and warnings
-                error_count = log_text.count("ERROR")
-                warning_count = log_text.count("WARNING")
-
-                # Extract integration mentions
-                integration_mentions = {}
-
-                # Look for patterns like [mqtt], [zwave], etc.
-                for match in re.finditer(r"\[([a-zA-Z0-9_]+)\]", log_text):
-                    integration = match.group(1).lower()
-                    if integration not in integration_mentions:
-                        integration_mentions[integration] = 0
-                    integration_mentions[integration] += 1
-
-                return {
-                    "log_text": log_text,
-                    "error_count": error_count,
-                    "warning_count": warning_count,
-                    "integration_mentions": integration_mentions,
-                }
-            return {
-                "error": f"Error retrieving error log: {response.status_code} {response.reason_phrase}",
-                "details": response.text,
-                "log_text": "",
-                "error_count": 0,
-                "warning_count": 0,
-                "integration_mentions": {},
-            }
-    except Exception as e:
-        logger.error(f"Error retrieving Home Assistant error log: {str(e)}")
-        return {
-            "error": f"Error retrieving error log: {str(e)}",
-            "log_text": "",
-            "error_count": 0,
-            "warning_count": 0,
-            "integration_mentions": {},
-        }
-
-
-@handle_api_errors
-async def get_system_overview() -> dict[str, Any]:
-    """
-    Get a comprehensive overview of the entire Home Assistant system
-
-    Returns:
-        A dictionary containing:
-        - total_entities: Total count of all entities
-        - domains: Dictionary of domains with their entity counts and state distributions
-        - domain_samples: Representative sample entities for each domain (2-3 per domain)
-        - domain_attributes: Common attributes for each domain
-        - area_distribution: Entities grouped by area (if available)
-    """
-    try:
-        # Get ALL entities with minimal fields for efficiency
-        # We retrieve all entities since API calls don't consume tokens, only responses do
-        client = await get_client()
-        response = await client.get(f"{HA_URL}/api/states", headers=get_ha_headers())
-        response.raise_for_status()
-        all_entities_raw = response.json()
-
-        # Apply lean formatting to reduce token usage in the response
-        all_entities = []
-        for entity in all_entities_raw:
-            domain = entity["entity_id"].split(".")[0]
-
-            # Start with basic lean fields
-            lean_fields = ["entity_id", "state", "attr.friendly_name"]
-
-            # Add domain-specific important attributes
-            if domain in DOMAIN_IMPORTANT_ATTRIBUTES:
-                for attr in DOMAIN_IMPORTANT_ATTRIBUTES[domain]:
-                    lean_fields.append(f"attr.{attr}")
-
-            # Filter and add to result
-            all_entities.append(filter_fields(entity, lean_fields))
-
-        # Initialize overview structure
-        overview = {
-            "total_entities": len(all_entities),
-            "domains": {},
-            "domain_samples": {},
-            "domain_attributes": {},
-            "area_distribution": {},
-        }
-
-        # Group entities by domain
-        domain_entities = {}
-        for entity in all_entities:
-            domain = entity["entity_id"].split(".")[0]
-            if domain not in domain_entities:
-                domain_entities[domain] = []
-            domain_entities[domain].append(entity)
-
-        # Process each domain
-        for domain, entities in domain_entities.items():
-            # Count entities in this domain
-            count = len(entities)
-
-            # Collect state distribution
-            state_distribution = {}
-            for entity in entities:
-                state = entity.get("state", "unknown")
-                if state not in state_distribution:
-                    state_distribution[state] = 0
-                state_distribution[state] += 1
-
-            # Store domain information
-            overview["domains"][domain] = {"count": count, "states": state_distribution}
-
-            # Select representative samples (2-3 per domain)
-            sample_limit = min(3, count)
-            samples = []
-            for i in range(sample_limit):
-                entity = entities[i]
-                samples.append(
-                    {
-                        "entity_id": entity["entity_id"],
-                        "state": entity.get("state", "unknown"),
-                        "friendly_name": entity.get("attributes", {}).get(
-                            "friendly_name", entity["entity_id"]
-                        ),
-                    }
-                )
-            overview["domain_samples"][domain] = samples
-
-            # Collect common attributes for this domain
-            attribute_counts = {}
-            for entity in entities:
-                for attr in entity.get("attributes", {}):
-                    if attr not in attribute_counts:
-                        attribute_counts[attr] = 0
-                    attribute_counts[attr] += 1
-
-            # Get top 5 most common attributes for this domain
-            common_attributes = sorted(attribute_counts.items(), key=lambda x: x[1], reverse=True)[
-                :5
-            ]
-            overview["domain_attributes"][domain] = [attr for attr, count in common_attributes]
-
-            # Group by area if available
-            for entity in entities:
-                area_id = entity.get("attributes", {}).get("area_id", "Unknown")
-                area_name = entity.get("attributes", {}).get("area_name", area_id)
-
-                if area_name not in overview["area_distribution"]:
-                    overview["area_distribution"][area_name] = {}
-
-                if domain not in overview["area_distribution"][area_name]:
-                    overview["area_distribution"][area_name][domain] = 0
-
-                overview["area_distribution"][area_name][domain] += 1
-
-        # Add summary information
-        overview["domain_count"] = len(domain_entities)
-        overview["most_common_domains"] = sorted(
-            [(domain, len(entities)) for domain, entities in domain_entities.items()],
-            key=lambda x: x[1],
-            reverse=True,
-        )[:5]
-
-        return overview
-    except Exception as e:
-        logger.error(f"Error generating system overview: {str(e)}")
-        return {"error": f"Error generating system overview: {str(e)}"}
-
-
-@handle_api_errors
-async def get_system_health() -> dict[str, Any]:
-    """
-    Get system health information from Home Assistant
-
-    Returns:
-        A dictionary containing system health information for each component:
-        - homeassistant: Core HA health and version
-        - supervisor: Supervisor health and version (if available)
-        - Other integrations with health information
-
-    Example response:
-        {
-            "homeassistant": {
-                "healthy": true,
-                "version": "2025.3.0"
-            },
-            "supervisor": {
-                "healthy": true,
-                "version": "2025.03.1"
-            }
-        }
-    """
-    client = await get_client()
-    response = await client.get(f"{HA_URL}/api/system_health", headers=get_ha_headers())
-    response.raise_for_status()
-    return response.json()
-
-
-@handle_api_errors
-async def get_core_config() -> dict[str, Any]:
-    """
-    Get core configuration from Home Assistant
-
-    Returns:
-        A dictionary containing core configuration information:
-        - location_name: Location name
-        - time_zone: Configured timezone
-        - unit_system: Unit system configuration
-        - components: List of loaded components
-        - version: Home Assistant version
-        - config_dir: Configuration directory path
-        - whitelist_external_dirs: Whitelisted directories
-        - allowlist_external_dirs: Allowlisted directories
-        - allowlist_external_urls: Allowlisted URLs
-        - latitude/longitude: Location coordinates
-        - elevation: Elevation above sea level
-        - currency: Configured currency
-        - country: Configured country
-        - language: Configured language
-
-    Example response:
-        {
-            "location_name": "Home",
-            "time_zone": "America/New_York",
-            "unit_system": {
-                "length": "km",
-                "mass": "g",
-                "temperature": "°C",
-                "volume": "L"
-            },
-            "version": "2025.3.0",
-            "components": ["mqtt", "hue", ...]
-        }
-    """
-    client = await get_client()
-    response = await client.get(f"{HA_URL}/api/config", headers=get_ha_headers())
-    response.raise_for_status()
-    return response.json()
+# Re-export integration functions from api/integrations for backwards compatibility
+# All integration functions have been moved to app/api/integrations.py
 
 
 @handle_api_errors
