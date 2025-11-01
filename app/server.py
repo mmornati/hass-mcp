@@ -20,17 +20,14 @@ from app.hass import (
     create_tag,
     delete_backup,
     delete_tag,
-    fire_event,
     get_backups,
     get_calendar_events,
     get_calendars,
     get_entities,
     get_entity_state,
-    get_event_types,
     get_helper_details,
     get_helpers,
     get_notification_services,
-    get_recent_events,
     get_tag_automations,
     get_tags,
     get_webhooks,
@@ -52,6 +49,7 @@ from app.tools import (
     devices,
     diagnostics,
     entities,
+    events,
     integrations,
     logbook,
     scenes,
@@ -165,6 +163,11 @@ mcp.tool()(async_handler("create_zone")(zones.create_zone_tool))
 mcp.tool()(async_handler("update_zone")(zones.update_zone_tool))
 mcp.tool()(async_handler("delete_zone")(zones.delete_zone_tool))
 
+# Register events tools with MCP instance
+mcp.tool()(async_handler("fire_event")(events.fire_event_tool))
+mcp.tool()(async_handler("list_event_types")(events.list_event_types_tool))
+mcp.tool()(async_handler("get_events")(events.get_events_tool))
+
 # Re-export all tools for backward compatibility
 # This allows tests and other code to import them from app.server
 get_entity = entities.get_entity
@@ -231,6 +234,9 @@ list_zones_tool = zones.list_zones_tool
 create_zone_tool = zones.create_zone_tool
 update_zone_tool = zones.update_zone_tool
 delete_zone_tool = zones.delete_zone_tool
+fire_event_tool = events.fire_event_tool
+list_event_types_tool = events.list_event_types_tool
+get_events_tool = events.get_events_tool
 
 
 # All tools are now in app.tools.* modules
@@ -948,104 +954,6 @@ async def test_notification_tool(platform: str, message: str) -> dict[str, Any]:
     """
     logger.info(f"Testing notification delivery to {platform} with message: '{message}'")
     return await test_notification_delivery(platform, message)
-
-
-@mcp.tool()
-@async_handler("fire_event")
-async def fire_event_tool(
-    event_type: str, event_data: dict[str, Any] | None = None
-) -> dict[str, Any]:
-    """
-    Fire a custom event
-
-    Args:
-        event_type: The event type name (e.g., 'custom_event', 'state_changed')
-        event_data: Optional dictionary of event data/payload
-
-    Returns:
-        Response dictionary from the event fire API
-
-    Examples:
-        event_type="custom_event", event_data={"message": "Hello"}
-        event_type="automation_triggered", event_data={"entity_id": "light.living_room"}
-
-    Note:
-        Events are used for communication between different parts of Home Assistant.
-        Custom events can trigger automations that listen for specific event types.
-        Event data is optional but commonly used to pass information to event handlers.
-
-    Best Practices:
-        - Use descriptive event type names (e.g., 'custom_event', 'my_app_ready')
-        - Include relevant data in event_data for event handlers
-        - Use events to trigger automations based on custom conditions
-        - Document custom event types for team members
-        - Use events for inter-component communication
-    """
-    logger.info(f"Firing event: {event_type}" + (f" with data: {event_data}" if event_data else ""))
-    return await fire_event(event_type, event_data)
-
-
-@mcp.tool()
-@async_handler("list_event_types")
-async def list_event_types_tool() -> list[str]:
-    """
-    List common event types used in Home Assistant
-
-    Returns:
-        List of common event type strings
-
-    Examples:
-        Returns common event types like "state_changed", "time_changed", etc.
-
-    Note:
-        Home Assistant API doesn't provide a comprehensive list of event types.
-        This function returns common event types from documentation.
-        Custom event types can be any string, but common ones are listed here.
-
-    Best Practices:
-        - Use this to discover common event types
-        - Create custom event types for your own use cases
-        - Check automations/logbook for other event types used in your setup
-        - Use descriptive names for custom event types
-    """
-    logger.info("Getting list of common event types")
-    return await get_event_types()
-
-
-@mcp.tool()
-@async_handler("get_events")
-async def get_events_tool(entity_id: str | None = None, hours: int = 1) -> list[dict[str, Any]]:
-    """
-    Get recent events for an entity (via logbook)
-
-    Args:
-        entity_id: Optional entity ID to filter events for a specific entity
-        hours: Number of hours of history to retrieve (default: 1)
-
-    Returns:
-        List of event dictionaries from logbook entries
-
-    Examples:
-        entity_id=None, hours=1 - get all recent events from last hour
-        entity_id="light.living_room", hours=24 - get events for specific entity from last day
-
-    Note:
-        Events can be retrieved via logbook entries.
-        This is a convenience function that uses get_logbook_entries.
-        Useful for debugging and understanding what events occurred.
-
-    Best Practices:
-        - Keep hours reasonable (1-24) for token efficiency
-        - Use entity_id to filter events for specific entities
-        - Use to debug event-triggered automations
-        - Use to understand event flow in your Home Assistant setup
-    """
-    logger.info(
-        "Getting recent events"
-        + (f" for entity: {entity_id}" if entity_id else "")
-        + f" for last {hours} hours"
-    )
-    return await get_recent_events(entity_id, hours)
 
 
 @mcp.tool()
