@@ -26,6 +26,12 @@ from app.api.entities import (
     get_entity_history,
     get_entity_state,
 )
+from app.api.scripts import (
+    get_script_config,
+    get_scripts,
+    reload_scripts,
+    run_script,
+)
 
 __all__ = [
     "BaseAPI",
@@ -45,4 +51,8 @@ __all__ = [
     "trigger_automation",
     "get_automation_execution_log",
     "validate_automation_config",
+    "get_scripts",
+    "get_script_config",
+    "run_script",
+    "reload_scripts",
 ]

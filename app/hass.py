@@ -27,6 +27,12 @@ from app.api.entities import (
     get_entity_history,
     get_entity_state,
 )
+from app.api.scripts import (
+    get_script_config,
+    get_scripts,
+    reload_scripts,
+    run_script,
+)
 from app.config import HA_URL, get_ha_headers
 from app.core import (
     DOMAIN_IMPORTANT_ATTRIBUTES,
@@ -132,8 +138,9 @@ async def summarize_domain(domain: str, example_limit: int = 3) -> dict[str, Any
         return {"error": f"Error generating domain summary: {str(e)}"}
 
 
-# Re-export automation functions from api/automations for backwards compatibility
+# Re-export automation and script functions from api/ for backwards compatibility
 # All automation functions have been moved to app/api/automations.py
+# All script functions have been moved to app/api/scripts.py
 # These are imported at the top, so they're available in this module's namespace
 __all__ = [
     "create_automation",
@@ -147,6 +154,10 @@ __all__ = [
     "trigger_automation",
     "update_automation",
     "validate_automation_config",
+    "get_scripts",
+    "get_script_config",
+    "run_script",
+    "reload_scripts",
 ]
 
 
@@ -156,130 +167,8 @@ async def restart_home_assistant() -> dict[str, Any]:
     return await call_service("homeassistant", "restart", {})
 
 
-@handle_api_errors
-async def get_scripts() -> list[dict[str, Any]]:
-    """
-    Get list of all scripts
-
-    Returns:
-        List of script dictionaries containing:
-        - entity_id: The script entity ID (e.g., 'script.turn_on_lights')
-        - state: Current state of the script
-        - friendly_name: Display name of the script
-        - last_triggered: Timestamp of last execution (if available)
-        - alias: Script alias/name
-    """
-    # Scripts can be retrieved via states API
-    script_entities = await get_entities(domain="script")
-
-    # Extract script information
-    scripts = []
-    for entity in script_entities:
-        script_info = {
-            "entity_id": entity.get("entity_id"),
-            "state": entity.get("state"),
-        }
-
-        # Add attributes if available
-        attributes = entity.get("attributes", {})
-        if "friendly_name" in attributes:
-            script_info["friendly_name"] = attributes["friendly_name"]
-        if "alias" in attributes:
-            script_info["alias"] = attributes["alias"]
-        if "last_triggered" in attributes:
-            script_info["last_triggered"] = attributes["last_triggered"]
-
-        scripts.append(script_info)
-
-    return scripts
-
-
-@handle_api_errors
-async def get_script_config(script_id: str) -> dict[str, Any]:
-    """
-    Get script configuration (sequence of actions)
-
-    Args:
-        script_id: The script ID to get (without 'script.' prefix)
-
-    Returns:
-        Script configuration dictionary with:
-        - entity_id: The script entity ID
-        - state: Current state
-        - attributes: Script attributes including configuration
-        - config: Script configuration if available via config API
-
-    Note:
-        Script configuration might be available via config API or
-        only through entity state depending on Home Assistant version.
-        This function tries the config API first, then falls back to entity state.
-    """
-    entity_id = f"script.{script_id}"
-
-    # Try to get config via config API if available
-    try:
-        client = await get_client()
-        response = await client.get(
-            f"{HA_URL}/api/config/scripts/{script_id}",
-            headers=get_ha_headers(),
-        )
-        if response.status_code == 200:
-            config_data = response.json()
-            # Merge with entity state for complete information
-            entity = await get_entity_state(entity_id, lean=False)
-            config_data["entity"] = entity
-            return config_data
-    except Exception:  # nosec B110
-        # Config API not available, fall through to entity state
-        pass
-
-    # Fallback to entity state
-    return await get_entity_state(entity_id, lean=False)
-
-
-@handle_api_errors
-async def run_script(script_id: str, variables: dict[str, Any] | None = None) -> dict[str, Any]:
-    """
-    Execute a script with optional variables
-
-    Args:
-        script_id: The script ID to execute (without 'script.' prefix)
-        variables: Optional dictionary of variables to pass to the script
-
-    Returns:
-        Response from the script execution
-
-    Examples:
-        # Run script without variables
-        result = await run_script("turn_on_lights")
-
-        # Run script with variables
-        result = await run_script("notify", {"message": "Hello", "target": "user1"})
-
-    Note:
-        Scripts execute asynchronously. The response indicates the script was started,
-        not necessarily that it completed.
-    """
-    data: dict[str, Any] = {}
-    if variables:
-        data["variables"] = variables
-
-    return await call_service("script", script_id, data)
-
-
-@handle_api_errors
-async def reload_scripts() -> dict[str, Any]:
-    """
-    Reload all scripts from configuration
-
-    Returns:
-        Response from the reload operation
-
-    Note:
-        Reloading scripts reloads all script configurations from YAML files.
-        This is useful after modifying script configuration files.
-    """
-    return await call_service("script", "reload", {})
+# Re-export script functions from api/scripts for backwards compatibility
+# All script functions have been moved to app/api/scripts.py
 
 
 @handle_api_errors
