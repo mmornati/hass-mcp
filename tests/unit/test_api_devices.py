@@ -264,9 +264,11 @@ class TestGetDeviceEntities:
         with patch("app.api.devices.get_device_details", return_value=error_response):
             result = await get_device_entities(device_id)
 
-            # Should propagate the error from get_device_details
-            assert isinstance(result, dict)
-            assert "error" in result
+            # Should propagate the error from get_device_details as a list
+            assert isinstance(result, list)
+            assert len(result) == 1
+            assert isinstance(result[0], dict)
+            assert "error" in result[0]
 
 
 class TestGetDeviceStatistics:
