@@ -8,6 +8,7 @@ Home Assistant functionality via the Model Context Protocol.
 from app.tools import (
     areas,
     automations,
+    blueprints,
     devices,
     diagnostics,
     entities,
@@ -24,6 +25,7 @@ from app.tools import (
 __all__ = [
     "areas",
     "automations",
+    "blueprints",
     "devices",
     "diagnostics",
     "entities",
