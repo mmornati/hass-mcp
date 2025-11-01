@@ -1,122 +1,23 @@
-import functools
-import inspect
 import json
 import logging
 import re
 import urllib.parse
 import uuid
-from collections.abc import Awaitable, Callable
 from datetime import UTC, datetime, timedelta
-from typing import Any, TypeVar, cast
+from typing import Any
 
 import httpx
 
-from app.config import HA_TOKEN, HA_URL, get_ha_headers
+from app.config import HA_URL, get_ha_headers
+from app.core import (
+    DEFAULT_LEAN_FIELDS,
+    DOMAIN_IMPORTANT_ATTRIBUTES,
+    get_client,
+    handle_api_errors,
+)
 
 # Set up logging
 logger = logging.getLogger(__name__)
-
-# Define a generic type for our API function return values
-T = TypeVar("T")
-F = TypeVar("F", bound=Callable[..., Awaitable[Any]])
-
-# HTTP client
-_client: httpx.AsyncClient | None = None
-
-# Default field sets for different verbosity levels
-# Lean fields for standard requests (optimized for token efficiency)
-DEFAULT_LEAN_FIELDS = ["entity_id", "state", "attr.friendly_name"]
-
-# Common fields that are typically needed for entity operations
-DEFAULT_STANDARD_FIELDS = ["entity_id", "state", "attributes", "last_updated"]
-
-# Domain-specific important attributes to include in lean responses
-DOMAIN_IMPORTANT_ATTRIBUTES = {
-    "light": ["brightness", "color_temp", "rgb_color", "supported_color_modes"],
-    "switch": ["device_class"],
-    "binary_sensor": ["device_class"],
-    "sensor": ["device_class", "unit_of_measurement", "state_class"],
-    "climate": ["hvac_mode", "current_temperature", "temperature", "hvac_action"],
-    "media_player": ["media_title", "media_artist", "source", "volume_level"],
-    "cover": ["current_position", "current_tilt_position"],
-    "fan": ["percentage", "preset_mode"],
-    "camera": ["entity_picture"],
-    "automation": ["last_triggered"],
-    "scene": [],
-    "script": ["last_triggered"],
-}
-
-
-def handle_api_errors(func: F) -> F:
-    """
-    Decorator to handle common error cases for Home Assistant API calls
-
-    Args:
-        func: The async function to decorate
-
-    Returns:
-        Wrapped function that handles errors
-    """
-
-    @functools.wraps(func)
-    async def wrapper(*args: Any, **kwargs: Any) -> Any:
-        # Determine return type from function annotation
-        return_type = inspect.signature(func).return_annotation
-        is_dict_return = "Dict" in str(return_type)
-        is_list_return = "List" in str(return_type)
-
-        # Prepare error formatters based on return type
-        def format_error(msg: str) -> Any:
-            if is_dict_return:
-                return {"error": msg}
-            if is_list_return:
-                return [{"error": msg}]
-            return msg
-
-        try:
-            # Check if token is available
-            if not HA_TOKEN:
-                return format_error(
-                    "No Home Assistant token provided. Please set HA_TOKEN in .env file."
-                )
-
-            # Call the original function
-            return await func(*args, **kwargs)
-        except httpx.ConnectError:
-            return format_error(f"Connection error: Cannot connect to Home Assistant at {HA_URL}")
-        except httpx.TimeoutException:
-            return format_error(
-                f"Timeout error: Home Assistant at {HA_URL} did not respond in time"
-            )
-        except httpx.HTTPStatusError as e:
-            return format_error(
-                f"HTTP error: {e.response.status_code} - {e.response.reason_phrase}"
-            )
-        except httpx.RequestError as e:
-            return format_error(f"Error connecting to Home Assistant: {str(e)}")
-        except Exception as e:
-            return format_error(f"Unexpected error: {str(e)}")
-
-    return cast(F, wrapper)
-
-
-# Persistent HTTP client
-async def get_client() -> httpx.AsyncClient:
-    """Get a persistent httpx client for Home Assistant API calls"""
-    global _client
-    if _client is None:
-        logger.debug("Creating new HTTP client")
-        _client = httpx.AsyncClient(timeout=10.0)
-    return _client
-
-
-async def cleanup_client() -> None:
-    """Close the HTTP client when shutting down"""
-    global _client
-    if _client:
-        logger.debug("Closing HTTP client")
-        await _client.aclose()
-        _client = None
 
 
 # Direct entity retrieval function

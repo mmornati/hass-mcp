@@ -29,7 +29,7 @@ class TestMCPServer:
     def test_async_handler_decorator(self):
         """Test the async_handler decorator."""
         # Import the decorator
-        from app.server import async_handler
+        from app.core import async_handler
 
         # Create a test async function
         async def test_func(arg1, arg2=None):
