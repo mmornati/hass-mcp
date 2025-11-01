@@ -239,6 +239,9 @@ Hass-MCP provides several tools for interacting with Home Assistant:
 - `list_calendars`: Get a list of all calendar entities in Home Assistant
 - `get_calendar_events`: Get calendar events for a date range
 - `create_calendar_event`: Create a calendar event
+- `list_notification_services`: Get a list of all available notification platforms
+- `send_notification`: Send a notification to a specific platform or default
+- `test_notification`: Test notification delivery to a specific platform
 
 ## Prompts for Guided Conversations
 
