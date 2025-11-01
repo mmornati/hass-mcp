@@ -233,6 +233,9 @@ Hass-MCP provides several tools for interacting with Home Assistant:
 - `get_logbook`: Get logbook entries for a time range, optionally filtered by entity
 - `get_entity_logbook`: Get logbook entries for a specific entity
 - `search_logbook`: Search logbook entries by query string
+- `get_entity_statistics`: Get statistics for an entity (min, max, mean, median)
+- `get_domain_statistics`: Get aggregate statistics for all entities in a domain
+- `analyze_usage_patterns`: Analyze usage patterns (when device is used most)
 
 ## Prompts for Guided Conversations
 
