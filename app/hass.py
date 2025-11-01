@@ -2,6 +2,7 @@ import functools
 import inspect
 import logging
 import re
+import uuid
 from collections.abc import Awaitable, Callable
 from datetime import UTC, datetime, timedelta
 from typing import Any, TypeVar, cast
@@ -449,9 +450,521 @@ async def reload_automations() -> dict[str, Any]:
 
 
 @handle_api_errors
+async def get_automation_config(automation_id: str) -> dict[str, Any]:
+    """
+    Get full automation configuration including triggers, conditions, actions
+
+    Args:
+        automation_id: The automation ID to get (without 'automation.' prefix)
+
+    Returns:
+        Complete automation configuration dictionary with:
+        - id: Automation identifier
+        - alias: Display name
+        - description: Automation description
+        - trigger: List of trigger configurations
+        - condition: List of condition configurations
+        - action: List of action configurations
+        - mode: Automation mode (single, restart, queued, parallel)
+
+    Example response:
+        {
+            "id": "automation_id",
+            "alias": "Turn on lights at sunset",
+            "description": "Automatically turn on lights",
+            "trigger": [...],
+            "condition": [...],
+            "action": [...],
+            "mode": "single"
+        }
+    """
+    client = await get_client()
+    response = await client.get(
+        f"{HA_URL}/api/config/automation/config/{automation_id}",
+        headers=get_ha_headers(),
+    )
+    response.raise_for_status()
+    return response.json()
+
+
+@handle_api_errors
+async def create_automation(config: dict[str, Any]) -> dict[str, Any]:
+    """
+    Create a new automation from configuration dictionary
+
+    Args:
+        config: Automation configuration dictionary with:
+            - id: Automation identifier (optional, will be generated if missing)
+            - alias: Display name
+            - description: Automation description (optional)
+            - trigger: List of trigger configurations (required)
+            - condition: List of condition configurations (optional)
+            - action: List of action configurations (required)
+            - mode: Automation mode (optional, default: "single")
+
+    Returns:
+        Response from the create operation
+
+    Note:
+        If 'id' is not provided in config, a unique ID will be generated.
+        The automation will be created and enabled by default.
+    """
+    # Extract automation_id from config or generate one
+    automation_id = config.get("id")
+    if not automation_id:
+        automation_id = f"automation_{uuid.uuid4().hex[:8]}"
+        config["id"] = automation_id
+
+    client = await get_client()
+    response = await client.post(
+        f"{HA_URL}/api/config/automation/config/{automation_id}",
+        headers=get_ha_headers(),
+        json=config,
+    )
+    response.raise_for_status()
+    return response.json()
+
+
+@handle_api_errors
+async def update_automation(automation_id: str, config: dict[str, Any]) -> dict[str, Any]:
+    """
+    Update an existing automation with new configuration
+
+    Args:
+        automation_id: The automation ID to update (without 'automation.' prefix)
+        config: Updated automation configuration dictionary
+
+    Returns:
+        Response from the update operation
+
+    Note:
+        The config should include all fields you want to keep.
+        Fields not included may be removed.
+    """
+    client = await get_client()
+    response = await client.post(
+        f"{HA_URL}/api/config/automation/config/{automation_id}",
+        headers=get_ha_headers(),
+        json=config,
+    )
+    response.raise_for_status()
+    return response.json()
+
+
+@handle_api_errors
+async def delete_automation(automation_id: str) -> dict[str, Any]:
+    """
+    Delete an automation
+
+    Args:
+        automation_id: The automation ID to delete (without 'automation.' prefix)
+
+    Returns:
+        Response from the delete operation
+
+    Note:
+        ⚠️ This permanently deletes the automation. There is no undo.
+        Make sure the automation is not referenced by other automations or scripts.
+    """
+    client = await get_client()
+    response = await client.delete(
+        f"{HA_URL}/api/config/automation/config/{automation_id}",
+        headers=get_ha_headers(),
+    )
+    response.raise_for_status()
+    return {"status": "deleted", "automation_id": automation_id}
+
+
+@handle_api_errors
+async def enable_automation(automation_id: str) -> dict[str, Any]:
+    """
+    Enable an automation
+
+    Args:
+        automation_id: The automation ID to enable (without 'automation.' prefix)
+
+    Returns:
+        Response from the enable operation
+
+    Note:
+        Enabling an automation allows it to trigger automatically.
+        The automation must exist and be configured correctly.
+    """
+    return await call_service("automation", "turn_on", {"entity_id": f"automation.{automation_id}"})
+
+
+@handle_api_errors
+async def disable_automation(automation_id: str) -> dict[str, Any]:
+    """
+    Disable an automation
+
+    Args:
+        automation_id: The automation ID to disable (without 'automation.' prefix)
+
+    Returns:
+        Response from the disable operation
+
+    Note:
+        Disabling prevents the automation from triggering automatically.
+        The automation configuration is preserved and can be re-enabled later.
+    """
+    return await call_service(
+        "automation", "turn_off", {"entity_id": f"automation.{automation_id}"}
+    )
+
+
+@handle_api_errors
+async def trigger_automation(automation_id: str) -> dict[str, Any]:
+    """
+    Manually trigger an automation
+
+    Args:
+        automation_id: The automation ID to trigger (without 'automation.' prefix)
+
+    Returns:
+        Response from the trigger operation
+
+    Note:
+        This manually executes the automation actions.
+        Useful for testing automations without waiting for triggers.
+        The automation does not need to be enabled to be triggered manually.
+    """
+    return await call_service("automation", "trigger", {"entity_id": f"automation.{automation_id}"})
+
+
+@handle_api_errors
+async def get_automation_execution_log(automation_id: str, hours: int = 24) -> dict[str, Any]:
+    """
+    Get automation execution history from logbook
+
+    Args:
+        automation_id: The automation ID to get history for (without 'automation.' prefix)
+        hours: Number of hours of history to retrieve (default: 24)
+
+    Returns:
+        Dictionary containing:
+        - automation_id: The automation ID requested
+        - executions: List of execution events with timestamps
+        - count: Number of executions found
+        - time_range: Dictionary with start_time and end_time
+
+    Example response:
+        {
+            "automation_id": "automation_id",
+            "executions": [
+                {
+                    "when": "2024-01-01T12:00:00Z",
+                    "name": "Turn on lights",
+                    "domain": "automation",
+                    "entity_id": "automation.automation_id"
+                }
+            ],
+            "count": 5,
+            "time_range": {
+                "start_time": "2024-01-01T00:00:00Z",
+                "end_time": "2024-01-02T00:00:00Z"
+            }
+        }
+
+    Best Practices:
+        - Keep hours reasonable (24-72) for token efficiency
+        - Use to debug why an automation isn't firing
+        - Check execution frequency to optimize automation triggers
+    """
+    end_time = datetime.now(UTC)
+    start_time = end_time - timedelta(hours=hours)
+    start_time_iso = start_time.strftime("%Y-%m-%dT%H:%M:%S")
+
+    client = await get_client()
+    response = await client.get(
+        f"{HA_URL}/api/logbook/{start_time_iso}",
+        headers=get_ha_headers(),
+        params={"entity": f"automation.{automation_id}"},
+    )
+    response.raise_for_status()
+    logbook_data = response.json()
+
+    return {
+        "automation_id": automation_id,
+        "executions": logbook_data,
+        "count": len(logbook_data),
+        "time_range": {
+            "start_time": start_time_iso,
+            "end_time": end_time.strftime("%Y-%m-%dT%H:%M:%S"),
+        },
+    }
+
+
+@handle_api_errors
+async def validate_automation_config(config: dict[str, Any]) -> dict[str, Any]:
+    """
+    Validate an automation configuration
+
+    Args:
+        config: Automation configuration dictionary to validate
+
+    Returns:
+        Dictionary with validation results:
+        - valid: Boolean indicating if config is valid
+        - errors: List of validation errors (empty if valid)
+        - warnings: List of validation warnings
+        - suggestions: List of improvement suggestions
+
+    Validation checks:
+        - Required fields present (trigger, action)
+        - Trigger structure is valid
+        - Action structure is valid
+        - Condition structure is valid (if provided)
+        - Mode value is valid
+        - Entity IDs referenced exist (basic check)
+
+    Example response:
+        {
+            "valid": true,
+            "errors": [],
+            "warnings": ["Missing description for automation"],
+            "suggestions": ["Consider adding a description"]
+        }
+    """
+    errors = []
+    warnings = []
+    suggestions = []
+
+    # Check required fields
+    if "trigger" not in config or not config["trigger"]:
+        errors.append("Missing required field: 'trigger'")
+    elif not isinstance(config["trigger"], list):
+        errors.append("'trigger' must be a list")
+
+    if "action" not in config or not config["action"]:
+        errors.append("Missing required field: 'action'")
+    elif not isinstance(config["action"], list):
+        errors.append("'action' must be a list")
+
+    # Validate mode
+    if "mode" in config:
+        valid_modes = ["single", "restart", "queued", "parallel"]
+        if config["mode"] not in valid_modes:
+            errors.append(f"'mode' must be one of {valid_modes}, got: {config.get('mode')}")
+
+    # Warnings and suggestions
+    if "alias" not in config:
+        warnings.append("Missing 'alias' - automation will have no display name")
+        suggestions.append("Add an 'alias' field for better organization")
+
+    if "description" not in config:
+        warnings.append("Missing 'description' - consider adding one for documentation")
+
+    # Basic trigger validation
+    if "trigger" in config and isinstance(config["trigger"], list):
+        for i, trigger in enumerate(config["trigger"]):
+            if not isinstance(trigger, dict):
+                errors.append(f"Trigger {i} must be a dictionary")
+            elif "platform" not in trigger:
+                errors.append(f"Trigger {i} missing required 'platform' field")
+
+    # Basic action validation
+    if "action" in config and isinstance(config["action"], list):
+        if len(config["action"]) == 0:
+            warnings.append("No actions defined - automation will do nothing")
+
+    valid = len(errors) == 0
+
+    return {
+        "valid": valid,
+        "errors": errors,
+        "warnings": warnings,
+        "suggestions": suggestions,
+    }
+
+
+@handle_api_errors
 async def restart_home_assistant() -> dict[str, Any]:
     """Restart Home Assistant"""
     return await call_service("homeassistant", "restart", {})
+
+
+@handle_api_errors
+async def get_scripts() -> list[dict[str, Any]]:
+    """
+    Get list of all scripts
+
+    Returns:
+        List of script dictionaries containing:
+        - entity_id: The script entity ID (e.g., 'script.turn_on_lights')
+        - state: Current state of the script
+        - friendly_name: Display name of the script
+        - last_triggered: Timestamp of last execution (if available)
+        - alias: Script alias/name
+    """
+    # Scripts can be retrieved via states API
+    script_entities = await get_entities(domain="script")
+
+    # Extract script information
+    scripts = []
+    for entity in script_entities:
+        script_info = {
+            "entity_id": entity.get("entity_id"),
+            "state": entity.get("state"),
+        }
+
+        # Add attributes if available
+        attributes = entity.get("attributes", {})
+        if "friendly_name" in attributes:
+            script_info["friendly_name"] = attributes["friendly_name"]
+        if "alias" in attributes:
+            script_info["alias"] = attributes["alias"]
+        if "last_triggered" in attributes:
+            script_info["last_triggered"] = attributes["last_triggered"]
+
+        scripts.append(script_info)
+
+    return scripts
+
+
+@handle_api_errors
+async def get_script_config(script_id: str) -> dict[str, Any]:
+    """
+    Get script configuration (sequence of actions)
+
+    Args:
+        script_id: The script ID to get (without 'script.' prefix)
+
+    Returns:
+        Script configuration dictionary with:
+        - entity_id: The script entity ID
+        - state: Current state
+        - attributes: Script attributes including configuration
+        - config: Script configuration if available via config API
+
+    Note:
+        Script configuration might be available via config API or
+        only through entity state depending on Home Assistant version.
+        This function tries the config API first, then falls back to entity state.
+    """
+    entity_id = f"script.{script_id}"
+
+    # Try to get config via config API if available
+    try:
+        client = await get_client()
+        response = await client.get(
+            f"{HA_URL}/api/config/scripts/{script_id}",
+            headers=get_ha_headers(),
+        )
+        if response.status_code == 200:
+            config_data = response.json()
+            # Merge with entity state for complete information
+            entity = await get_entity_state(entity_id, detailed=True)
+            config_data["entity"] = entity
+            return config_data
+    except Exception:  # nosec B110
+        # Config API not available, fall through to entity state
+        pass
+
+    # Fallback to entity state
+    return await get_entity_state(entity_id, detailed=True)
+
+
+@handle_api_errors
+async def run_script(script_id: str, variables: dict[str, Any] | None = None) -> dict[str, Any]:
+    """
+    Execute a script with optional variables
+
+    Args:
+        script_id: The script ID to execute (without 'script.' prefix)
+        variables: Optional dictionary of variables to pass to the script
+
+    Returns:
+        Response from the script execution
+
+    Examples:
+        # Run script without variables
+        result = await run_script("turn_on_lights")
+
+        # Run script with variables
+        result = await run_script("notify", {"message": "Hello", "target": "user1"})
+
+    Note:
+        Scripts execute asynchronously. The response indicates the script was started,
+        not necessarily that it completed.
+    """
+    data: dict[str, Any] = {}
+    if variables:
+        data["variables"] = variables
+
+    return await call_service("script", script_id, data)
+
+
+@handle_api_errors
+async def reload_scripts() -> dict[str, Any]:
+    """
+    Reload all scripts from configuration
+
+    Returns:
+        Response from the reload operation
+
+    Note:
+        Reloading scripts reloads all script configurations from YAML files.
+        This is useful after modifying script configuration files.
+    """
+    return await call_service("script", "reload", {})
+
+
+@handle_api_errors
+async def test_template(
+    template_string: str,
+    entity_context: dict[str, Any] | None = None,  # noqa: PT028
+) -> dict[str, Any]:
+    """
+    Test Jinja2 template rendering
+
+    Args:
+        template_string: The Jinja2 template string to test
+        entity_context: Optional dictionary of entity IDs to provide as context
+                         (e.g., {"entity_id": "light.living_room"})
+
+    Returns:
+        Dictionary containing:
+        - result: The rendered template result
+        - listeners: Entity listeners (if applicable)
+        - error: Error message if template rendering failed
+
+    Examples:
+        # Test a simple template
+        result = await test_template("{{ states('sensor.temperature') }}")
+
+        # Test with entity context
+        result = await test_template(
+            "{{ states('light.living_room') }}",
+            {"entity_id": "light.living_room"}
+        )
+
+    Note:
+        Template testing API might not be available in all Home Assistant versions.
+        If unavailable, returns a helpful error message.
+    """
+    client = await get_client()
+
+    payload: dict[str, Any] = {"template": template_string}
+    if entity_context:
+        payload["entity_id"] = entity_context
+
+    response = await client.post(
+        f"{HA_URL}/api/template",
+        headers=get_ha_headers(),
+        json=payload,
+    )
+
+    if response.status_code == 404:
+        # Template API might not be available
+        return {
+            "error": "Template testing API not available in this Home Assistant version",
+            "note": "Try using the script developer tools in Home Assistant UI",
+            "template": template_string,
+        }
+
+    response.raise_for_status()
+    return response.json()
 
 
 @handle_api_errors

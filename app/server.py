@@ -14,6 +14,11 @@ logger = logging.getLogger(__name__)
 
 from app.hass import (
     call_service,
+    delete_automation,
+    disable_automation,
+    enable_automation,
+    get_automation_config,
+    get_automation_execution_log,
     get_automations,
     get_core_config,
     get_entities,
@@ -23,11 +28,22 @@ from app.hass import (
     get_hass_version,
     get_integration_config,
     get_integrations,
+    get_script_config,
+    get_scripts,
     get_system_health,
     get_system_overview,
     reload_integration,
+    reload_scripts,
     restart_home_assistant,
+    run_script,
     summarize_domain,
+    test_template,
+    trigger_automation,
+    update_automation,
+    validate_automation_config,
+)
+from app.hass import (
+    create_automation as create_automation_api,
 )
 
 # Type variable for generic functions
@@ -952,6 +968,428 @@ async def call_service_tool(
     """
     logger.info(f"Calling Home Assistant service: {domain}.{service} with data: {data}")
     return await call_service(domain, service, data or {})
+
+
+@mcp.tool()
+@async_handler("get_automation_config")
+async def get_automation_config_tool(automation_id: str) -> dict[str, Any]:
+    """
+    Get full automation configuration including triggers, conditions, actions
+
+    Args:
+        automation_id: The automation ID to get (without 'automation.' prefix)
+
+    Returns:
+        Complete automation configuration dictionary with:
+        - id: Automation identifier
+        - alias: Display name
+        - description: Automation description
+        - trigger: List of trigger configurations
+        - condition: List of condition configurations
+        - action: List of action configurations
+        - mode: Automation mode (single, restart, queued, parallel)
+
+    Examples:
+        automation_id="turn_on_lights" - get config for automation with ID turn_on_lights
+
+    Best Practices:
+        - Use this to inspect automation configuration before updating
+        - Check triggers and actions to understand automation behavior
+    """
+    logger.info(f"Getting automation config for: {automation_id}")
+    return await get_automation_config(automation_id)
+
+
+@mcp.tool()
+@async_handler("create_automation")
+async def create_automation_tool(config: dict[str, Any]) -> dict[str, Any]:
+    """
+    Create a new automation from configuration dictionary
+
+    Args:
+        config: Automation configuration dictionary with:
+            - id: Automation identifier (optional, will be generated if missing)
+            - alias: Display name
+            - description: Automation description (optional)
+            - trigger: List of trigger configurations (required)
+            - condition: List of condition configurations (optional)
+            - action: List of action configurations (required)
+            - mode: Automation mode (optional, default: "single")
+
+    Returns:
+        Response from the create operation
+
+    Examples:
+        config={
+            "alias": "Turn on lights at sunset",
+            "trigger": [{"platform": "sun", "event": "sunset"}],
+            "action": [{"service": "light.turn_on", "entity_id": "light.living_room"}]
+        }
+
+    Best Practices:
+        - Validate config with validate_automation_config before creating
+        - Include alias and description for better organization
+        - Test automation after creation using trigger_automation
+    """
+    logger.info(f"Creating automation: {config.get('alias', config.get('id', 'new'))}")
+    return await create_automation_api(config)
+
+
+@mcp.tool()
+@async_handler("update_automation")
+async def update_automation_tool(automation_id: str, config: dict[str, Any]) -> dict[str, Any]:
+    """
+    Update an existing automation with new configuration
+
+    Args:
+        automation_id: The automation ID to update (without 'automation.' prefix)
+        config: Updated automation configuration dictionary
+
+    Returns:
+        Response from the update operation
+
+    Examples:
+        automation_id="turn_on_lights"
+        config={"alias": "Updated name", "trigger": [...], "action": [...]}
+
+    Note:
+        The config should include all fields you want to keep.
+        Fields not included may be removed.
+
+    Best Practices:
+        - Get existing config first with get_automation_config
+        - Validate config with validate_automation_config before updating
+        - Test automation after update using trigger_automation
+    """
+    logger.info(f"Updating automation: {automation_id}")
+    return await update_automation(automation_id, config)
+
+
+@mcp.tool()
+@async_handler("delete_automation")
+async def delete_automation_tool(automation_id: str) -> dict[str, Any]:
+    """
+    Delete an automation
+
+    Args:
+        automation_id: The automation ID to delete (without 'automation.' prefix)
+
+    Returns:
+        Response from the delete operation
+
+    Examples:
+        automation_id="turn_on_lights" - delete automation with ID turn_on_lights
+
+    Note:
+        ⚠️ This permanently deletes the automation. There is no undo.
+        Make sure the automation is not referenced by other automations or scripts.
+
+    Best Practices:
+        - Get automation config first to ensure correct ID
+        - Check for dependencies before deleting
+    """
+    logger.info(f"Deleting automation: {automation_id}")
+    return await delete_automation(automation_id)
+
+
+@mcp.tool()
+@async_handler("enable_automation")
+async def enable_automation_tool(automation_id: str) -> dict[str, Any]:
+    """
+    Enable an automation
+
+    Args:
+        automation_id: The automation ID to enable (without 'automation.' prefix)
+
+    Returns:
+        Response from the enable operation
+
+    Examples:
+        automation_id="turn_on_lights" - enable automation with ID turn_on_lights
+
+    Note:
+        Enabling an automation allows it to trigger automatically.
+        The automation must exist and be configured correctly.
+    """
+    logger.info(f"Enabling automation: {automation_id}")
+    return await enable_automation(automation_id)
+
+
+@mcp.tool()
+@async_handler("disable_automation")
+async def disable_automation_tool(automation_id: str) -> dict[str, Any]:
+    """
+    Disable an automation
+
+    Args:
+        automation_id: The automation ID to disable (without 'automation.' prefix)
+
+    Returns:
+        Response from the disable operation
+
+    Examples:
+        automation_id="turn_on_lights" - disable automation with ID turn_on_lights
+
+    Note:
+        Disabling prevents the automation from triggering automatically.
+        The automation configuration is preserved and can be re-enabled later.
+
+    Best Practices:
+        - Disable automations temporarily for debugging
+        - Re-enable when troubleshooting is complete
+    """
+    logger.info(f"Disabling automation: {automation_id}")
+    return await disable_automation(automation_id)
+
+
+@mcp.tool()
+@async_handler("trigger_automation")
+async def trigger_automation_tool(automation_id: str) -> dict[str, Any]:
+    """
+    Manually trigger an automation
+
+    Args:
+        automation_id: The automation ID to trigger (without 'automation.' prefix)
+
+    Returns:
+        Response from the trigger operation
+
+    Examples:
+        automation_id="turn_on_lights" - manually trigger automation with ID turn_on_lights
+
+    Note:
+        This manually executes the automation actions.
+        Useful for testing automations without waiting for triggers.
+        The automation does not need to be enabled to be triggered manually.
+
+    Best Practices:
+        - Use for testing new or updated automations
+        - Check execution log after triggering to verify behavior
+    """
+    logger.info(f"Triggering automation: {automation_id}")
+    return await trigger_automation(automation_id)
+
+
+@mcp.tool()
+@async_handler("get_automation_execution_log")
+async def get_automation_execution_log_tool(automation_id: str, hours: int = 24) -> dict[str, Any]:
+    """
+    Get automation execution history from logbook
+
+    Args:
+        automation_id: The automation ID to get history for (without 'automation.' prefix)
+        hours: Number of hours of history to retrieve (default: 24)
+
+    Returns:
+        Dictionary containing:
+        - automation_id: The automation ID requested
+        - executions: List of execution events with timestamps
+        - count: Number of executions found
+        - time_range: Dictionary with start_time and end_time
+
+    Examples:
+        automation_id="turn_on_lights", hours=24 - get last 24 hours of execution history
+
+    Best Practices:
+        - Keep hours reasonable (24-72) for token efficiency
+        - Use to debug why an automation isn't firing
+        - Check execution frequency to optimize automation triggers
+    """
+    logger.info(f"Getting execution log for automation: {automation_id}, hours: {hours}")
+    return await get_automation_execution_log(automation_id, hours)
+
+
+@mcp.tool()
+@async_handler("validate_automation_config")
+async def validate_automation_config_tool(config: dict[str, Any]) -> dict[str, Any]:
+    """
+    Validate an automation configuration
+
+    Args:
+        config: Automation configuration dictionary to validate
+
+    Returns:
+        Dictionary with validation results:
+        - valid: Boolean indicating if config is valid
+        - errors: List of validation errors (empty if valid)
+        - warnings: List of validation warnings
+        - suggestions: List of improvement suggestions
+
+    Validation checks:
+        - Required fields present (trigger, action)
+        - Trigger structure is valid
+        - Action structure is valid
+        - Condition structure is valid (if provided)
+        - Mode value is valid
+
+    Examples:
+        config={
+            "trigger": [{"platform": "sun", "event": "sunset"}],
+            "action": [{"service": "light.turn_on", "entity_id": "light.living_room"}]
+        }
+
+    Best Practices:
+        - Always validate config before creating or updating
+        - Review warnings and suggestions for improvements
+        - Fix errors before attempting to create automation
+    """
+    logger.info("Validating automation config")
+    return await validate_automation_config(config)
+
+
+@mcp.tool()
+@async_handler("list_scripts")
+async def list_scripts_tool() -> list[dict[str, Any]]:
+    """
+    Get a list of all scripts in Home Assistant
+
+    Returns:
+        List of script dictionaries containing:
+        - entity_id: The script entity ID (e.g., 'script.turn_on_lights')
+        - state: Current state of the script
+        - friendly_name: Display name of the script
+        - alias: Script alias/name
+        - last_triggered: Timestamp of last execution (if available)
+
+    Examples:
+        Returns all scripts with their current state and metadata
+
+    Best Practices:
+        - Use this to discover available scripts before executing
+        - Check state to see if script is currently running
+        - Use last_triggered to see when script was last executed
+    """
+    logger.info("Getting list of scripts")
+    return await get_scripts()
+
+
+@mcp.tool()
+@async_handler("get_script")
+async def get_script_tool(script_id: str) -> dict[str, Any]:
+    """
+    Get script configuration and details
+
+    Args:
+        script_id: The script ID to get (without 'script.' prefix)
+
+    Returns:
+        Script configuration dictionary with:
+        - entity_id: The script entity ID
+        - state: Current state
+        - attributes: Script attributes including configuration
+        - config: Script configuration if available via config API
+
+    Examples:
+        script_id="turn_on_lights" - get config for script with ID turn_on_lights
+
+    Note:
+        Script configuration might be available via config API or
+        only through entity state depending on Home Assistant version.
+
+    Best Practices:
+        - Use this to inspect what actions a script performs
+        - Check configuration before executing scripts
+    """
+    logger.info(f"Getting script config for: {script_id}")
+    return await get_script_config(script_id)
+
+
+@mcp.tool()
+@async_handler("run_script")
+async def run_script_tool(
+    script_id: str, variables: dict[str, Any] | None = None
+) -> dict[str, Any]:
+    """
+    Execute a script with optional variables
+
+    Args:
+        script_id: The script ID to execute (without 'script.' prefix)
+        variables: Optional dictionary of variables to pass to the script
+
+    Returns:
+        Response from the script execution
+
+    Examples:
+        script_id="turn_on_lights" - execute script with ID turn_on_lights
+        script_id="notify", variables={"message": "Hello", "target": "user1"} - execute with variables
+
+    Note:
+        Scripts execute asynchronously. The response indicates the script was started,
+        not necessarily that it completed.
+
+    Best Practices:
+        - Get script config first to understand what variables are needed
+        - Check script state before executing
+        - Use variables to customize script behavior
+    """
+    logger.info(
+        f"Running script: {script_id}" + (f" with variables: {variables}" if variables else "")
+    )
+    return await run_script(script_id, variables)
+
+
+@mcp.tool()
+@async_handler("reload_scripts")
+async def reload_scripts_tool() -> dict[str, Any]:
+    """
+    Reload all scripts from configuration
+
+    Returns:
+        Response from the reload operation
+
+    Examples:
+        Reloads all script configurations after modifying YAML files
+
+    Note:
+        Reloading scripts reloads all script configurations from YAML files.
+        This is useful after modifying script configuration files.
+
+    Best Practices:
+        - Reload scripts after making configuration changes
+        - Use this after updating script YAML files
+    """
+    logger.info("Reloading scripts")
+    return await reload_scripts()
+
+
+@mcp.tool()
+@async_handler("test_template")
+async def test_template_tool(
+    template_string: str,
+    entity_context: dict[str, Any] | None = None,  # noqa: PT028
+) -> dict[str, Any]:
+    """
+    Test Jinja2 template rendering
+
+    Args:
+        template_string: The Jinja2 template string to test
+        entity_context: Optional dictionary of entity IDs to provide as context
+                         (e.g., {"entity_id": "light.living_room"})
+
+    Returns:
+        Dictionary containing:
+        - result: The rendered template result
+        - listeners: Entity listeners (if applicable)
+        - error: Error message if template rendering failed
+
+    Examples:
+        template_string="{{ states('sensor.temperature') }}" - test simple template
+        template_string="{{ states('light.living_room') }}", entity_context={"entity_id": "light.living_room"}
+
+    Note:
+        Template testing API might not be available in all Home Assistant versions.
+        If unavailable, returns a helpful error message.
+
+    Best Practices:
+        - Test templates before using them in automations or scripts
+        - Use entity_context to test templates with specific entity context
+        - Check for errors in the response
+    """
+    logger.info(
+        f"Testing template: {template_string[:50]}..."
+        + (f" with context: {entity_context}" if entity_context else "")
+    )
+    return await test_template(template_string, entity_context)
 
 
 @mcp.tool()
