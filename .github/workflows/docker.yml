@@ -2,10 +2,13 @@ name: Docker Build & Push
 
 on:
   push:
+    branches:
+      - main
+      - master
   workflow_dispatch:
 
 env:
-  DOCKER_IMAGE: voska/hass-mcp
+  DOCKER_IMAGE: mmornati/hass-mcp
   PLATFORMS: linux/amd64,linux/arm64
 
 jobs:
