@@ -26,6 +26,10 @@ from app.hass import (
     get_automation_execution_log,
     get_automations,
     get_core_config,
+    get_device_details,
+    get_device_entities,
+    get_device_statistics,
+    get_devices,
     get_entities,
     get_entity_history,
     get_entity_state,
@@ -1574,6 +1578,134 @@ async def get_area_summary_tool() -> dict[str, Any]:
     """
     logger.info("Getting area summary")
     return await get_area_summary()
+
+
+@mcp.tool()
+@async_handler("list_devices")
+async def list_devices_tool(domain: str | None = None) -> list[dict[str, Any]]:
+    """
+    Get a list of all devices in Home Assistant, optionally filtered by integration domain
+
+    Args:
+        domain: Optional integration domain to filter devices by (e.g., 'hue', 'zwave')
+
+    Returns:
+        List of device dictionaries containing:
+        - id: Unique device identifier
+        - name: Device name
+        - manufacturer: Manufacturer name
+        - model: Model name
+        - via_device_id: Parent device ID if device is connected via another device
+        - area_id: Area ID the device belongs to
+        - entities: List of entity IDs belonging to this device
+        - identifiers: List of identifier tuples
+        - connections: List of connection tuples (MAC addresses, etc.)
+
+    Examples:
+        domain=None - get all devices
+        domain="hue" - get all Philips Hue devices
+
+    Best Practices:
+        - Use this to discover available devices
+        - Filter by domain to find devices from specific integrations
+        - Check device identifiers to understand device topology
+    """
+    logger.info("Getting list of devices" + (f" for domain: {domain}" if domain else ""))
+    return await get_devices(domain)
+
+
+@mcp.tool()
+@async_handler("get_device")
+async def get_device_tool(device_id: str) -> dict[str, Any]:
+    """
+    Get detailed device information
+
+    Args:
+        device_id: The device ID to get details for
+
+    Returns:
+        Detailed device dictionary with:
+        - id: Unique device identifier
+        - name: Device name
+        - manufacturer: Manufacturer name
+        - model: Model name
+        - via_device_id: Parent device ID if device is connected via another device
+        - area_id: Area ID the device belongs to
+        - name_by_user: User-defined name (if set)
+        - disabled_by: Reason device is disabled (if disabled)
+        - entities: List of entity IDs belonging to this device
+        - identifiers: List of identifier tuples
+        - connections: List of connection tuples (MAC addresses, etc.)
+
+    Examples:
+        device_id="abc123" - get details for device with ID abc123
+
+    Note:
+        This provides the same information as list_devices but for a single device.
+        Useful when you already know the device_id.
+
+    Best Practices:
+        - Use this to inspect device details
+        - Check manufacturer and model for device identification
+        - Review connections to understand device topology
+    """
+    logger.info(f"Getting device details for: {device_id}")
+    return await get_device_details(device_id)
+
+
+@mcp.tool()
+@async_handler("get_device_entities")
+async def get_device_entities_tool(device_id: str) -> list[dict[str, Any]]:
+    """
+    Get all entities belonging to a specific device
+
+    Args:
+        device_id: The device ID to get entities for
+
+    Returns:
+        List of entity dictionaries belonging to the device
+
+    Examples:
+        device_id="abc123" - get all entities for device with ID abc123
+
+    Note:
+        Entities are retrieved from the device's entity list.
+        Returns empty list if device has no entities or device doesn't exist.
+
+    Best Practices:
+        - Use this to understand what a device controls
+        - Check entities to see device capabilities
+        - Use before removing or disabling a device
+    """
+    logger.info(f"Getting entities for device: {device_id}")
+    return await get_device_entities(device_id)
+
+
+@mcp.tool()
+@async_handler("get_device_stats")
+async def get_device_stats_tool() -> dict[str, Any]:
+    """
+    Get statistics about devices (counts by manufacturer, model, etc.)
+
+    Returns:
+        Dictionary containing:
+        - total_devices: Total number of devices
+        - by_manufacturer: Dictionary mapping manufacturer to count
+        - by_model: Dictionary mapping model to count
+        - by_integration: Dictionary mapping integration domain to count
+        - disabled_devices: Number of disabled devices
+
+    Examples:
+        Returns statistics about all devices in the system
+
+    Best Practices:
+        - Use this to understand device distribution
+        - Identify common manufacturers and models
+        - See which integrations have the most devices
+        - Track disabled devices
+    """
+    logger.info("Getting device statistics")
+    return await get_device_statistics()
 
 
 @mcp.tool()
