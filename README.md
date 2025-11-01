@@ -199,6 +199,15 @@ Hass-MCP provides several tools for interacting with Home Assistant:
 - `update_area`: Update an existing area (name, aliases, picture)
 - `delete_area`: Delete an area (permanent, removes area_id from entities)
 - `get_area_summary`: Get summary of all areas with entity distribution
+- `list_devices`: Get a list of all devices, optionally filtered by integration domain
+- `get_device`: Get detailed device information
+- `get_device_entities`: Get all entities belonging to a specific device
+- `get_device_stats`: Get statistics about devices (by manufacturer, model, integration)
+- `list_scenes`: Get a list of all scenes in Home Assistant
+- `get_scene`: Get scene configuration (what entities/values it saves)
+- `create_scene`: Create a new scene (may provide YAML example if API unavailable)
+- `activate_scene`: Activate/restore a scene to restore saved states
+- `reload_scenes`: Reload scenes from configuration
 - `call_service_tool`: Call any Home Assistant service
 - `restart_ha`: Restart Home Assistant
 - `system_overview`: Get a comprehensive overview of the entire Home Assistant system

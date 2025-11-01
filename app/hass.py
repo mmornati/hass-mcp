@@ -1,5 +1,6 @@
 import functools
 import inspect
+import json
 import logging
 import re
 import uuid
@@ -1212,6 +1213,387 @@ async def get_area_summary() -> dict[str, Any]:
         }
 
     return summary
+
+
+@handle_api_errors
+async def get_devices(domain: str | None = None) -> list[dict[str, Any]]:
+    """
+    Get list of all devices, optionally filtered by integration domain
+
+    Args:
+        domain: Optional integration domain to filter devices by (e.g., 'hue', 'zwave')
+
+    Returns:
+        List of device dictionaries containing:
+        - id: Unique device identifier
+        - name: Device name
+        - manufacturer: Manufacturer name
+        - model: Model name
+        - via_device_id: Parent device ID if device is connected via another device
+        - area_id: Area ID the device belongs to
+        - name_by_user: User-defined name (if set)
+        - disabled_by: Reason device is disabled (if disabled)
+        - entities: List of entity IDs belonging to this device
+        - identifiers: List of identifier tuples (e.g., [["domain", "unique_id"]])
+        - connections: List of connection tuples (e.g., [["mac", "aa:bb:cc:dd:ee:ff"]])
+
+    Example response:
+        [
+            {
+                "id": "device_id",
+                "name": "Device Name",
+                "manufacturer": "Manufacturer",
+                "model": "Model Name",
+                "via_device_id": null,
+                "area_id": "living_room",
+                "entities": ["entity_id_1", "entity_id_2"],
+                "identifiers": [["domain", "unique_id"]],
+                "connections": [["mac", "aa:bb:cc:dd:ee:ff"]]
+            }
+        ]
+
+    Note:
+        Devices represent physical hardware units.
+        Filtering by domain matches the first identifier's domain.
+    """
+    client = await get_client()
+    response = await client.get(
+        f"{HA_URL}/api/config/devices",
+        headers=get_ha_headers(),
+    )
+    response.raise_for_status()
+    devices = response.json()
+
+    # Filter by domain if specified
+    if domain:
+        filtered_devices = []
+        for device in devices:
+            identifiers = device.get("identifiers", [])
+            if identifiers and len(identifiers) > 0:
+                # First identifier contains [domain, unique_id]
+                device_domain = identifiers[0][0] if len(identifiers[0]) > 0 else None
+                if device_domain == domain:
+                    filtered_devices.append(device)
+        devices = filtered_devices
+
+    return devices
+
+
+@handle_api_errors
+async def get_device_details(device_id: str) -> dict[str, Any]:
+    """
+    Get detailed device information
+
+    Args:
+        device_id: The device ID to get details for
+
+    Returns:
+        Detailed device dictionary with:
+        - id: Unique device identifier
+        - name: Device name
+        - manufacturer: Manufacturer name
+        - model: Model name
+        - via_device_id: Parent device ID if device is connected via another device
+        - area_id: Area ID the device belongs to
+        - name_by_user: User-defined name (if set)
+        - disabled_by: Reason device is disabled (if disabled)
+        - entities: List of entity IDs belonging to this device
+        - identifiers: List of identifier tuples
+        - connections: List of connection tuples (MAC addresses, etc.)
+
+    Note:
+        This provides the same information as get_devices but for a single device.
+        Useful when you already know the device_id.
+    """
+    client = await get_client()
+    response = await client.get(
+        f"{HA_URL}/api/config/devices/{device_id}",
+        headers=get_ha_headers(),
+    )
+    response.raise_for_status()
+    return response.json()
+
+
+@handle_api_errors
+async def get_device_entities(device_id: str) -> list[dict[str, Any]]:
+    """
+    Get all entities belonging to a specific device
+
+    Args:
+        device_id: The device ID to get entities for
+
+    Returns:
+        List of entity dictionaries belonging to the device
+
+    Note:
+        Entities are retrieved from the device's entity list.
+        Returns empty list if device has no entities or device doesn't exist.
+    """
+    device = await get_device_details(device_id)
+
+    entity_ids = device.get("entities", [])
+    entities = []
+    for entity_id in entity_ids:
+        entity = await get_entity_state(entity_id, lean=True)
+        entities.append(entity)
+
+    return entities
+
+
+@handle_api_errors
+async def get_device_statistics() -> dict[str, Any]:
+    """
+    Get statistics about devices (counts by manufacturer, model, etc.)
+
+    Returns:
+        Dictionary containing:
+        - total_devices: Total number of devices
+        - by_manufacturer: Dictionary mapping manufacturer to count
+        - by_model: Dictionary mapping model to count
+        - by_integration: Dictionary mapping integration domain to count
+        - disabled_devices: Number of disabled devices
+
+    Example response:
+        {
+            "total_devices": 25,
+            "by_manufacturer": {
+                "Philips": 5,
+                "Samsung": 3,
+                "Unknown": 2
+            },
+            "by_model": {
+                "Hue Bridge": 2,
+                "Smart TV": 1
+            },
+            "by_integration": {
+                "hue": 5,
+                "zwave": 10,
+                "mqtt": 5
+            },
+            "disabled_devices": 1
+        }
+
+    Best Practices:
+        - Use this to understand device distribution
+        - Identify common manufacturers and models
+        - See which integrations have the most devices
+        - Track disabled devices
+    """
+    devices = await get_devices()
+
+    stats: dict[str, Any] = {
+        "total_devices": len(devices),
+        "by_manufacturer": {},
+        "by_model": {},
+        "by_integration": {},
+        "disabled_devices": 0,
+    }
+
+    for device in devices:
+        manufacturer = device.get("manufacturer") or "Unknown"
+        model = device.get("model") or "Unknown"
+
+        # Count by manufacturer
+        stats["by_manufacturer"][manufacturer] = stats["by_manufacturer"].get(manufacturer, 0) + 1
+
+        # Count by model
+        stats["by_model"][model] = stats["by_model"].get(model, 0) + 1
+
+        # Count by integration
+        identifiers = device.get("identifiers", [])
+        if identifiers and len(identifiers) > 0:
+            integration = identifiers[0][0] if len(identifiers[0]) > 0 else "Unknown"
+            stats["by_integration"][integration] = stats["by_integration"].get(integration, 0) + 1
+
+        # Count disabled
+        if device.get("disabled_by"):
+            stats["disabled_devices"] += 1
+
+    return stats
+
+
+@handle_api_errors
+async def get_scenes() -> list[dict[str, Any]]:
+    """
+    Get list of all scenes
+
+    Returns:
+        List of scene dictionaries containing:
+        - entity_id: The scene entity ID (e.g., 'scene.living_room_dim')
+        - state: Current state of the scene
+        - friendly_name: Display name of the scene
+        - entity_id_list: List of entity IDs included in the scene
+
+    Example response:
+        [
+            {
+                "entity_id": "scene.living_room_dim",
+                "state": "scening",
+                "friendly_name": "Living Room Dim",
+                "entity_id_list": ["light.living_room", "light.kitchen"]
+            }
+        ]
+
+    Note:
+        Scenes capture the state of multiple entities at a point in time.
+        Useful for creating lighting presets and room configurations.
+    """
+    scene_entities = await get_entities(domain="scene")
+
+    scenes = []
+    for entity in scene_entities:
+        scene_info = {
+            "entity_id": entity.get("entity_id"),
+            "state": entity.get("state"),
+        }
+
+        # Add attributes if available
+        attributes = entity.get("attributes", {})
+        if "friendly_name" in attributes:
+            scene_info["friendly_name"] = attributes["friendly_name"]
+        if "entity_id" in attributes:
+            scene_info["entity_id_list"] = attributes["entity_id"]
+        if "snapshot" in attributes:
+            scene_info["snapshot"] = attributes["snapshot"]
+
+        scenes.append(scene_info)
+
+    return scenes
+
+
+@handle_api_errors
+async def get_scene_config(scene_id: str) -> dict[str, Any]:
+    """
+    Get scene configuration (what entities/values it saves)
+
+    Args:
+        scene_id: The scene ID to get (with or without 'scene.' prefix)
+
+    Returns:
+        Scene configuration dictionary with:
+        - entity_id: The scene entity ID
+        - friendly_name: Display name of the scene
+        - entity_id_list: List of entity IDs included in the scene
+        - snapshot: Snapshot of entity states when scene was created
+
+    Note:
+        Scene configuration shows what entities are included in the scene
+        and what states they were in when the scene was created.
+    """
+    entity_id = f"scene.{scene_id}" if not scene_id.startswith("scene.") else scene_id
+
+    entity = await get_entity_state(entity_id, detailed=True)
+
+    # Extract scene data
+    attributes = entity.get("attributes", {})
+    scene_config = {
+        "entity_id": entity.get("entity_id"),
+        "friendly_name": attributes.get("friendly_name"),
+        "entity_id_list": attributes.get("entity_id", []),
+        "snapshot": attributes.get("snapshot", []),
+    }
+
+    return scene_config
+
+
+@handle_api_errors
+async def create_scene(
+    name: str,
+    entity_ids: list[str],
+    states: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """
+    Create a new scene
+
+    Args:
+        name: Display name for the scene
+        entity_ids: List of entity IDs to include in the scene
+        states: Optional dictionary of entity states to capture (if None, captures current states)
+
+    Returns:
+        Response from the create operation, or error message if creation fails
+
+    Note:
+        ⚠️ Scene creation via API may not be available in all Home Assistant versions.
+        The create service is deprecated. If it fails, a helpful YAML configuration example
+        is returned to guide manual scene creation.
+
+    Examples:
+        # Create scene capturing current states
+        scene = await create_scene("Living Room Dim", ["light.living_room", "light.kitchen"])
+
+        # Create scene with specific states
+        scene = await create_scene(
+            "Living Room Dim",
+            ["light.living_room", "light.kitchen"],
+            {"light.living_room": {"state": "on", "brightness": 128}}
+        )
+    """
+    data: dict[str, Any] = {
+        "name": name,
+        "entities": entity_ids,
+    }
+
+    if states:
+        data["states"] = states
+
+    try:
+        return await call_service("scene", "create", data)
+    except Exception as e:
+        # If create service doesn't work, provide helpful message
+        example_config = f"\nscene:\n  - name: {name}\n    entities:"
+
+        for eid in entity_ids:
+            if states and eid in states:
+                example_config += f"\n      {eid}: {json.dumps(states[eid])}"
+            else:
+                example_config += f"\n      {eid}:"
+        return {
+            "error": "Scene creation via API is not available",
+            "note": "Scenes should be created in configuration.yaml or via UI",
+            "example_config": example_config,
+            "exception": str(e),
+        }
+
+
+@handle_api_errors
+async def activate_scene(scene_id: str) -> dict[str, Any]:
+    """
+    Activate/restore a scene
+
+    Args:
+        scene_id: The scene ID to activate (with or without 'scene.' prefix)
+
+    Returns:
+        Response from the activate operation
+
+    Examples:
+        # Activate scene
+        result = await activate_scene("living_room_dim")
+        result = await activate_scene("scene.living_room_dim")
+
+    Note:
+        Activating a scene restores all entities to their saved states.
+        The scene entity_id can be provided with or without the 'scene.' prefix.
+    """
+    entity_id = f"scene.{scene_id}" if not scene_id.startswith("scene.") else scene_id
+
+    return await call_service("scene", "turn_on", {"entity_id": entity_id})
+
+
+@handle_api_errors
+async def reload_scenes() -> dict[str, Any]:
+    """
+    Reload scenes from configuration
+
+    Returns:
+        Response from the reload operation
+
+    Note:
+        Reloading scenes reloads all scene configurations from YAML files.
+        This is useful after modifying scene configuration files.
+    """
+    return await call_service("scene", "reload", {})
 
 
 @handle_api_errors
