@@ -54,6 +54,8 @@ def mock_get_client(mock_httpx_client):
         patch("app.api.scenes.get_client", return_value=mock_httpx_client),
         patch("app.api.integrations.get_client", return_value=mock_httpx_client),
         patch("app.api.system.get_client", return_value=mock_httpx_client),
+        patch("app.api.services.get_client", return_value=mock_httpx_client),
+        patch("app.api.templates.get_client", return_value=mock_httpx_client),
     ):
         yield mock_httpx_client
 
