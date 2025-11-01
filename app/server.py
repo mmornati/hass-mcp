@@ -17,42 +17,26 @@ from app.core import async_handler
 from app.hass import (
     activate_scene,
     analyze_usage_patterns,
-    call_service,
-    create_area,
     create_automation_from_blueprint,
     create_backup,
     create_calendar_event,
     create_scene,
     create_tag,
     create_zone,
-    delete_area,
-    delete_automation,
     delete_backup,
     delete_tag,
     delete_zone,
     diagnose_entity,
-    disable_automation,
-    enable_automation,
     find_automation_conflicts,
     find_entity_dependencies,
     find_integration_errors,
     fire_event,
-    get_area_entities,
-    get_area_summary,
-    get_areas,
-    get_automation_config,
-    get_automation_execution_log,
-    get_automations,
     get_backups,
     get_blueprint_definition,
     get_blueprints,
     get_calendar_events,
     get_calendars,
     get_core_config,
-    get_device_details,
-    get_device_entities,
-    get_device_statistics,
-    get_devices,
     get_domain_statistics,
     get_entities,
     get_entity_history,
@@ -71,8 +55,6 @@ from app.hass import (
     get_recent_events,
     get_scene_config,
     get_scenes,
-    get_script_config,
-    get_scripts,
     get_system_health,
     get_system_overview,
     get_tag_automations,
@@ -82,32 +64,22 @@ from app.hass import (
     import_blueprint_from_url,
     reload_integration,
     reload_scenes,
-    reload_scripts,
-    restart_home_assistant,
     restore_backup,
-    run_script,
     search_logbook_entries,
     send_notification,
     summarize_domain,
     test_notification_delivery,
     test_template,
     test_webhook_endpoint,
-    trigger_automation,
-    update_area,
-    update_automation,
     update_helper_value,
     update_zone,
-    validate_automation_config,
-)
-from app.hass import (
-    create_automation as create_automation_api,
 )
 
 mcp = FastMCP("Hass-MCP")
 
 # Import and register tools from tools modules
 # Tools are registered manually to avoid circular imports
-from app.tools import entities  # noqa: E402
+from app.tools import areas, automations, devices, entities, scripts  # noqa: E402
 
 # Register entity tools with MCP instance
 mcp.tool()(async_handler("get_entity")(entities.get_entity))
@@ -115,12 +87,70 @@ mcp.tool()(async_handler("entity_action")(entities.entity_action))
 mcp.tool()(async_handler("list_entities")(entities.list_entities))
 mcp.tool()(async_handler("search_entities_tool")(entities.search_entities_tool))
 
-# Re-export entity tools for backward compatibility
+# Register automation tools with MCP instance
+mcp.tool()(async_handler("list_automations")(automations.list_automations))
+mcp.tool()(async_handler("get_automation_config")(automations.get_automation_config_tool))
+mcp.tool()(async_handler("create_automation")(automations.create_automation_tool))
+mcp.tool()(async_handler("update_automation")(automations.update_automation_tool))
+mcp.tool()(async_handler("delete_automation")(automations.delete_automation_tool))
+mcp.tool()(async_handler("enable_automation")(automations.enable_automation_tool))
+mcp.tool()(async_handler("disable_automation")(automations.disable_automation_tool))
+mcp.tool()(async_handler("trigger_automation")(automations.trigger_automation_tool))
+mcp.tool()(
+    async_handler("get_automation_execution_log")(automations.get_automation_execution_log_tool)
+)
+mcp.tool()(async_handler("validate_automation_config")(automations.validate_automation_config_tool))
+
+# Register script tools with MCP instance
+mcp.tool()(async_handler("list_scripts")(scripts.list_scripts_tool))
+mcp.tool()(async_handler("get_script")(scripts.get_script_tool))
+mcp.tool()(async_handler("run_script")(scripts.run_script_tool))
+mcp.tool()(async_handler("reload_scripts")(scripts.reload_scripts_tool))
+
+# Register device tools with MCP instance
+mcp.tool()(async_handler("list_devices")(devices.list_devices_tool))
+mcp.tool()(async_handler("get_device")(devices.get_device_tool))
+mcp.tool()(async_handler("get_device_entities")(devices.get_device_entities_tool))
+mcp.tool()(async_handler("get_device_stats")(devices.get_device_stats_tool))
+
+# Register area tools with MCP instance
+mcp.tool()(async_handler("list_areas")(areas.list_areas_tool))
+mcp.tool()(async_handler("get_area_entities")(areas.get_area_entities_tool))
+mcp.tool()(async_handler("create_area")(areas.create_area_tool))
+mcp.tool()(async_handler("update_area")(areas.update_area_tool))
+mcp.tool()(async_handler("delete_area")(areas.delete_area_tool))
+mcp.tool()(async_handler("get_area_summary")(areas.get_area_summary_tool))
+
+# Re-export all tools for backward compatibility
 # This allows tests and other code to import them from app.server
 get_entity = entities.get_entity
 entity_action = entities.entity_action
 list_entities = entities.list_entities
 search_entities_tool = entities.search_entities_tool
+list_automations = automations.list_automations
+get_automation_config_tool = automations.get_automation_config_tool
+create_automation_tool = automations.create_automation_tool
+update_automation_tool = automations.update_automation_tool
+delete_automation_tool = automations.delete_automation_tool
+enable_automation_tool = automations.enable_automation_tool
+disable_automation_tool = automations.disable_automation_tool
+trigger_automation_tool = automations.trigger_automation_tool
+get_automation_execution_log_tool = automations.get_automation_execution_log_tool
+validate_automation_config_tool = automations.validate_automation_config_tool
+list_scripts_tool = scripts.list_scripts_tool
+get_script_tool = scripts.get_script_tool
+run_script_tool = scripts.run_script_tool
+reload_scripts_tool = scripts.reload_scripts_tool
+list_devices_tool = devices.list_devices_tool
+get_device_tool = devices.get_device_tool
+get_device_entities_tool = devices.get_device_entities_tool
+get_device_stats_tool = devices.get_device_stats_tool
+list_areas_tool = areas.list_areas_tool
+get_area_entities_tool = areas.get_area_entities_tool
+create_area_tool = areas.create_area_tool
+update_area_tool = areas.update_area_tool
+delete_area_tool = areas.delete_area_tool
+get_area_summary_tool = areas.get_area_summary_tool
 
 
 @mcp.tool()
@@ -671,474 +701,17 @@ async def list_states_by_domain_resource(domain: str) -> str:
     return result
 
 
-# Automation management MCP tools
-@mcp.tool()
-@async_handler("list_automations")
-async def list_automations() -> list[dict[str, Any]]:
-    """
-    Get a list of all automations from Home Assistant
+# Automation tools are now in app.tools.automations module
+# They are registered above after creating the mcp instance
 
-    This function retrieves all automations configured in Home Assistant,
-    including their IDs, entity IDs, state, and display names.
+# Script tools are now in app.tools.scripts module
+# They are registered above after creating the mcp instance
 
-    Returns:
-        A list of automation dictionaries, each containing id, entity_id,
-        state, and alias (friendly name) fields.
+# Area tools are now in app.tools.areas module
+# They are registered above after creating the mcp instance
 
-    Examples:
-        Returns all automation objects with state and friendly names
-
-    """
-    logger.info("Getting all automations")
-    try:
-        # Get automations will now return data from states API, which is more reliable
-        automations = await get_automations()
-
-        # Handle error responses that might still occur
-        if isinstance(automations, dict) and "error" in automations:
-            logger.warning(f"Error getting automations: {automations['error']}")
-            return []
-
-        # Handle case where response is a list with error
-        if (
-            isinstance(automations, list)
-            and len(automations) == 1
-            and isinstance(automations[0], dict)
-            and "error" in automations[0]
-        ):
-            logger.warning(f"Error getting automations: {automations[0]['error']}")
-            return []
-
-        return automations
-    except Exception as e:
-        logger.error(f"Error in list_automations: {str(e)}")
-        return []
-
-
-# We already have a list_automations tool, so no need to duplicate functionality
-
-
-@mcp.tool()
-@async_handler("restart_ha")
-async def restart_ha() -> dict[str, Any]:
-    """
-    Restart Home Assistant
-
-    ⚠️ WARNING: Temporarily disrupts all Home Assistant operations
-
-    Returns:
-        Result of restart operation
-    """
-    logger.info("Restarting Home Assistant")
-    return await restart_home_assistant()
-
-
-@mcp.tool()
-@async_handler("call_service")
-async def call_service_tool(
-    domain: str, service: str, data: dict[str, Any] | None = None
-) -> dict[str, Any]:
-    """
-    Call any Home Assistant service (low-level API access)
-
-    Args:
-        domain: The domain of the service (e.g., 'light', 'switch', 'automation')
-        service: The service to call (e.g., 'turn_on', 'turn_off', 'toggle')
-        data: Optional data to pass to the service (e.g., {'entity_id': 'light.living_room'})
-
-    Returns:
-        The response from Home Assistant (usually empty for successful calls)
-
-    Examples:
-        domain='light', service='turn_on', data={'entity_id': 'light.x', 'brightness': 255}
-        domain='automation', service='reload'
-        domain='fan', service='set_percentage', data={'entity_id': 'fan.x', 'percentage': 50}
-
-    """
-    logger.info(f"Calling Home Assistant service: {domain}.{service} with data: {data}")
-    return await call_service(domain, service, data or {})
-
-
-@mcp.tool()
-@async_handler("get_automation_config")
-async def get_automation_config_tool(automation_id: str) -> dict[str, Any]:
-    """
-    Get full automation configuration including triggers, conditions, actions
-
-    Args:
-        automation_id: The automation ID to get (without 'automation.' prefix)
-
-    Returns:
-        Complete automation configuration dictionary with:
-        - id: Automation identifier
-        - alias: Display name
-        - description: Automation description
-        - trigger: List of trigger configurations
-        - condition: List of condition configurations
-        - action: List of action configurations
-        - mode: Automation mode (single, restart, queued, parallel)
-
-    Examples:
-        automation_id="turn_on_lights" - get config for automation with ID turn_on_lights
-
-    Best Practices:
-        - Use this to inspect automation configuration before updating
-        - Check triggers and actions to understand automation behavior
-    """
-    logger.info(f"Getting automation config for: {automation_id}")
-    return await get_automation_config(automation_id)
-
-
-@mcp.tool()
-@async_handler("create_automation")
-async def create_automation_tool(config: dict[str, Any]) -> dict[str, Any]:
-    """
-    Create a new automation from configuration dictionary
-
-    Args:
-        config: Automation configuration dictionary with:
-            - id: Automation identifier (optional, will be generated if missing)
-            - alias: Display name
-            - description: Automation description (optional)
-            - trigger: List of trigger configurations (required)
-            - condition: List of condition configurations (optional)
-            - action: List of action configurations (required)
-            - mode: Automation mode (optional, default: "single")
-
-    Returns:
-        Response from the create operation
-
-    Examples:
-        config={
-            "alias": "Turn on lights at sunset",
-            "trigger": [{"platform": "sun", "event": "sunset"}],
-            "action": [{"service": "light.turn_on", "entity_id": "light.living_room"}]
-        }
-
-    Best Practices:
-        - Validate config with validate_automation_config before creating
-        - Include alias and description for better organization
-        - Test automation after creation using trigger_automation
-    """
-    logger.info(f"Creating automation: {config.get('alias', config.get('id', 'new'))}")
-    return await create_automation_api(config)
-
-
-@mcp.tool()
-@async_handler("update_automation")
-async def update_automation_tool(automation_id: str, config: dict[str, Any]) -> dict[str, Any]:
-    """
-    Update an existing automation with new configuration
-
-    Args:
-        automation_id: The automation ID to update (without 'automation.' prefix)
-        config: Updated automation configuration dictionary
-
-    Returns:
-        Response from the update operation
-
-    Examples:
-        automation_id="turn_on_lights"
-        config={"alias": "Updated name", "trigger": [...], "action": [...]}
-
-    Note:
-        The config should include all fields you want to keep.
-        Fields not included may be removed.
-
-    Best Practices:
-        - Get existing config first with get_automation_config
-        - Validate config with validate_automation_config before updating
-        - Test automation after update using trigger_automation
-    """
-    logger.info(f"Updating automation: {automation_id}")
-    return await update_automation(automation_id, config)
-
-
-@mcp.tool()
-@async_handler("delete_automation")
-async def delete_automation_tool(automation_id: str) -> dict[str, Any]:
-    """
-    Delete an automation
-
-    Args:
-        automation_id: The automation ID to delete (without 'automation.' prefix)
-
-    Returns:
-        Response from the delete operation
-
-    Examples:
-        automation_id="turn_on_lights" - delete automation with ID turn_on_lights
-
-    Note:
-        ⚠️ This permanently deletes the automation. There is no undo.
-        Make sure the automation is not referenced by other automations or scripts.
-
-    Best Practices:
-        - Get automation config first to ensure correct ID
-        - Check for dependencies before deleting
-    """
-    logger.info(f"Deleting automation: {automation_id}")
-    return await delete_automation(automation_id)
-
-
-@mcp.tool()
-@async_handler("enable_automation")
-async def enable_automation_tool(automation_id: str) -> dict[str, Any]:
-    """
-    Enable an automation
-
-    Args:
-        automation_id: The automation ID to enable (without 'automation.' prefix)
-
-    Returns:
-        Response from the enable operation
-
-    Examples:
-        automation_id="turn_on_lights" - enable automation with ID turn_on_lights
-
-    Note:
-        Enabling an automation allows it to trigger automatically.
-        The automation must exist and be configured correctly.
-    """
-    logger.info(f"Enabling automation: {automation_id}")
-    return await enable_automation(automation_id)
-
-
-@mcp.tool()
-@async_handler("disable_automation")
-async def disable_automation_tool(automation_id: str) -> dict[str, Any]:
-    """
-    Disable an automation
-
-    Args:
-        automation_id: The automation ID to disable (without 'automation.' prefix)
-
-    Returns:
-        Response from the disable operation
-
-    Examples:
-        automation_id="turn_on_lights" - disable automation with ID turn_on_lights
-
-    Note:
-        Disabling prevents the automation from triggering automatically.
-        The automation configuration is preserved and can be re-enabled later.
-
-    Best Practices:
-        - Disable automations temporarily for debugging
-        - Re-enable when troubleshooting is complete
-    """
-    logger.info(f"Disabling automation: {automation_id}")
-    return await disable_automation(automation_id)
-
-
-@mcp.tool()
-@async_handler("trigger_automation")
-async def trigger_automation_tool(automation_id: str) -> dict[str, Any]:
-    """
-    Manually trigger an automation
-
-    Args:
-        automation_id: The automation ID to trigger (without 'automation.' prefix)
-
-    Returns:
-        Response from the trigger operation
-
-    Examples:
-        automation_id="turn_on_lights" - manually trigger automation with ID turn_on_lights
-
-    Note:
-        This manually executes the automation actions.
-        Useful for testing automations without waiting for triggers.
-        The automation does not need to be enabled to be triggered manually.
-
-    Best Practices:
-        - Use for testing new or updated automations
-        - Check execution log after triggering to verify behavior
-    """
-    logger.info(f"Triggering automation: {automation_id}")
-    return await trigger_automation(automation_id)
-
-
-@mcp.tool()
-@async_handler("get_automation_execution_log")
-async def get_automation_execution_log_tool(automation_id: str, hours: int = 24) -> dict[str, Any]:
-    """
-    Get automation execution history from logbook
-
-    Args:
-        automation_id: The automation ID to get history for (without 'automation.' prefix)
-        hours: Number of hours of history to retrieve (default: 24)
-
-    Returns:
-        Dictionary containing:
-        - automation_id: The automation ID requested
-        - executions: List of execution events with timestamps
-        - count: Number of executions found
-        - time_range: Dictionary with start_time and end_time
-
-    Examples:
-        automation_id="turn_on_lights", hours=24 - get last 24 hours of execution history
-
-    Best Practices:
-        - Keep hours reasonable (24-72) for token efficiency
-        - Use to debug why an automation isn't firing
-        - Check execution frequency to optimize automation triggers
-    """
-    logger.info(f"Getting execution log for automation: {automation_id}, hours: {hours}")
-    return await get_automation_execution_log(automation_id, hours)
-
-
-@mcp.tool()
-@async_handler("validate_automation_config")
-async def validate_automation_config_tool(config: dict[str, Any]) -> dict[str, Any]:
-    """
-    Validate an automation configuration
-
-    Args:
-        config: Automation configuration dictionary to validate
-
-    Returns:
-        Dictionary with validation results:
-        - valid: Boolean indicating if config is valid
-        - errors: List of validation errors (empty if valid)
-        - warnings: List of validation warnings
-        - suggestions: List of improvement suggestions
-
-    Validation checks:
-        - Required fields present (trigger, action)
-        - Trigger structure is valid
-        - Action structure is valid
-        - Condition structure is valid (if provided)
-        - Mode value is valid
-
-    Examples:
-        config={
-            "trigger": [{"platform": "sun", "event": "sunset"}],
-            "action": [{"service": "light.turn_on", "entity_id": "light.living_room"}]
-        }
-
-    Best Practices:
-        - Always validate config before creating or updating
-        - Review warnings and suggestions for improvements
-        - Fix errors before attempting to create automation
-    """
-    logger.info("Validating automation config")
-    return await validate_automation_config(config)
-
-
-@mcp.tool()
-@async_handler("list_scripts")
-async def list_scripts_tool() -> list[dict[str, Any]]:
-    """
-    Get a list of all scripts in Home Assistant
-
-    Returns:
-        List of script dictionaries containing:
-        - entity_id: The script entity ID (e.g., 'script.turn_on_lights')
-        - state: Current state of the script
-        - friendly_name: Display name of the script
-        - alias: Script alias/name
-        - last_triggered: Timestamp of last execution (if available)
-
-    Examples:
-        Returns all scripts with their current state and metadata
-
-    Best Practices:
-        - Use this to discover available scripts before executing
-        - Check state to see if script is currently running
-        - Use last_triggered to see when script was last executed
-    """
-    logger.info("Getting list of scripts")
-    return await get_scripts()
-
-
-@mcp.tool()
-@async_handler("get_script")
-async def get_script_tool(script_id: str) -> dict[str, Any]:
-    """
-    Get script configuration and details
-
-    Args:
-        script_id: The script ID to get (without 'script.' prefix)
-
-    Returns:
-        Script configuration dictionary with:
-        - entity_id: The script entity ID
-        - state: Current state
-        - attributes: Script attributes including configuration
-        - config: Script configuration if available via config API
-
-    Examples:
-        script_id="turn_on_lights" - get config for script with ID turn_on_lights
-
-    Note:
-        Script configuration might be available via config API or
-        only through entity state depending on Home Assistant version.
-
-    Best Practices:
-        - Use this to inspect what actions a script performs
-        - Check configuration before executing scripts
-    """
-    logger.info(f"Getting script config for: {script_id}")
-    return await get_script_config(script_id)
-
-
-@mcp.tool()
-@async_handler("run_script")
-async def run_script_tool(
-    script_id: str, variables: dict[str, Any] | None = None
-) -> dict[str, Any]:
-    """
-    Execute a script with optional variables
-
-    Args:
-        script_id: The script ID to execute (without 'script.' prefix)
-        variables: Optional dictionary of variables to pass to the script
-
-    Returns:
-        Response from the script execution
-
-    Examples:
-        script_id="turn_on_lights" - execute script with ID turn_on_lights
-        script_id="notify", variables={"message": "Hello", "target": "user1"} - execute with variables
-
-    Note:
-        Scripts execute asynchronously. The response indicates the script was started,
-        not necessarily that it completed.
-
-    Best Practices:
-        - Get script config first to understand what variables are needed
-        - Check script state before executing
-        - Use variables to customize script behavior
-    """
-    logger.info(
-        f"Running script: {script_id}" + (f" with variables: {variables}" if variables else "")
-    )
-    return await run_script(script_id, variables)
-
-
-@mcp.tool()
-@async_handler("reload_scripts")
-async def reload_scripts_tool() -> dict[str, Any]:
-    """
-    Reload all scripts from configuration
-
-    Returns:
-        Response from the reload operation
-
-    Examples:
-        Reloads all script configurations after modifying YAML files
-
-    Note:
-        Reloading scripts reloads all script configurations from YAML files.
-        This is useful after modifying script configuration files.
-
-    Best Practices:
-        - Reload scripts after making configuration changes
-        - Use this after updating script YAML files
-    """
-    logger.info("Reloading scripts")
-    return await reload_scripts()
+# Device tools are now in app.tools.devices module
+# They are registered above after creating the mcp instance
 
 
 @mcp.tool()
@@ -1179,312 +752,6 @@ async def test_template_tool(
         + (f" with context: {entity_context}" if entity_context else "")
     )
     return await test_template(template_string, entity_context)
-
-
-@mcp.tool()
-@async_handler("list_areas")
-async def list_areas_tool() -> list[dict[str, Any]]:
-    """
-    Get a list of all areas in Home Assistant
-
-    Returns:
-        List of area dictionaries containing:
-        - area_id: Unique identifier for the area
-        - name: Display name of the area
-        - aliases: List of aliases for the area
-        - picture: Path to area picture (if available)
-
-    Examples:
-        Returns all areas with their configuration
-
-    Best Practices:
-        - Use this to discover available areas before operations
-        - Check area names and aliases to find specific areas
-    """
-    logger.info("Getting list of areas")
-    return await get_areas()
-
-
-@mcp.tool()
-@async_handler("get_area_entities")
-async def get_area_entities_tool(area_id: str) -> list[dict[str, Any]]:
-    """
-    Get all entities belonging to a specific area
-
-    Args:
-        area_id: The area ID to get entities for
-
-    Returns:
-        List of entities in the specified area
-
-    Examples:
-        area_id="living_room" - get all entities in the living room area
-
-    Note:
-        Entities are filtered by their area_id attribute.
-        Returns empty list if area has no entities or area doesn't exist.
-
-    Best Practices:
-        - Use this to see what entities are in an area before deleting it
-        - Use to organize entities by location
-    """
-    logger.info(f"Getting entities for area: {area_id}")
-    return await get_area_entities(area_id)
-
-
-@mcp.tool()
-@async_handler("create_area")
-async def create_area_tool(
-    name: str,
-    aliases: list[str] | None = None,
-    picture: str | None = None,
-) -> dict[str, Any]:
-    """
-    Create a new area
-
-    Args:
-        name: Display name for the area (required)
-        aliases: Optional list of aliases for the area
-        picture: Optional path to area picture
-
-    Returns:
-        Created area dictionary with area_id and configuration
-
-    Examples:
-        name="Living Room" - create area with just name
-        name="Living Room", aliases=["lounge", "salon"] - create area with aliases
-
-    Note:
-        Area IDs are automatically generated by Home Assistant.
-        Duplicate names are allowed but may cause confusion.
-
-    Best Practices:
-        - Use descriptive names for areas
-        - Add aliases for common alternative names
-        - Use pictures to visually identify areas in dashboards
-    """
-    logger.info(f"Creating area: {name}")
-    return await create_area(name, aliases, picture)
-
-
-@mcp.tool()
-@async_handler("update_area")
-async def update_area_tool(
-    area_id: str,
-    name: str | None = None,
-    aliases: list[str] | None = None,
-    picture: str | None = None,
-) -> dict[str, Any]:
-    """
-    Update an existing area
-
-    Args:
-        area_id: The area ID to update
-        name: Optional new name for the area
-        aliases: Optional new list of aliases (replaces existing)
-        picture: Optional new picture path
-
-    Returns:
-        Updated area dictionary
-
-    Examples:
-        area_id="living_room", name="Family Room" - update area name
-        area_id="living_room", aliases=["lounge", "salon"] - update aliases
-
-    Note:
-        Only provided fields will be updated. Fields not provided remain unchanged.
-        If aliases is provided, it replaces all existing aliases.
-
-    Best Practices:
-        - Get area first with list_areas to verify area_id
-        - Update one field at a time or all together
-        - Remember that aliases replace existing ones
-    """
-    logger.info(f"Updating area: {area_id}")
-    return await update_area(area_id, name, aliases, picture)
-
-
-@mcp.tool()
-@async_handler("delete_area")
-async def delete_area_tool(area_id: str) -> dict[str, Any]:
-    """
-    Delete an area
-
-    Args:
-        area_id: The area ID to delete
-
-    Returns:
-        Response from the delete operation
-
-    Examples:
-        area_id="living_room" - delete area with ID living_room
-
-    Note:
-        ⚠️ This permanently deletes the area. There is no undo.
-        Entities associated with this area will have their area_id removed.
-        Make sure to check for entities before deleting, or use get_area_entities first.
-
-    Best Practices:
-        - Check for entities with get_area_entities before deleting
-        - Verify area_id is correct before deletion
-        - Consider updating entities to a new area instead of deleting
-    """
-    logger.info(f"Deleting area: {area_id}")
-    return await delete_area(area_id)
-
-
-@mcp.tool()
-@async_handler("get_area_summary")
-async def get_area_summary_tool() -> dict[str, Any]:
-    """
-    Get summary of all areas with device/entity distribution
-
-    Returns:
-        Dictionary containing:
-        - total_areas: Total number of areas
-        - areas: Dictionary mapping area_id to area summary with:
-            - name: Area name
-            - entity_count: Number of entities in the area
-            - domain_counts: Dictionary of domain counts (e.g., {"light": 3, "switch": 2})
-
-    Examples:
-        Returns summary of all areas with entity distribution
-
-    Best Practices:
-        - Use this to understand entity distribution across areas
-        - Identify areas with no entities
-        - Analyze domain distribution by area
-    """
-    logger.info("Getting area summary")
-    return await get_area_summary()
-
-
-@mcp.tool()
-@async_handler("list_devices")
-async def list_devices_tool(domain: str | None = None) -> list[dict[str, Any]]:
-    """
-    Get a list of all devices in Home Assistant, optionally filtered by integration domain
-
-    Args:
-        domain: Optional integration domain to filter devices by (e.g., 'hue', 'zwave')
-
-    Returns:
-        List of device dictionaries containing:
-        - id: Unique device identifier
-        - name: Device name
-        - manufacturer: Manufacturer name
-        - model: Model name
-        - via_device_id: Parent device ID if device is connected via another device
-        - area_id: Area ID the device belongs to
-        - entities: List of entity IDs belonging to this device
-        - identifiers: List of identifier tuples
-        - connections: List of connection tuples (MAC addresses, etc.)
-
-    Examples:
-        domain=None - get all devices
-        domain="hue" - get all Philips Hue devices
-
-    Best Practices:
-        - Use this to discover available devices
-        - Filter by domain to find devices from specific integrations
-        - Check device identifiers to understand device topology
-    """
-    logger.info("Getting list of devices" + (f" for domain: {domain}" if domain else ""))
-    return await get_devices(domain)
-
-
-@mcp.tool()
-@async_handler("get_device")
-async def get_device_tool(device_id: str) -> dict[str, Any]:
-    """
-    Get detailed device information
-
-    Args:
-        device_id: The device ID to get details for
-
-    Returns:
-        Detailed device dictionary with:
-        - id: Unique device identifier
-        - name: Device name
-        - manufacturer: Manufacturer name
-        - model: Model name
-        - via_device_id: Parent device ID if device is connected via another device
-        - area_id: Area ID the device belongs to
-        - name_by_user: User-defined name (if set)
-        - disabled_by: Reason device is disabled (if disabled)
-        - entities: List of entity IDs belonging to this device
-        - identifiers: List of identifier tuples
-        - connections: List of connection tuples (MAC addresses, etc.)
-
-    Examples:
-        device_id="abc123" - get details for device with ID abc123
-
-    Note:
-        This provides the same information as list_devices but for a single device.
-        Useful when you already know the device_id.
-
-    Best Practices:
-        - Use this to inspect device details
-        - Check manufacturer and model for device identification
-        - Review connections to understand device topology
-    """
-    logger.info(f"Getting device details for: {device_id}")
-    return await get_device_details(device_id)
-
-
-@mcp.tool()
-@async_handler("get_device_entities")
-async def get_device_entities_tool(device_id: str) -> list[dict[str, Any]]:
-    """
-    Get all entities belonging to a specific device
-
-    Args:
-        device_id: The device ID to get entities for
-
-    Returns:
-        List of entity dictionaries belonging to the device
-
-    Examples:
-        device_id="abc123" - get all entities for device with ID abc123
-
-    Note:
-        Entities are retrieved from the device's entity list.
-        Returns empty list if device has no entities or device doesn't exist.
-
-    Best Practices:
-        - Use this to understand what a device controls
-        - Check entities to see device capabilities
-        - Use before removing or disabling a device
-    """
-    logger.info(f"Getting entities for device: {device_id}")
-    return await get_device_entities(device_id)
-
-
-@mcp.tool()
-@async_handler("get_device_stats")
-async def get_device_stats_tool() -> dict[str, Any]:
-    """
-    Get statistics about devices (counts by manufacturer, model, etc.)
-
-    Returns:
-        Dictionary containing:
-        - total_devices: Total number of devices
-        - by_manufacturer: Dictionary mapping manufacturer to count
-        - by_model: Dictionary mapping model to count
-        - by_integration: Dictionary mapping integration domain to count
-        - disabled_devices: Number of disabled devices
-
-    Examples:
-        Returns statistics about all devices in the system
-
-    Best Practices:
-        - Use this to understand device distribution
-        - Identify common manufacturers and models
-        - See which integrations have the most devices
-        - Track disabled devices
-    """
-    logger.info("Getting device statistics")
-    return await get_device_statistics()
 
 
 @mcp.tool()

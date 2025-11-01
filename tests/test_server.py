@@ -50,17 +50,20 @@ class TestMCPServer:
         import app.server
 
         # List of expected tool functions
+        # Note: Some tools have been extracted to app.tools modules but are re-exported
         expected_tools = [
             "get_version",
             "get_entity",
             "list_entities",
             "entity_action",
             "domain_summary_tool",  # Domain summaries tool
-            "call_service_tool",
-            "restart_ha",
-            "list_automations",
+            "list_automations",  # Re-exported from app.tools.automations
             "system_health",  # System health monitoring
             "core_config",  # Core configuration
+            # Tools that exist but may be in different modules:
+            "list_scripts_tool",  # Re-exported from app.tools.scripts
+            "list_devices_tool",  # Re-exported from app.tools.devices
+            "list_areas_tool",  # Re-exported from app.tools.areas
         ]
 
         # Check that each expected tool function exists
@@ -93,7 +96,10 @@ class TestMCPServer:
         from app.server import list_automations
 
         # Mock the get_automations function with different scenarios
-        with patch("app.server.get_automations") as mock_get_automations:
+        # Note: list_automations is now in app.tools.automations, which calls app.api.automations.get_automations
+        with patch(
+            "app.tools.automations.get_automations", new_callable=AsyncMock
+        ) as mock_get_automations:
             # Case 1: Test with 404 error response format (list with single dict with error key)
             mock_get_automations.return_value = [{"error": "HTTP error: 404 - Not Found"}]
 
@@ -142,20 +148,23 @@ class TestMCPServer:
         import app.server
 
         # List of expected tool functions
+        # Note: Some tools have been extracted to app.tools modules but are re-exported
         tool_functions = [
             "get_version",
             "get_entity",
             "list_entities",
             "entity_action",
             "domain_summary_tool",
-            "call_service_tool",
-            "restart_ha",
-            "list_automations",
-            "search_entities_tool",
+            "list_automations",  # Re-exported from app.tools.automations
+            "search_entities_tool",  # Re-exported from app.tools.entities
             "system_overview",
             "get_error_log",
             "system_health",  # System health monitoring
             "core_config",  # Core configuration
+            # Tools that exist but may be in different modules:
+            "list_scripts_tool",  # Re-exported from app.tools.scripts
+            "list_devices_tool",  # Re-exported from app.tools.devices
+            "list_areas_tool",  # Re-exported from app.tools.areas
         ]
 
         # Check that each tool function has a proper docstring and exists
