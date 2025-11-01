@@ -19,8 +19,12 @@ from app.hass import (
     create_scene,
     delete_area,
     delete_automation,
+    diagnose_entity,
     disable_automation,
     enable_automation,
+    find_automation_conflicts,
+    find_entity_dependencies,
+    find_integration_errors,
     get_area_entities,
     get_area_summary,
     get_areas,
@@ -1856,6 +1860,115 @@ async def reload_scenes_tool() -> dict[str, Any]:
     """
     logger.info("Reloading scenes")
     return await reload_scenes()
+
+
+@mcp.tool()
+@async_handler("diagnose_entity")
+async def diagnose_entity_tool(entity_id: str) -> dict[str, Any]:
+    """
+    Comprehensive entity diagnostics
+
+    Args:
+        entity_id: The entity ID to diagnose
+
+    Returns:
+        Dictionary containing:
+        - entity_id: The entity ID being diagnosed
+        - status: Dictionary with status information (state, domain, last_updated_age_seconds)
+        - issues: List of issues found
+        - recommendations: List of recommendations to fix issues
+
+    Examples:
+        entity_id="light.living_room" - diagnose light entity
+        entity_id="sensor.temperature" - diagnose sensor entity
+
+    Best Practices:
+        - Use this to diagnose why an entity isn't working
+        - Check issues and recommendations for actionable steps
+        - Review integration status if entity is unavailable
+    """
+    logger.info(f"Diagnosing entity: {entity_id}")
+    return await diagnose_entity(entity_id)
+
+
+@mcp.tool()
+@async_handler("check_entity_dependencies")
+async def check_entity_dependencies_tool(entity_id: str) -> dict[str, Any]:
+    """
+    Find what depends on this entity (automations, scripts, etc.)
+
+    Args:
+        entity_id: The entity ID to check dependencies for
+
+    Returns:
+        Dictionary containing:
+        - entity_id: The entity ID being checked
+        - automations: List of automations that use this entity
+        - scripts: List of scripts that use this entity
+        - scenes: List of scenes that use this entity
+
+    Examples:
+        entity_id="light.living_room" - find dependencies for light entity
+
+    Best Practices:
+        - Use this before deleting or disabling an entity
+        - Check dependencies to understand entity impact
+        - Review automations and scripts that depend on the entity
+    """
+    logger.info(f"Checking dependencies for entity: {entity_id}")
+    return await find_entity_dependencies(entity_id)
+
+
+@mcp.tool()
+@async_handler("analyze_automation_conflicts")
+async def analyze_automation_conflicts_tool() -> dict[str, Any]:
+    """
+    Detect conflicting automations (opposing actions, redundant triggers, etc.)
+
+    Returns:
+        Dictionary containing:
+        - total_automations: Total number of automations checked
+        - conflicts: List of conflicts found
+        - warnings: List of warnings
+
+    Examples:
+        Returns analysis of all automations for conflicts
+
+    Best Practices:
+        - Use this to identify potential automation conflicts
+        - Review conflicts to ensure automations work as intended
+        - Consider automation modes (single, restart, queued, parallel) when reviewing
+    """
+    logger.info("Analyzing automation conflicts")
+    return await find_automation_conflicts()
+
+
+@mcp.tool()
+@async_handler("get_integration_errors")
+async def get_integration_errors_tool(domain: str | None = None) -> dict[str, Any]:
+    """
+    Get errors specific to integrations
+
+    Args:
+        domain: Optional integration domain to filter errors by
+
+    Returns:
+        Dictionary containing:
+        - integration_errors: Dictionary mapping integration name to list of errors
+        - total_integrations_with_errors: Number of integrations with errors
+        - note: Note about error source
+
+    Examples:
+        domain=None - get errors for all integrations
+        domain="hue" - get errors for hue integration only
+
+    Best Practices:
+        - Use this to identify integration-specific issues
+        - Filter by domain to focus on specific integration
+        - Review errors to understand integration problems
+    """
+    logger.info("Getting integration errors" + (f" for domain: {domain}" if domain else ""))
+    return await find_integration_errors(domain)
 
 
 @mcp.tool()
