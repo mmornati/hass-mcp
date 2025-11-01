@@ -193,6 +193,12 @@ Hass-MCP provides several tools for interacting with Home Assistant:
 - `run_script`: Execute a script with optional variables
 - `reload_scripts`: Reload all scripts from configuration
 - `test_template`: Test Jinja2 template rendering
+- `list_areas`: Get a list of all areas in Home Assistant
+- `get_area_entities`: Get all entities belonging to a specific area
+- `create_area`: Create a new area with optional aliases and picture
+- `update_area`: Update an existing area (name, aliases, picture)
+- `delete_area`: Delete an area (permanent, removes area_id from entities)
+- `get_area_summary`: Get summary of all areas with entity distribution
 - `call_service_tool`: Call any Home Assistant service
 - `restart_ha`: Restart Home Assistant
 - `system_overview`: Get a comprehensive overview of the entire Home Assistant system
