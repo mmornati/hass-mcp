@@ -5,6 +5,6 @@ Tools are thin wrappers around API functions that expose
 Home Assistant functionality via the Model Context Protocol.
 """
 
-from app.tools import entities
+from app.tools import areas, automations, devices, entities, scripts
 
-__all__ = ["entities"]
+__all__ = ["areas", "automations", "devices", "entities", "scripts"]
