@@ -186,6 +186,9 @@ Hass-MCP provides several tools for interacting with Home Assistant:
 - `get_error_log`: Get the Home Assistant error log
 - `system_health`: Get system health information for all components
 - `core_config`: Get core configuration (location, timezone, unit system, components)
+- `list_integrations`: Get a list of all configuration entries (integrations) with optional domain filtering
+- `get_integration_config`: Get detailed configuration for a specific integration entry
+- `reload_integration`: Reload a specific integration (use with caution)
 
 ## Prompts for Guided Conversations
 
