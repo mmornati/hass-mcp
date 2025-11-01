@@ -682,3 +682,74 @@ async def get_system_overview() -> dict[str, Any]:
     except Exception as e:
         logger.error(f"Error generating system overview: {str(e)}")
         return {"error": f"Error generating system overview: {str(e)}"}
+
+
+@handle_api_errors
+async def get_system_health() -> dict[str, Any]:
+    """
+    Get system health information from Home Assistant
+
+    Returns:
+        A dictionary containing system health information for each component:
+        - homeassistant: Core HA health and version
+        - supervisor: Supervisor health and version (if available)
+        - Other integrations with health information
+
+    Example response:
+        {
+            "homeassistant": {
+                "healthy": true,
+                "version": "2025.3.0"
+            },
+            "supervisor": {
+                "healthy": true,
+                "version": "2025.03.1"
+            }
+        }
+    """
+    client = await get_client()
+    response = await client.get(f"{HA_URL}/api/system_health", headers=get_ha_headers())
+    response.raise_for_status()
+    return response.json()
+
+
+@handle_api_errors
+async def get_core_config() -> dict[str, Any]:
+    """
+    Get core configuration from Home Assistant
+
+    Returns:
+        A dictionary containing core configuration information:
+        - location_name: Location name
+        - time_zone: Configured timezone
+        - unit_system: Unit system configuration
+        - components: List of loaded components
+        - version: Home Assistant version
+        - config_dir: Configuration directory path
+        - whitelist_external_dirs: Whitelisted directories
+        - allowlist_external_dirs: Allowlisted directories
+        - allowlist_external_urls: Allowlisted URLs
+        - latitude/longitude: Location coordinates
+        - elevation: Elevation above sea level
+        - currency: Configured currency
+        - country: Configured country
+        - language: Configured language
+
+    Example response:
+        {
+            "location_name": "Home",
+            "time_zone": "America/New_York",
+            "unit_system": {
+                "length": "km",
+                "mass": "g",
+                "temperature": "°C",
+                "volume": "L"
+            },
+            "version": "2025.3.0",
+            "components": ["mqtt", "hue", ...]
+        }
+    """
+    client = await get_client()
+    response = await client.get(f"{HA_URL}/api/config", headers=get_ha_headers())
+    response.raise_for_status()
+    return response.json()

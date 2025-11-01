@@ -15,11 +15,13 @@ logger = logging.getLogger(__name__)
 from app.hass import (
     call_service,
     get_automations,
+    get_core_config,
     get_entities,
     get_entity_history,
     get_entity_state,
     get_hass_error_log,
     get_hass_version,
+    get_system_health,
     get_system_overview,
     restart_home_assistant,
     summarize_domain,
@@ -1285,3 +1287,92 @@ async def get_error_log() -> dict[str, Any]:
     """
     logger.info("Getting Home Assistant error log")
     return await get_hass_error_log()
+
+
+@mcp.tool()
+@async_handler("get_system_health")
+async def system_health() -> dict[str, Any]:
+    """
+    Get system health information from Home Assistant
+
+    Returns:
+        A dictionary containing system health information for each component.
+        Each component includes health status and version information.
+
+        Example response:
+        {
+            "homeassistant": {
+                "healthy": true,
+                "version": "2025.3.0"
+            },
+            "supervisor": {
+                "healthy": true,
+                "version": "2025.03.1"
+            }
+        }
+
+    Examples:
+        Check overall system health and component status
+
+    Best Practices:
+        - Use this tool to monitor system resources and health
+        - Check after updates or when experiencing issues
+        - Review all component health statuses, not just overall health
+        - Note that some components may not be available in all HA installations
+          (e.g., supervisor is only available on Home Assistant OS)
+
+    Error Handling:
+        - Returns error if endpoint is not available (some HA versions/configurations)
+        - Gracefully handles missing components
+        - Returns helpful error messages for permission issues
+    """
+    logger.info("Getting Home Assistant system health")
+    return await get_system_health()
+
+
+@mcp.tool()
+@async_handler("get_core_config")
+async def core_config() -> dict[str, Any]:
+    """
+    Get core configuration from Home Assistant
+
+    Returns:
+        A dictionary containing core configuration information including:
+        - location_name: The name of the location
+        - time_zone: Configured timezone
+        - unit_system: Unit system configuration (temperature, length, mass, volume)
+        - components: List of all loaded components/integrations
+        - version: Home Assistant version
+        - latitude/longitude: Location coordinates
+        - elevation: Elevation above sea level
+        - currency: Configured currency
+        - country: Configured country code
+        - language: Configured language
+
+        Example response:
+        {
+            "location_name": "Home",
+            "time_zone": "America/New_York",
+            "unit_system": {
+                "length": "km",
+                "mass": "g",
+                "temperature": "°C",
+                "volume": "L"
+            },
+            "version": "2025.3.0",
+            "components": ["mqtt", "hue", "automation", ...]
+        }
+
+    Examples:
+        Get timezone, unit system, and location information
+        List all loaded components/integrations
+        Check Home Assistant version and configuration details
+
+    Best Practices:
+        - Use to understand the HA instance configuration
+        - Check which components are loaded before using specific integrations
+        - Verify timezone and unit system settings for automations
+        - Use for debugging location-based automations
+    """
+    logger.info("Getting Home Assistant core configuration")
+    return await get_core_config()

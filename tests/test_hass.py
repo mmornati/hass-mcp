@@ -246,3 +246,97 @@ class TestHassAPI:
         # Verify that both functions have a docstring
         assert test_dict_function.__doc__ == "Test function that returns a dict."
         assert test_str_function.__doc__ == "Test function that returns a string."
+
+    @pytest.mark.asyncio
+    async def test_get_system_health(self, mock_config):
+        """Test getting system health information."""
+        # Mock response data
+        mock_health_data = {
+            "homeassistant": {"healthy": True, "version": "2025.3.0"},
+            "supervisor": {"healthy": True, "version": "2025.03.1"},
+            "recorder": {"healthy": True},
+        }
+
+        # Create mock response
+        mock_response = MagicMock()
+        mock_response.raise_for_status = MagicMock()
+        mock_response.json.return_value = mock_health_data
+
+        # Create properly awaitable mock
+        mock_client = MagicMock()
+        mock_client.get = AsyncMock(return_value=mock_response)
+
+        # Patch the client
+        with patch("app.hass.get_client", return_value=mock_client):
+            with patch("app.hass.HA_URL", mock_config["hass_url"]):
+                with patch("app.hass.HA_TOKEN", mock_config["hass_token"]):
+                    from app.hass import get_system_health
+
+                    health = await get_system_health()
+
+                    # Assertions
+                    assert isinstance(health, dict)
+                    assert "homeassistant" in health
+                    assert health["homeassistant"]["healthy"] is True
+                    assert health["homeassistant"]["version"] == "2025.3.0"
+                    assert "supervisor" in health
+                    assert health["supervisor"]["healthy"] is True
+
+                    # Verify API was called correctly
+                    mock_client.get.assert_called_once()
+                    called_url = mock_client.get.call_args[0][0]
+                    assert called_url == f"{mock_config['hass_url']}/api/system_health"
+
+    @pytest.mark.asyncio
+    async def test_get_core_config(self, mock_config):
+        """Test getting core configuration."""
+        # Mock response data
+        mock_config_data = {
+            "location_name": "Home",
+            "time_zone": "America/New_York",
+            "unit_system": {
+                "length": "km",
+                "mass": "g",
+                "temperature": "°C",
+                "volume": "L",
+            },
+            "version": "2025.3.0",
+            "components": ["mqtt", "hue", "automation", "light"],
+            "latitude": 40.7128,
+            "longitude": -74.0060,
+            "elevation": 10,
+            "currency": "USD",
+            "country": "US",
+            "language": "en",
+        }
+
+        # Create mock response
+        mock_response = MagicMock()
+        mock_response.raise_for_status = MagicMock()
+        mock_response.json.return_value = mock_config_data
+
+        # Create properly awaitable mock
+        mock_client = MagicMock()
+        mock_client.get = AsyncMock(return_value=mock_response)
+
+        # Patch the client
+        with patch("app.hass.get_client", return_value=mock_client):
+            with patch("app.hass.HA_URL", mock_config["hass_url"]):
+                with patch("app.hass.HA_TOKEN", mock_config["hass_token"]):
+                    from app.hass import get_core_config
+
+                    config = await get_core_config()
+
+                    # Assertions
+                    assert isinstance(config, dict)
+                    assert config["location_name"] == "Home"
+                    assert config["time_zone"] == "America/New_York"
+                    assert config["version"] == "2025.3.0"
+                    assert "mqtt" in config["components"]
+                    assert config["unit_system"]["temperature"] == "°C"
+                    assert config["latitude"] == 40.7128
+
+                    # Verify API was called correctly
+                    mock_client.get.assert_called_once()
+                    called_url = mock_client.get.call_args[0][0]
+                    assert called_url == f"{mock_config['hass_url']}/api/config"

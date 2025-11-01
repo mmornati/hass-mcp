@@ -59,6 +59,8 @@ class TestMCPServer:
             "call_service_tool",
             "restart_ha",
             "list_automations",
+            "system_health",  # System health monitoring
+            "core_config",  # Core configuration
         ]
 
         # Check that each expected tool function exists
@@ -152,6 +154,8 @@ class TestMCPServer:
             "search_entities_tool",
             "system_overview",
             "get_error_log",
+            "system_health",  # System health monitoring
+            "core_config",  # Core configuration
         ]
 
         # Check that each tool function has a proper docstring and exists
@@ -306,3 +310,62 @@ class TestMCPServer:
             # Verify the function call with lean=True parameter
             mock_get_state.assert_called_with("light.living_room", lean=True)
             assert result == mock_filtered
+
+    @pytest.mark.asyncio
+    async def test_system_health_tool(self):
+        """Test the system_health tool function"""
+        from app.server import system_health
+
+        # Mock system health data
+        mock_health_data = {
+            "homeassistant": {"healthy": True, "version": "2025.3.0"},
+            "supervisor": {"healthy": True, "version": "2025.03.1"},
+            "recorder": {"healthy": True},
+        }
+
+        with patch("app.server.get_system_health", return_value=mock_health_data) as mock_get:
+            # Test the function
+            result = await system_health()
+
+            # Verify the function was called
+            mock_get.assert_called_once()
+
+            # Check that the result matches the mock data
+            assert result == mock_health_data
+            assert "homeassistant" in result
+            assert result["homeassistant"]["healthy"] is True
+            assert "supervisor" in result
+
+    @pytest.mark.asyncio
+    async def test_core_config_tool(self):
+        """Test the core_config tool function"""
+        from app.server import core_config
+
+        # Mock core config data
+        mock_config_data = {
+            "location_name": "Home",
+            "time_zone": "America/New_York",
+            "unit_system": {
+                "length": "km",
+                "mass": "g",
+                "temperature": "°C",
+                "volume": "L",
+            },
+            "version": "2025.3.0",
+            "components": ["mqtt", "hue", "automation"],
+            "latitude": 40.7128,
+            "longitude": -74.0060,
+        }
+
+        with patch("app.server.get_core_config", return_value=mock_config_data) as mock_get:
+            # Test the function
+            result = await core_config()
+
+            # Verify the function was called
+            mock_get.assert_called_once()
+
+            # Check that the result matches the mock data
+            assert result == mock_config_data
+            assert result["location_name"] == "Home"
+            assert result["time_zone"] == "America/New_York"
+            assert "mqtt" in result["components"]
