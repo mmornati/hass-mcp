@@ -2,13 +2,11 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from app.hass import (
-    call_service,
-    get_automations,
-    get_entities,
-    get_entity_state,
-    handle_api_errors,
-)
+from app.api.automations import get_automations
+from app.api.entities import get_entities, get_entity_history, get_entity_state
+from app.api.services import call_service
+from app.api.system import get_core_config, get_system_health
+from app.core.decorators import handle_api_errors
 
 
 class TestHassAPI:
@@ -32,11 +30,8 @@ class TestHassAPI:
         mock_client = MagicMock()
         mock_client.get = AsyncMock(return_value=mock_response)
 
-        # Setup client mocking - patch both locations since functions were moved to api.entities
-        with (
-            patch("app.api.entities.get_client", return_value=mock_client),
-            patch("app.hass.get_client", return_value=mock_client),
-        ):
+        # Setup client mocking
+        with patch("app.api.entities.get_client", return_value=mock_client):
             with patch("app.config.HA_URL", mock_config["hass_url"]):
                 with (
                     patch("app.config.HA_TOKEN", mock_config["hass_token"]),
@@ -69,11 +64,8 @@ class TestHassAPI:
         mock_client = MagicMock()
         mock_client.get = AsyncMock(return_value=mock_response)
 
-        # Patch the client - patch both locations since functions were moved to api.entities
-        with (
-            patch("app.api.entities.get_client", return_value=mock_client),
-            patch("app.hass.get_client", return_value=mock_client),
-        ):
+        # Patch the client
+        with patch("app.api.entities.get_client", return_value=mock_client):
             with patch("app.config.HA_URL", mock_config["hass_url"]):
                 with (
                     patch("app.config.HA_TOKEN", mock_config["hass_token"]),
@@ -109,10 +101,7 @@ class TestHassAPI:
         mock_client.post = AsyncMock(return_value=mock_response)
 
         # Patch the client
-        with (
-            patch("app.hass.get_client", return_value=mock_client),
-            patch("app.api.services.get_client", return_value=mock_client),
-        ):
+        with patch("app.api.services.get_client", return_value=mock_client):
             with patch("app.config.HA_URL", mock_config["hass_url"]):
                 with (
                     patch("app.config.HA_TOKEN", mock_config["hass_token"]),
@@ -223,18 +212,13 @@ class TestHassAPI:
         mock_client = MagicMock()
         mock_client.get = AsyncMock(return_value=mock_response)
 
-        # Patch the client and HA_URL/HA_TOKEN - patch both locations since functions were moved to api.entities
-        with (
-            patch("app.api.entities.get_client", return_value=mock_client),
-            patch("app.hass.get_client", return_value=mock_client),
-        ):
+        # Patch the client and HA_URL/HA_TOKEN
+        with patch("app.api.entities.get_client", return_value=mock_client):
             with patch("app.config.HA_URL", mock_config["hass_url"]):
                 with (
                     patch("app.config.HA_TOKEN", mock_config["hass_token"]),
                     patch("app.core.decorators.HA_TOKEN", mock_config["hass_token"]),
                 ):
-                    from app.hass import get_entity_history
-
                     history = await get_entity_history(entity_id, hours)
 
                     # Assertions
@@ -298,17 +282,12 @@ class TestHassAPI:
         mock_client.get = AsyncMock(return_value=mock_response)
 
         # Patch the client (system functions are now in app.api.system)
-        with (
-            patch("app.api.system.get_client", return_value=mock_client),
-            patch("app.hass.get_client", return_value=mock_client),
-        ):
+        with patch("app.api.system.get_client", return_value=mock_client):
             with patch("app.config.HA_URL", mock_config["hass_url"]):
                 with (
                     patch("app.config.HA_TOKEN", mock_config["hass_token"]),
                     patch("app.core.decorators.HA_TOKEN", mock_config["hass_token"]),
                 ):
-                    from app.hass import get_system_health
-
                     health = await get_system_health()
 
                     # Assertions
@@ -357,17 +336,12 @@ class TestHassAPI:
         mock_client.get = AsyncMock(return_value=mock_response)
 
         # Patch the client (system functions are now in app.api.system)
-        with (
-            patch("app.api.system.get_client", return_value=mock_client),
-            patch("app.hass.get_client", return_value=mock_client),
-        ):
+        with patch("app.api.system.get_client", return_value=mock_client):
             with patch("app.config.HA_URL", mock_config["hass_url"]):
                 with (
                     patch("app.config.HA_TOKEN", mock_config["hass_token"]),
                     patch("app.core.decorators.HA_TOKEN", mock_config["hass_token"]),
                 ):
-                    from app.hass import get_core_config
-
                     config = await get_core_config()
 
                     # Assertions
