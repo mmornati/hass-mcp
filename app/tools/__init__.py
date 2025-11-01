@@ -20,6 +20,7 @@ from app.tools import (
     statistics,
     system,
     templates,
+    zones,
 )
 
 __all__ = [
@@ -37,4 +38,5 @@ __all__ = [
     "statistics",
     "system",
     "templates",
+    "zones",
 ]
