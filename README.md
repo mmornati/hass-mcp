@@ -249,6 +249,9 @@ Hass-MCP provides several tools for interacting with Home Assistant:
 - `create_tag`: Create a new tag for NFC-based automations
 - `delete_tag`: Delete a tag
 - `get_tag_automations`: Get automations triggered by a tag
+- `list_helpers`: Get a list of all input helpers in Home Assistant
+- `get_helper`: Get helper state and configuration
+- `update_helper`: Update helper value (supports all helper types)
 
 ## Prompts for Guided Conversations
 
