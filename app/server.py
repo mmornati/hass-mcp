@@ -17,7 +17,6 @@ from app.core import async_handler
 from app.hass import (
     activate_scene,
     analyze_usage_patterns,
-    create_area,
     create_automation_from_blueprint,
     create_backup,
     create_calendar_event,
