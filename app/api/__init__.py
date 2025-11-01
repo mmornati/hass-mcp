@@ -19,6 +19,12 @@ from app.api.automations import (
     validate_automation_config,
 )
 from app.api.base import BaseAPI
+from app.api.devices import (
+    get_device_details,
+    get_device_entities,
+    get_device_statistics,
+    get_devices,
+)
 from app.api.entities import (
     filter_fields,
     get_all_entity_states,
@@ -55,4 +61,8 @@ __all__ = [
     "get_script_config",
     "run_script",
     "reload_scripts",
+    "get_devices",
+    "get_device_details",
+    "get_device_entities",
+    "get_device_statistics",
 ]
