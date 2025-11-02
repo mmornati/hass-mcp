@@ -147,16 +147,16 @@ class TestAreasAPIIntegration:
 
 ## Continuous Integration
 
-Integration tests are run optionally in CI:
+Integration tests can be added to CI pipelines, but currently require manual HA setup:
 
-```yaml
-# In .github/workflows/test-integration.yml
-# Integration tests run when requested but don't block PRs
-```
+**Note**: Automated HA onboarding in Docker is not fully supported due to Home Assistant's authentication requirements. Integration tests are best run locally against your existing HA instance or with a pre-provisioned Docker HA instance.
 
-Set up your CI environment variables:
-- `HA_URL`: Your Home Assistant URL
-- `HA_TOKEN`: Long-lived access token
+To run in CI, you would need to:
+1. Set up CI environment variables:
+   - `HA_URL`: Your Home Assistant URL
+   - `HA_TOKEN`: Long-lived access token
+2. Provide a pre-configured HA instance or snapshot
+3. Or complete onboarding manually before CI runs
 
 ## Troubleshooting
 
