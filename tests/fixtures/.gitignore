@@ -1,8 +1,11 @@
 # Ignore dynamically generated test data
 ha_storage/
-*.log
+*.log*
 *.db
 *.db-journal
+ha_config/.HA_VERSION
+ha_config/.ha_run.lock
+ha_config/blueprints/
 
 # Keep example files
 !.gitkeep
