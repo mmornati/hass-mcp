@@ -51,7 +51,7 @@ jobs:
           pip install mkdocs-material
           pip install mkdocs-minify-plugin
           pip install mkdocs-redirects
-          pip install git-revision-date-localized
+          pip install mkdocs-git-revision-date-localized-plugin
 
       - name: Build documentation
         run: mkdocs build --strict
