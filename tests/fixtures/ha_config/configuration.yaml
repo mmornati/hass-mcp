@@ -1,0 +1,80 @@
+# Minimal Home Assistant configuration for integration testing
+
+# Default configuration (includes API, auth, recorder, etc.)
+default_config:
+
+# Test automations
+automation: !include test-automations.yaml
+
+# Test scripts
+script: !include test-scripts.yaml
+
+# Test scenes
+scene: !include test-scenes.yaml
+
+# Test input helpers
+input_boolean:
+  test_mode:
+    name: Test Mode
+    icon: mdi:test-tube
+  test_light_on:
+    name: Test Light Power
+  test_switch_on:
+    name: Test Switch Power
+
+input_number:
+  test_temperature:
+    name: Test Temperature
+    min: 0
+    max: 100
+    step: 1
+    unit_of_measurement: "°C"
+    initial: 22
+  test_light_brightness:
+    name: Test Light Brightness
+    min: 0
+    max: 255
+    step: 1
+    initial: 255
+
+input_text:
+  test_name:
+    name: Test Name
+    max: 50
+
+# Mock entities for testing
+template:
+  - sensor:
+    - name: "Test Sensor"
+      state: "42"
+      unit_of_measurement: "test"
+
+    - name: "Test Temperature"
+      state: "{{ states('input_number.test_temperature')|default(22) }}"
+      unit_of_measurement: "°C"
+      device_class: temperature
+
+# Logging for debugging
+logger:
+  default: info
+  logs:
+    homeassistant.core: debug
+    homeassistant.components.api: info
+
+# Recorder (optional, for history/logbook tests)
+recorder:
+  purge_keep_days: 1
+  commit_interval: 5
+
+# Timezone for testing
+time_zone: UTC
+
+# HTTP configuration
+http:
+  use_x_forwarded_for: false
+  trusted_proxies:
+    - "127.0.0.1"
+    - "::1"
+
+# Authentication - removed config as it's deprecated
+# Home Assistant uses the default auth configuration

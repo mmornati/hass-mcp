@@ -1,0 +1,9 @@
+- name: "Test Scene - All On"
+  entities:
+    input_boolean.test_light_on: "on"
+    input_boolean.test_mode: "on"
+
+- name: "Test Scene - All Off"
+  entities:
+    input_boolean.test_light_on: "off"
+    input_boolean.test_mode: "off"

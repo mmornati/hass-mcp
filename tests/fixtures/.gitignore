@@ -1,0 +1,8 @@
+# Ignore dynamically generated test data
+ha_storage/
+*.log
+*.db
+*.db-journal
+
+# Keep example files
+!.gitkeep
