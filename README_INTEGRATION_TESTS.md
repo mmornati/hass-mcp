@@ -30,11 +30,11 @@ For testing with a controlled environment:
 
 ```bash
 # Start Home Assistant test instance
-docker-compose -f docker-compose.test.yml up -d
+docker compose -f docker-compose.test.yml up -d
 
 # Wait for HA to be ready (can take 2-3 minutes)
 # Check status with:
-docker-compose -f docker-compose.test.yml logs -f --tail=50
+docker compose -f docker-compose.test.yml logs -f --tail=50
 
 # IMPORTANT: Docker HA requires manual setup for now
 # Due to Home Assistant's onboarding process, you need to:
@@ -50,7 +50,7 @@ export HA_TOKEN="your_generated_token"
 uv run pytest tests/integration/ -v
 
 # Cleanup
-docker-compose -f docker-compose.test.yml down -v
+docker compose -f docker-compose.test.yml down -v
 ```
 
 **Note**: The `SKIP_ONBOARDING=1` environment variable only skips the UI wizard but still requires initial authentication setup. For fully automated CI testing, consider using a pre-provisioned token or HA snapshots.
