@@ -1,0 +1,17 @@
+test_toggle_mode:
+  alias: "Test Toggle Mode Script"
+  description: "Test script to toggle mode"
+  sequence:
+    - service: input_boolean.toggle
+      target:
+        entity_id: input_boolean.test_mode
+
+test_set_temperature:
+  alias: "Test Set Temperature Script"
+  description: "Test script to set temperature"
+  sequence:
+    - service: input_number.set_value
+      data:
+        value: 25
+      target:
+        entity_id: input_number.test_temperature

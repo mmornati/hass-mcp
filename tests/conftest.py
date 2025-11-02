@@ -89,9 +89,31 @@ def pytest_collection_modifyitems(config, items):
 
 
 # Mock environment variables before imports
+# Only apply to non-integration tests
+def _is_integration_test(request) -> bool:
+    """Check if this test is marked as an integration test."""
+    try:
+        # Check if the test has the integration marker
+        # This works for both function and class markers
+        if hasattr(request, "keywords") and "integration" in request.keywords:
+            return True
+        # Also check the item's path for integration tests directory
+        if hasattr(request, "path") and "integration" in str(request.path):
+            return True
+        # Check nodeid for integration tests
+        return hasattr(request, "nodeid") and "/integration/" in str(request.nodeid)
+    except Exception:
+        return False
+
+
 @pytest.fixture(autouse=True)
-def mock_env_vars():
+def mock_env_vars(request):
     """Mock environment variables to prevent tests from using real credentials."""
+    # Skip mocking for integration tests
+    if _is_integration_test(request):
+        yield
+        return
+
     with patch.dict(
         os.environ, {"HA_URL": "http://localhost:8123", "HA_TOKEN": "mock_token_for_tests"}
     ):
@@ -100,8 +122,13 @@ def mock_env_vars():
 
 # Mock httpx client
 @pytest.fixture
-def mock_httpx_client():
+def mock_httpx_client(request):
     """Create a mock httpx client for testing."""
+    # Skip mocking for integration tests
+    if _is_integration_test(request):
+        yield None
+        return
+
     mock_client = AsyncMock(spec=httpx.AsyncClient)
 
     # Create a mock response
@@ -123,8 +150,18 @@ def mock_httpx_client():
 
 # Patch app.core.client.get_client and all API modules
 @pytest.fixture(autouse=True)
-def mock_get_client(mock_httpx_client):
+def mock_get_client(request, mock_httpx_client):
     """Mock the get_client function to return our mock client."""
+    # Skip mocking for integration tests
+    if _is_integration_test(request):
+        yield None
+        return
+
+    # If mock_httpx_client is None (for integration tests), skip
+    if mock_httpx_client is None:
+        yield None
+        return
+
     with (
         patch("app.core.client.get_client", return_value=mock_httpx_client),
         patch("app.api.automations.get_client", return_value=mock_httpx_client),
@@ -136,6 +173,8 @@ def mock_get_client(mock_httpx_client):
         patch("app.api.templates.get_client", return_value=mock_httpx_client),
         patch("app.api.webhooks.get_client", return_value=mock_httpx_client),
         patch("app.api.backups.get_client", return_value=mock_httpx_client),
+        patch("app.api.areas.get_client", return_value=mock_httpx_client),
+        patch("app.api.base.get_client", return_value=mock_httpx_client),
     ):
         yield mock_httpx_client
 

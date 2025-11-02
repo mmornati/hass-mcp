@@ -31,26 +31,32 @@ class TestGetAreas:
     @pytest.mark.asyncio
     async def test_get_areas_success(self):
         """Test successful retrieval of all areas."""
-        mock_areas = [
-            {
-                "area_id": "living_room",
-                "name": "Living Room",
-                "aliases": [],
-                "picture": None,
-            },
-            {
-                "area_id": "kitchen",
-                "name": "Kitchen",
-                "aliases": ["cooking_area"],
-                "picture": "/config/www/kitchen.jpg",
-            },
-        ]
+        area_ids = ["living_room", "kitchen"]
 
         mock_client = AsyncMock()
-        mock_response = MagicMock()
-        mock_response.json.return_value = mock_areas
-        mock_response.raise_for_status = MagicMock()
-        mock_client.get = AsyncMock(return_value=mock_response)
+
+        # Mock response for getting area IDs list
+        mock_list_response = MagicMock()
+        mock_list_response.text = '["living_room", "kitchen"]'
+        mock_list_response.raise_for_status = MagicMock()
+
+        # Mock responses for getting individual area names
+        mock_living_response = MagicMock()
+        mock_living_response.text = '"Living Room"'
+        mock_living_response.raise_for_status = MagicMock()
+
+        mock_kitchen_response = MagicMock()
+        mock_kitchen_response.text = '"Kitchen"'
+        mock_kitchen_response.raise_for_status = MagicMock()
+
+        # Set up the mock to return different responses for each call
+        mock_client.post = AsyncMock(
+            side_effect=[
+                mock_list_response,  # First call: get list of area IDs
+                mock_living_response,  # Second call: get name for living_room
+                mock_kitchen_response,  # Third call: get name for kitchen
+            ]
+        )
 
         with patch("app.api.areas.get_client", return_value=mock_client):
             result = await get_areas()
@@ -60,10 +66,13 @@ class TestGetAreas:
             assert result[0]["area_id"] == "living_room"
             assert result[0]["name"] == "Living Room"
             assert result[1]["area_id"] == "kitchen"
-            assert result[1]["aliases"] == ["cooking_area"]
-            mock_client.get.assert_called_once()
-            call_args = mock_client.get.call_args
-            assert call_args[0][0] == "http://localhost:8123/api/config/area_registry"
+            assert result[1]["name"] == "Kitchen"
+            # Verify we made the correct number of POST calls (1 for list + 2 for names)
+            assert mock_client.post.call_count == 3
+            # Verify first call was to /api/template with areas() template
+            first_call_args = mock_client.post.call_args_list[0]
+            assert "/api/template" in first_call_args[0][0]
+            assert first_call_args[1]["json"]["template"] == "{{ areas() }}"
 
     @pytest.mark.asyncio
     async def test_get_areas_http_error(self):
@@ -73,7 +82,7 @@ class TestGetAreas:
         mock_response.raise_for_status.side_effect = httpx.HTTPStatusError(
             "Not found", request=MagicMock(), response=mock_response
         )
-        mock_client.get = AsyncMock(return_value=mock_response)
+        mock_client.post = AsyncMock(return_value=mock_response)
 
         with patch("app.api.areas.get_client", return_value=mock_client):
             result = await get_areas()
@@ -172,83 +181,41 @@ class TestCreateArea:
 
     @pytest.mark.asyncio
     async def test_create_area_success_with_name_only(self):
-        """Test successful area creation with just name."""
+        """Test area creation returns error (not supported via REST)."""
         name = "Living Room"
-        mock_area = {
-            "area_id": "living_room",
-            "name": "Living Room",
-            "aliases": [],
-            "picture": None,
-        }
 
-        mock_client = AsyncMock()
-        mock_response = MagicMock()
-        mock_response.json.return_value = mock_area
-        mock_response.raise_for_status = MagicMock()
-        mock_client.post = AsyncMock(return_value=mock_response)
-
-        with patch("app.api.areas.get_client", return_value=mock_client):
+        with patch("app.api.areas.get_client"):
             result = await create_area(name)
 
             assert isinstance(result, dict)
-            assert result["area_id"] == "living_room"
-            assert result["name"] == "Living Room"
-            mock_client.post.assert_called_once()
-            call_args = mock_client.post.call_args
-            assert call_args[0][0] == "http://localhost:8123/api/config/area_registry/create"
-            assert call_args[1]["json"] == {"name": name}
+            assert "error" in result
+            assert "not supported" in result["error"].lower()
 
     @pytest.mark.asyncio
     async def test_create_area_success_with_aliases(self):
-        """Test successful area creation with aliases."""
+        """Test area creation with aliases returns error (not supported via REST)."""
         name = "Living Room"
         aliases = ["lounge", "salon"]
-        mock_area = {
-            "area_id": "living_room",
-            "name": "Living Room",
-            "aliases": aliases,
-            "picture": None,
-        }
 
-        mock_client = AsyncMock()
-        mock_response = MagicMock()
-        mock_response.json.return_value = mock_area
-        mock_response.raise_for_status = MagicMock()
-        mock_client.post = AsyncMock(return_value=mock_response)
-
-        with patch("app.api.areas.get_client", return_value=mock_client):
+        with patch("app.api.areas.get_client"):
             result = await create_area(name, aliases=aliases)
 
             assert isinstance(result, dict)
-            assert result["aliases"] == aliases
-            call_args = mock_client.post.call_args
-            assert call_args[1]["json"] == {"name": name, "aliases": aliases}
+            assert "error" in result
+            assert "not supported" in result["error"].lower()
 
     @pytest.mark.asyncio
     async def test_create_area_success_with_picture(self):
-        """Test successful area creation with picture."""
+        """Test area creation with picture returns error (not supported via REST)."""
         name = "Living Room"
         picture = "/config/www/living_room.jpg"
-        mock_area = {
-            "area_id": "living_room",
-            "name": "Living Room",
-            "aliases": [],
-            "picture": picture,
-        }
 
-        mock_client = AsyncMock()
-        mock_response = MagicMock()
-        mock_response.json.return_value = mock_area
-        mock_response.raise_for_status = MagicMock()
-        mock_client.post = AsyncMock(return_value=mock_response)
-
-        with patch("app.api.areas.get_client", return_value=mock_client):
+        with patch("app.api.areas.get_client"):
             result = await create_area(name, picture=picture)
 
             assert isinstance(result, dict)
-            assert result["picture"] == picture
-            call_args = mock_client.post.call_args
-            assert call_args[1]["json"] == {"name": name, "picture": picture}
+            assert "error" in result
+            assert "not supported" in result["error"].lower()
 
     @pytest.mark.asyncio
     async def test_create_area_http_error(self):
@@ -283,85 +250,43 @@ class TestUpdateArea:
 
     @pytest.mark.asyncio
     async def test_update_area_success_with_name(self):
-        """Test successful area update with name."""
+        """Test area update returns error (not supported via REST)."""
         area_id = "living_room"
         name = "Family Room"
-        mock_area = {
-            "area_id": "living_room",
-            "name": "Family Room",
-            "aliases": [],
-            "picture": None,
-        }
 
-        mock_client = AsyncMock()
-        mock_response = MagicMock()
-        mock_response.json.return_value = mock_area
-        mock_response.raise_for_status = MagicMock()
-        mock_client.post = AsyncMock(return_value=mock_response)
-
-        with patch("app.api.areas.get_client", return_value=mock_client):
+        with patch("app.api.areas.get_client"):
             result = await update_area(area_id, name=name)
 
             assert isinstance(result, dict)
-            assert result["name"] == "Family Room"
-            mock_client.post.assert_called_once()
-            call_args = mock_client.post.call_args
-            assert call_args[0][0] == f"http://localhost:8123/api/config/area_registry/{area_id}"
-            assert call_args[1]["json"] == {"name": name}
+            assert "error" in result
+            assert "not supported" in result["error"].lower()
 
     @pytest.mark.asyncio
     async def test_update_area_success_with_aliases(self):
-        """Test successful area update with aliases."""
+        """Test area update with aliases returns error (not supported via REST)."""
         area_id = "living_room"
         aliases = ["lounge", "salon"]
-        mock_area = {
-            "area_id": "living_room",
-            "name": "Living Room",
-            "aliases": aliases,
-            "picture": None,
-        }
 
-        mock_client = AsyncMock()
-        mock_response = MagicMock()
-        mock_response.json.return_value = mock_area
-        mock_response.raise_for_status = MagicMock()
-        mock_client.post = AsyncMock(return_value=mock_response)
-
-        with patch("app.api.areas.get_client", return_value=mock_client):
+        with patch("app.api.areas.get_client"):
             result = await update_area(area_id, aliases=aliases)
 
             assert isinstance(result, dict)
-            assert result["aliases"] == aliases
-            call_args = mock_client.post.call_args
-            assert call_args[1]["json"] == {"aliases": aliases}
+            assert "error" in result
+            assert "not supported" in result["error"].lower()
 
     @pytest.mark.asyncio
     async def test_update_area_success_with_multiple_fields(self):
-        """Test successful area update with multiple fields."""
+        """Test area update with multiple fields returns error (not supported via REST)."""
         area_id = "living_room"
         name = "Family Room"
         aliases = ["lounge"]
-        mock_area = {
-            "area_id": "living_room",
-            "name": "Family Room",
-            "aliases": aliases,
-            "picture": None,
-        }
 
-        mock_client = AsyncMock()
-        mock_response = MagicMock()
-        mock_response.json.return_value = mock_area
-        mock_response.raise_for_status = MagicMock()
-        mock_client.post = AsyncMock(return_value=mock_response)
-
-        with patch("app.api.areas.get_client", return_value=mock_client):
+        with patch("app.api.areas.get_client"):
             result = await update_area(area_id, name=name, aliases=aliases)
 
             assert isinstance(result, dict)
-            assert result["name"] == "Family Room"
-            assert result["aliases"] == aliases
-            call_args = mock_client.post.call_args
-            assert call_args[1]["json"] == {"name": name, "aliases": aliases}
+            assert "error" in result
+            assert "not supported" in result["error"].lower()
 
     @pytest.mark.asyncio
     async def test_update_area_no_fields_provided(self):
@@ -376,21 +301,16 @@ class TestUpdateArea:
 
     @pytest.mark.asyncio
     async def test_update_area_http_error(self):
-        """Test handling of HTTP error."""
+        """Test area update returns error (not supported via REST)."""
         area_id = "nonexistent"
         name = "Test Area"
-        mock_client = AsyncMock()
-        mock_response = MagicMock()
-        mock_response.raise_for_status.side_effect = httpx.HTTPStatusError(
-            "Not found", request=MagicMock(), response=mock_response
-        )
-        mock_client.post = AsyncMock(return_value=mock_response)
 
-        with patch("app.api.areas.get_client", return_value=mock_client):
+        with patch("app.api.areas.get_client"):
             result = await update_area(area_id, name=name)
 
             assert isinstance(result, dict)
             assert "error" in result
+            assert "not supported" in result["error"].lower()
 
 
 class TestDeleteArea:
@@ -408,40 +328,27 @@ class TestDeleteArea:
 
     @pytest.mark.asyncio
     async def test_delete_area_success(self):
-        """Test successful area deletion."""
+        """Test area deletion returns error (not supported via REST)."""
         area_id = "living_room"
 
-        mock_client = AsyncMock()
-        mock_response = MagicMock()
-        mock_response.raise_for_status = MagicMock()
-        mock_client.delete = AsyncMock(return_value=mock_response)
-
-        with patch("app.api.areas.get_client", return_value=mock_client):
-            result = await delete_area(area_id)
-
-            assert isinstance(result, dict)
-            assert result["status"] == "deleted"
-            assert result["area_id"] == area_id
-            mock_client.delete.assert_called_once()
-            call_args = mock_client.delete.call_args
-            assert call_args[0][0] == f"http://localhost:8123/api/config/area_registry/{area_id}"
-
-    @pytest.mark.asyncio
-    async def test_delete_area_http_error(self):
-        """Test handling of HTTP error."""
-        area_id = "nonexistent"
-        mock_client = AsyncMock()
-        mock_response = MagicMock()
-        mock_response.raise_for_status.side_effect = httpx.HTTPStatusError(
-            "Not found", request=MagicMock(), response=mock_response
-        )
-        mock_client.delete = AsyncMock(return_value=mock_response)
-
-        with patch("app.api.areas.get_client", return_value=mock_client):
+        with patch("app.api.areas.get_client"):
             result = await delete_area(area_id)
 
             assert isinstance(result, dict)
             assert "error" in result
+            assert "not supported" in result["error"].lower()
+
+    @pytest.mark.asyncio
+    async def test_delete_area_http_error(self):
+        """Test area deletion returns error (not supported via REST)."""
+        area_id = "nonexistent"
+
+        with patch("app.api.areas.get_client"):
+            result = await delete_area(area_id)
+
+            assert isinstance(result, dict)
+            assert "error" in result
+            assert "not supported" in result["error"].lower()
 
 
 class TestGetAreaSummary:

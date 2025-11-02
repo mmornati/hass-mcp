@@ -99,11 +99,11 @@ class TestBaseAPI:
         mock_client.put = AsyncMock(return_value=mock_response)
 
         with patch("app.api.base.get_client", return_value=mock_client):
-            result = await api.put("/api/config/area_registry", data={"name": "Kitchen"})
+            result = await api.put("/api/config/areas", data={"name": "Kitchen"})
 
             assert result == {"result": "updated"}
             call_args = mock_client.put.call_args
-            assert "/api/config/area_registry" in call_args[0][0]
+            assert "/api/config/areas" in call_args[0][0]
             assert call_args[1]["json"] == {"name": "Kitchen"}
 
     @pytest.mark.asyncio
@@ -117,11 +117,11 @@ class TestBaseAPI:
         mock_client.delete = AsyncMock(return_value=mock_response)
 
         with patch("app.api.base.get_client", return_value=mock_client):
-            result = await api.delete("/api/config/area_registry/abc123")
+            result = await api.delete("/api/config/areas/abc123")
 
             assert result == {"result": "deleted"}
             call_args = mock_client.delete.call_args
-            assert "/api/config/area_registry/abc123" in call_args[0][0]
+            assert "/api/config/areas/abc123" in call_args[0][0]
 
     @pytest.mark.asyncio
     async def test_patch_method_success(self):
@@ -134,11 +134,11 @@ class TestBaseAPI:
         mock_client.patch = AsyncMock(return_value=mock_response)
 
         with patch("app.api.base.get_client", return_value=mock_client):
-            result = await api.patch("/api/config/area_registry/abc123", data={"name": "Updated"})
+            result = await api.patch("/api/config/areas/abc123", data={"name": "Updated"})
 
             assert result == {"result": "patched"}
             call_args = mock_client.patch.call_args
-            assert "/api/config/area_registry/abc123" in call_args[0][0]
+            assert "/api/config/areas/abc123" in call_args[0][0]
             assert call_args[1]["json"] == {"name": "Updated"}
 
     @pytest.mark.asyncio

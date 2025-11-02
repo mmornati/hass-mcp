@@ -1,0 +1,27 @@
+services:
+  homeassistant:
+    image: ghcr.io/home-assistant/home-assistant:stable
+    container_name: ha-integration-test
+    ports:
+      - "18123:8123"
+    environment:
+      - TZ=UTC
+      # Skip onboarding to speed up startup
+      - SKIP_ONBOARDING=1
+    volumes:
+      - ./tests/fixtures/ha_config:/config
+      # Mount test data
+      - ./tests/fixtures/ha_storage:/config/.storage
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8123/api/ || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
+    networks:
+      - test-network
+
+networks:
+  test-network:
+    driver: bridge
