@@ -7,12 +7,12 @@ name: Deploy Documentation to GitHub Pages
     paths:
       - 'docs/**'
       - 'mkdocs.yml'
-      - '.github/workflows/docs-deploy.yaml'
+      - '.github/workflows/docs-deploy.yml'
   pull_request:
     paths:
       - 'docs/**'
       - 'mkdocs.yml'
-      - '.github/workflows/docs-deploy.yaml'
+      - '.github/workflows/docs-deploy.yml'
   workflow_dispatch:
 
 permissions:
@@ -51,6 +51,7 @@ jobs:
           pip install mkdocs-material
           pip install mkdocs-minify-plugin
           pip install mkdocs-redirects
+          pip install git-revision-date-localized
 
       - name: Build documentation
         run: mkdocs build --strict
