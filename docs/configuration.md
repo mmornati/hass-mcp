@@ -25,6 +25,21 @@ Hass-MCP uses the following environment variables:
 - **`LOG_LEVEL`**: Logging level (default: `INFO`)
   - Options: `DEBUG`, `INFO`, `WARNING`, `ERROR`
 
+### Cache Configuration Variables
+
+- **`HASS_MCP_CACHE_ENABLED`**: Enable/disable caching (default: `true`)
+  - Options: `true`, `false`, `1`, `0`, `yes`, `no`
+- **`HASS_MCP_CACHE_BACKEND`**: Cache backend type (default: `memory`)
+  - Options: `memory`, `redis`, `file`
+- **`HASS_MCP_CACHE_DEFAULT_TTL`**: Default cache TTL in seconds (default: `300`)
+- **`HASS_MCP_CACHE_MAX_SIZE`**: Maximum cache size (default: `1000`)
+- **`HASS_MCP_CACHE_REDIS_URL`**: Redis URL for Redis backend (optional)
+  - Example: `redis://localhost:6379/0`
+- **`HASS_MCP_CACHE_DIR`**: Cache directory for file backend (default: `.cache`)
+- **`HASS_MCP_CACHE_CONFIG_FILE`**: Path to cache configuration file (optional)
+  - Supports JSON and YAML formats
+  - Example: `/path/to/cache_config.json`
+
 ## Configuration Examples
 
 ### Basic Configuration
@@ -145,6 +160,114 @@ For remote Home Assistant instances:
    - Grant only necessary permissions when creating tokens
    - Review token permissions regularly
 
+## Cache Configuration
+
+The caching system reduces API calls to Home Assistant by caching relatively static data. Configuration can be managed via environment variables or a configuration file.
+
+### Environment Variables
+
+All cache configuration can be set via environment variables (highest priority):
+
+```bash
+export HASS_MCP_CACHE_ENABLED=true
+export HASS_MCP_CACHE_BACKEND=memory
+export HASS_MCP_CACHE_DEFAULT_TTL=300
+export HASS_MCP_CACHE_MAX_SIZE=1000
+```
+
+### Configuration File
+
+You can also use a configuration file (JSON or YAML) for more complex setups:
+
+**JSON Example** (`cache_config.json`):
+```json
+{
+  "enabled": true,
+  "backend": "memory",
+  "default_ttl": 300,
+  "max_size": 1000,
+  "endpoints": {
+    "entities": {"ttl": 1800},
+    "automations": {"ttl": 3600},
+    "areas": {"ttl": 3600}
+  }
+}
+```
+
+**YAML Example** (`cache_config.yaml`):
+```yaml
+enabled: true
+backend: memory
+default_ttl: 300
+max_size: 1000
+endpoints:
+  entities:
+    ttl: 1800
+  automations:
+    ttl: 3600
+  areas:
+    ttl: 3600
+```
+
+**Simple Format** (integer TTL):
+```json
+{
+  "endpoints": {
+    "entities": 1800,
+    "automations": 3600
+  }
+}
+```
+
+### Per-Endpoint TTL Configuration
+
+You can configure different TTL values for different endpoints:
+
+```json
+{
+  "endpoints": {
+    "entities": {"ttl": 60},           // 1 minute for entity states
+    "entities.list": {"ttl": 1800},    // 30 minutes for entity lists
+    "automations": {"ttl": 3600},      // 1 hour for automations
+    "areas": {"ttl": 3600}             // 1 hour for areas
+  }
+}
+```
+
+### Configuration Priority
+
+Configuration is loaded in the following order (highest to lowest priority):
+
+1. **Environment Variables** - Highest priority
+2. **Configuration File** - Medium priority
+3. **Default Values** - Lowest priority
+
+### Runtime Configuration Management
+
+You can manage cache configuration at runtime using the API:
+
+- **Get configuration**: `get_cache_configuration()`
+- **Update endpoint TTL**: `update_cache_endpoint_ttl(domain, ttl, operation)`
+- **Reload configuration**: `reload_cache_config()`
+
+### Cache Backends
+
+The cache system supports multiple backends:
+
+- **`memory`**: In-memory cache (default, fastest, no persistence)
+- **`redis`**: Redis backend (distributed, persistent, requires Redis)
+- **`file`**: File-based cache (persistent, slower, no external dependencies)
+
+### Recommended TTL Values
+
+Based on data volatility:
+
+- **Very Long TTL (1 hour)**: Areas, zones, blueprints, system config, HA version
+- **Long TTL (30 minutes)**: Entities metadata, automations, scripts, scenes, devices, helpers, tags
+- **Medium TTL (5 minutes)**: Integrations, device statistics, domain summaries
+- **Short TTL (1 minute)**: Entity states, entity lists with state info
+- **No Caching**: Logbook, history, statistics, events, templates, notifications
+
 ## Troubleshooting Configuration
 
 ### Invalid URL Format
@@ -170,3 +293,19 @@ For remote Home Assistant instances:
 - Verify `HA_TOKEN` is correct
 - Check token hasn't been revoked
 - Create a new token if needed
+
+### Cache Configuration Issues
+
+**Error**: "Cache config file not found"
+
+**Solution**:
+- Verify the path in `HASS_MCP_CACHE_CONFIG_FILE` is correct
+- Check file permissions
+- Use absolute paths for clarity
+
+**Error**: "Invalid cache configuration"
+
+**Solution**:
+- Verify JSON/YAML syntax is correct
+- Check that TTL values are positive integers
+- Ensure backend type is one of: `memory`, `redis`, `file`

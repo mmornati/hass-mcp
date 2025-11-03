@@ -60,12 +60,15 @@ from app.api.scripts import (
 )
 from app.api.services import call_service
 from app.api.system import (
+    get_cache_configuration,
     get_core_config,
     get_hass_error_log,
     get_hass_version,
     get_system_health,
     get_system_overview,
+    reload_cache_config,
     restart_home_assistant,
+    update_cache_endpoint_ttl,
 )
 from app.api.templates import test_template
 
@@ -115,6 +118,9 @@ __all__ = [
     "get_hass_error_log",
     "get_core_config",
     "restart_home_assistant",
+    "get_cache_configuration",
+    "update_cache_endpoint_ttl",
+    "reload_cache_config",
     "call_service",
     "test_template",
 ]
