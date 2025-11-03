@@ -30,7 +30,7 @@ This fork includes significant improvements:
 
 Hass-MCP provides a Model Context Protocol server that enables AI assistants to interact with Home Assistant instances. The project is organized into three main layers:
 
-1. **Core Layer** (`app/core/`): Shared infrastructure (HTTP client, decorators, error handling, types)
+1. **Core Layer** (`app/core/`): Shared infrastructure (HTTP client, decorators, error handling, types, caching)
 2. **API Layer** (`app/api/`): Business logic for interacting with Home Assistant (entities, automations, system, etc.)
 3. **Tools Layer** (`app/tools/`): Thin MCP tool wrappers that register with the MCP server
 
