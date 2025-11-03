@@ -306,15 +306,17 @@ class TestCachedDecorator:
             call_count += 1
             return {"result": f"value_{value}"}
 
-        # First call
-        result1 = await test_function("test")
-        assert call_count == 1
-        assert result1 == {"result": "value_test"}
+        # Mock HA_TOKEN to avoid the "No token" error check
+        with patch("app.core.decorators.HA_TOKEN", "test_token"):
+            # First call
+            result1 = await test_function("test")
+            assert call_count == 1
+            assert result1 == {"result": "value_test"}
 
-        # Second call - should use cache
-        result2 = await test_function("test")
-        assert call_count == 1  # Cached
-        assert result2 == {"result": "value_test"}
+            # Second call - should use cache
+            result2 = await test_function("test")
+            assert call_count == 1  # Cached
+            assert result2 == {"result": "value_test"}
 
     @pytest.mark.asyncio
     async def test_decorator_with_none_values(self):
@@ -467,8 +469,10 @@ class TestInvalidateCacheDecorator:
         async def mutation_function(value: str) -> dict[str, str]:
             return {"status": "success", "value": value}
 
-        result = await mutation_function("test")
-        assert result == {"status": "success", "value": "test"}
+        # Mock HA_TOKEN to avoid the "No token" error check
+        with patch("app.core.decorators.HA_TOKEN", "test_token"):
+            result = await mutation_function("test")
+            assert result == {"status": "success", "value": "test"}
 
 
 class TestCacheDecoratorIntegration:
