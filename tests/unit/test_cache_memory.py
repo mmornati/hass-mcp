@@ -5,7 +5,6 @@ import asyncio
 import pytest
 
 from app.core.cache.memory import MemoryCacheBackend
-from app.core.cache.ttl import TTL_SHORT
 
 
 class TestMemoryCacheBackend:
@@ -56,12 +55,15 @@ class TestMemoryCacheBackend:
     @pytest.mark.asyncio
     async def test_ttl_expiration(self, cache):
         """Test TTL expiration."""
-        await cache.set("test_key", "test_value", ttl=TTL_SHORT)
+        # Use a very short TTL for testing (0.2 seconds) instead of TTL_SHORT (60s)
+        test_ttl = 0.2
+
+        await cache.set("test_key", "test_value", ttl=test_ttl)
         # Should still exist immediately
         assert await cache.get("test_key") == "test_value"
 
         # Wait for expiration
-        await asyncio.sleep(TTL_SHORT + 0.1)
+        await asyncio.sleep(test_ttl + 0.1)
 
         # Should be expired now
         assert await cache.get("test_key") is None

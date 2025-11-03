@@ -8,7 +8,6 @@ import pytest
 
 from app.core.cache.decorator import cached, invalidate_cache
 from app.core.cache.manager import get_cache_manager
-from app.core.cache.ttl import TTL_SHORT
 
 
 @pytest.fixture(autouse=True)
@@ -170,7 +169,10 @@ class TestCachedDecorator:
         """Test TTL expiration."""
         call_count = 0
 
-        @cached(ttl=TTL_SHORT)
+        # Use a very short TTL for testing (0.2 seconds) instead of TTL_SHORT (60s)
+        test_ttl = 0.2
+
+        @cached(ttl=test_ttl)
         async def test_function(value: str) -> str:
             nonlocal call_count
             call_count += 1
@@ -185,7 +187,7 @@ class TestCachedDecorator:
         assert call_count == 1
 
         # Wait for expiration
-        await asyncio.sleep(TTL_SHORT + 0.1)
+        await asyncio.sleep(test_ttl + 0.1)
 
         # Should call function again after expiration
         result3 = await test_function("test")
@@ -207,8 +209,15 @@ class TestCachedDecorator:
         assert test_function.__name__ == "test_function"
 
     @pytest.mark.asyncio
-    async def test_decorator_handles_errors_gracefully(self):
-        """Test that decorator handles cache errors gracefully."""
+    async def test_decorator_handles_errors_gracefully(self, caplog):
+        """Test that decorator handles cache errors gracefully.
+
+        This test intentionally causes cache operations to fail to verify
+        that the decorator handles errors gracefully and doesn't break the
+        function execution. The exception in the logs is expected.
+        """
+        import logging
+
         call_count = 0
 
         @cached(ttl=60)
@@ -224,10 +233,15 @@ class TestCachedDecorator:
             mock_cache.set = AsyncMock()
             mock_get_cache.return_value = mock_cache
 
-            # Should still work (fallback to direct call)
-            result = await test_function("test")
-            assert result == "result_test"
-            assert call_count == 1
+            # Suppress the warning log during test (we're testing error handling)
+            with caplog.at_level(logging.WARNING):
+                # Should still work (fallback to direct call)
+                result = await test_function("test")
+                assert result == "result_test"
+                assert call_count == 1
+
+            # Verify that a warning was logged (error handling worked)
+            assert "Cache get error" in caplog.text
 
     @pytest.mark.asyncio
     async def test_decorator_handles_args_and_kwargs(self):
@@ -400,8 +414,14 @@ class TestInvalidateCacheDecorator:
         assert result2 == {"status": "error"}
 
     @pytest.mark.asyncio
-    async def test_invalidate_cache_handles_errors_gracefully(self):
-        """Test that invalidation handles errors gracefully."""
+    async def test_invalidate_cache_handles_errors_gracefully(self, caplog):
+        """Test that invalidation handles errors gracefully.
+
+        This test intentionally causes cache invalidation to fail to verify
+        that the decorator handles errors gracefully and doesn't break the
+        function execution. The exception in the logs is expected.
+        """
+        import logging
 
         @invalidate_cache(pattern="test:*")
         async def mutation_function(value: str) -> str:
@@ -413,9 +433,14 @@ class TestInvalidateCacheDecorator:
             mock_cache.invalidate.side_effect = Exception("Invalidation error")
             mock_get_cache.return_value = mock_cache
 
-            # Should still work (function completes even if invalidation fails)
-            result = await mutation_function("test")
-            assert result == "mutated_test"
+            # Suppress the warning log during test (we're testing error handling)
+            with caplog.at_level(logging.WARNING):
+                # Should still work (function completes even if invalidation fails)
+                result = await mutation_function("test")
+                assert result == "mutated_test"
+
+            # Verify that a warning was logged (error handling worked)
+            assert "Cache invalidation error" in caplog.text
 
     @pytest.mark.asyncio
     async def test_invalidate_cache_preserves_function_metadata(self):
