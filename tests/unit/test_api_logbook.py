@@ -304,3 +304,36 @@ class TestSearchLogbook:
             assert isinstance(result, list)
             assert len(result) == 1
             assert "error" in result[0]["message"].lower()
+
+    @pytest.mark.asyncio
+    async def test_search_logbook_with_none_values(self):
+        """Test that search handles None values in entity_id, name, or message."""
+        mock_entries = [
+            {
+                "when": "2025-03-15T10:30:00Z",
+                "name": None,
+                "entity_id": None,
+                "message": "turned on",
+            },
+            {
+                "when": "2025-03-15T10:25:00Z",
+                "name": "Kitchen Light",
+                "entity_id": "light.kitchen",
+                "message": None,
+            },
+            {
+                "when": "2025-03-15T10:20:00Z",
+                "name": None,
+                "entity_id": "sensor.temperature",
+                "message": None,
+            },
+        ]
+
+        with patch("app.api.logbook.get_logbook", return_value=mock_entries):
+            # Should not raise AttributeError: 'NoneType' object has no attribute 'lower'
+            result = await search_logbook("light", hours=24)
+
+            assert isinstance(result, list)
+            # Should find matches despite None values
+            assert len(result) == 1
+            assert result[0]["entity_id"] == "light.kitchen"

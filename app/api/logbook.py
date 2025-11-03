@@ -153,9 +153,10 @@ async def search_logbook(query: str, hours: int = 24) -> list[dict[str, Any]]:
 
     for entry in entries:
         # Search in entity_id, name, message, etc.
-        entry_entity_id = entry.get("entity_id", "").lower()
-        entry_name = entry.get("name", "").lower()
-        entry_message = entry.get("message", "").lower()
+        # Handle None values: entry.get() only returns default if key missing, not if value is None
+        entry_entity_id = (entry.get("entity_id") or "").lower()
+        entry_name = (entry.get("name") or "").lower()
+        entry_message = (entry.get("message") or "").lower()
 
         if (
             query_lower in entry_entity_id
