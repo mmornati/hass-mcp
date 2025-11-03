@@ -35,10 +35,11 @@ class TestCacheKeyBuilder:
         # Should produce same key regardless of parameter order
         assert key1 == key2
 
-    def test_build_key_none_params_filtered(self):
-        """Test that None values are filtered out."""
+    def test_build_key_none_params_included(self):
+        """Test that None values are included in cache keys (for distinction)."""
         key = CacheKeyBuilder.build_key("entities", "list", {"domain": "light", "limit": None})
-        assert "limit" not in key
+        # None values should be included (limit=None is different from no limit parameter)
+        assert "limit=None" in key
         assert "domain=light" in key
 
     def test_build_key_automation_config(self):
@@ -55,7 +56,9 @@ class TestCacheKeyBuilder:
         """Test parameter normalization."""
         params = {"domain": "light", "limit": 100, "none_value": None}
         normalized = CacheKeyBuilder.normalize_params(params)
-        assert "none_value" not in normalized
+        # None values are kept for cache key distinction
+        assert "none_value" in normalized
+        assert normalized["none_value"] is None
         assert normalized["domain"] == "light"
         assert normalized["limit"] == 100
 

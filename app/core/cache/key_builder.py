@@ -48,15 +48,18 @@ class CacheKeyBuilder:
 
         # Add parameters if provided
         if params:
-            # Normalize parameters: sort keys and filter out None values
-            normalized_params = {k: v for k, v in sorted(params.items()) if v is not None}
+            # Normalize parameters: sort keys (keep None values for cache key distinction)
+            normalized_params = dict(sorted(params.items()))
 
             if normalized_params:
                 # Build parameter string
                 param_parts = []
                 for key, value in normalized_params.items():
+                    # Handle None values explicitly
+                    if value is None:
+                        value_str = "None"
                     # Handle complex types by hashing them
-                    if isinstance(value, (dict, list)):
+                    elif isinstance(value, (dict, list)):
                         value_str = CacheKeyBuilder._hash_value(value)
                     else:
                         value_str = str(value)
@@ -100,8 +103,8 @@ class CacheKeyBuilder:
         if not params:
             return {}
 
-        # Sort keys and filter out None values
-        normalized = {k: v for k, v in sorted(params.items()) if v is not None}
+        # Sort keys (keep None values for cache key distinction)
+        normalized = dict(sorted(params.items()))
 
         # Convert complex types to hash strings
         result = {}
