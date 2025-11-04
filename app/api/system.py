@@ -67,42 +67,52 @@ async def get_hass_error_log() -> dict[str, Any]:
         - Focus on integrations with many mentions in the log
     """
     try:
+        # Call the Home Assistant API error_log endpoint
+        url = f"{HA_URL}/api/error_log"
+        headers = get_ha_headers()
+
         client = await get_client()
-        response = await client.get(
-            f"{HA_URL}/api/error_log", headers=get_ha_headers(), timeout=30.0
-        )
-        response.raise_for_status()
-        log_text = response.text
+        response = await client.get(url, headers=headers, timeout=30.0)
 
-        # Parse log for errors and warnings
-        error_count = len(re.findall(r"ERROR", log_text))
-        warning_count = len(re.findall(r"WARNING", log_text))
+        if response.status_code == 200:
+            log_text = response.text
 
-        # Extract integration mentions
-        integration_mentions = {}
-        for line in log_text.split("\n"):
-            # Look for patterns like [integration_name] or (integration_name)
-            matches = re.findall(r"\[([^\]]+)\]|\(([^\)]+)\)", line)
-            for match in matches:
-                integration_name = match[0] if match[0] else match[1]
-                if integration_name and integration_name not in ["INFO", "ERROR", "WARNING"]:
-                    integration_mentions[integration_name] = (
-                        integration_mentions.get(integration_name, 0) + 1
-                    )
+            # Count errors and warnings
+            error_count = log_text.count("ERROR")
+            warning_count = log_text.count("WARNING")
 
+            # Extract integration mentions
+            integration_mentions = {}
+
+            # Look for patterns like [mqtt], [zwave], etc.
+            for match in re.finditer(r"\[([a-zA-Z0-9_]+)\]", log_text):
+                integration = match.group(1).lower()
+                if integration not in integration_mentions:
+                    integration_mentions[integration] = 0
+                integration_mentions[integration] += 1
+
+            return {
+                "log_text": log_text,
+                "error_count": error_count,
+                "warning_count": warning_count,
+                "integration_mentions": integration_mentions,
+            }
         return {
-            "log_text": log_text,
-            "error_count": error_count,
-            "warning_count": warning_count,
-            "integration_mentions": integration_mentions,
-        }
-    except Exception as e:
-        return {
+            "error": f"Error retrieving error log: {response.status_code} {response.reason_phrase}",
+            "details": response.text,
             "log_text": "",
             "error_count": 0,
             "warning_count": 0,
             "integration_mentions": {},
-            "error": str(e),
+        }
+    except Exception as e:
+        logger.error(f"Error retrieving Home Assistant error log: {str(e)}")
+        return {
+            "error": f"Error retrieving error log: {str(e)}",
+            "log_text": "",
+            "error_count": 0,
+            "warning_count": 0,
+            "integration_mentions": {},
         }
 
 
@@ -219,7 +229,7 @@ async def get_system_overview() -> dict[str, Any]:
             "most_common_domains": most_common_domains,
         }
     except Exception as e:
-        logger.error(f"Error getting system overview: {e}", exc_info=True)
+        logger.error(f"Error generating system overview: {e}", exc_info=True)
         return {
             "total_entities": 0,
             "domains": {},
@@ -228,7 +238,7 @@ async def get_system_overview() -> dict[str, Any]:
             "area_distribution": {},
             "domain_count": 0,
             "most_common_domains": [],
-            "error": str(e),
+            "error": f"Error generating system overview: {str(e)}",
         }
 
 

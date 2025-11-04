@@ -106,15 +106,13 @@ class TestGetHassErrorLog:
             "2025-01-01 ERROR [mqtt] Connection failed\n2025-01-01 WARNING [zwave] Device timeout"
         )
 
-        with patch("httpx.AsyncClient") as mock_client_class:
-            mock_client_instance = AsyncMock()
-            mock_response = MagicMock()
-            mock_response.status_code = 200
-            mock_response.text = mock_log_text
-            mock_client_instance.get = AsyncMock(return_value=mock_response)
-            mock_client_class.return_value.__aenter__.return_value = mock_client_instance
-            mock_client_class.return_value.__aexit__.return_value = None
+        mock_client = AsyncMock()
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.text = mock_log_text
+        mock_client.get = AsyncMock(return_value=mock_response)
 
+        with patch("app.api.system.get_client", return_value=mock_client):
             result = await get_hass_error_log()
 
             assert isinstance(result, dict)
@@ -127,16 +125,14 @@ class TestGetHassErrorLog:
     @pytest.mark.asyncio
     async def test_get_hass_error_log_http_error(self):
         """Test handling of HTTP error during log retrieval."""
-        with patch("httpx.AsyncClient") as mock_client_class:
-            mock_client_instance = AsyncMock()
-            mock_response = MagicMock()
-            mock_response.status_code = 500
-            mock_response.reason_phrase = "Internal Server Error"
-            mock_response.text = "Error"
-            mock_client_instance.get = AsyncMock(return_value=mock_response)
-            mock_client_class.return_value.__aenter__.return_value = mock_client_instance
-            mock_client_class.return_value.__aexit__.return_value = None
+        mock_client = AsyncMock()
+        mock_response = MagicMock()
+        mock_response.status_code = 500
+        mock_response.reason_phrase = "Internal Server Error"
+        mock_response.text = "Error"
+        mock_client.get = AsyncMock(return_value=mock_response)
 
+        with patch("app.api.system.get_client", return_value=mock_client):
             result = await get_hass_error_log()
 
             assert "error" in result
@@ -147,9 +143,10 @@ class TestGetHassErrorLog:
     @pytest.mark.asyncio
     async def test_get_hass_error_log_exception(self):
         """Test handling of exception during log retrieval."""
-        with patch("httpx.AsyncClient") as mock_client_class:
-            mock_client_class.side_effect = Exception("Connection failed")
+        mock_client = AsyncMock()
+        mock_client.get.side_effect = Exception("Connection failed")
 
+        with patch("app.api.system.get_client", return_value=mock_client):
             result = await get_hass_error_log()
 
             assert "error" in result
