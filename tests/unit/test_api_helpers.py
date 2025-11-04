@@ -5,6 +5,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 
 from app.api.helpers import get_helper, list_helpers, update_helper
+from app.core.cache.manager import get_cache_manager
 
 
 class TestListHelpers:
@@ -19,6 +20,14 @@ class TestListHelpers:
             patch("app.core.decorators.HA_TOKEN", "test_token"),
         ):
             yield
+
+    @pytest.fixture(autouse=True)
+    async def clear_cache(self):
+        """Clear cache before each test to ensure isolation."""
+        cache = await get_cache_manager()
+        await cache.clear()
+        yield
+        await cache.clear()
 
     @pytest.mark.asyncio
     async def test_list_helpers_success_all(self):

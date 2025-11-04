@@ -11,6 +11,7 @@ from app.api.blueprints import (
     import_blueprint,
     list_blueprints,
 )
+from app.core.cache.manager import get_cache_manager
 
 
 class TestListBlueprints:
@@ -25,6 +26,14 @@ class TestListBlueprints:
             patch("app.core.decorators.HA_TOKEN", "test_token"),
         ):
             yield
+
+    @pytest.fixture(autouse=True)
+    async def clear_cache(self):
+        """Clear cache before each test to ensure isolation."""
+        cache = await get_cache_manager()
+        await cache.clear()
+        yield
+        await cache.clear()
 
     @pytest.mark.asyncio
     async def test_list_blueprints_success_all(self):
