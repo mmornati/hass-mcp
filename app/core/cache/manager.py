@@ -9,8 +9,8 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from app.config import CACHE_BACKEND, CACHE_ENABLED, CACHE_MAX_SIZE
 from app.core.cache.backend import CacheBackend
+from app.core.cache.config import get_cache_config
 from app.core.cache.memory import MemoryCacheBackend
 
 logger = logging.getLogger(__name__)
@@ -31,7 +31,8 @@ class CacheManager:
     def __init__(self):
         """Initialize the cache manager with the configured backend."""
         self._backend: CacheBackend | None = None
-        self._enabled = CACHE_ENABLED
+        self._config = get_cache_config()
+        self._enabled = self._config.is_enabled()
         self._hits = 0
         self._misses = 0
 
@@ -47,24 +48,25 @@ class CacheManager:
 
         if self._backend is None:
             # Initialize backend based on configuration
-            backend_type = CACHE_BACKEND.lower()
+            backend_type = self._config.get_backend().lower()
+            max_size = self._config.get_max_size()
 
             if backend_type == "memory":
-                self._backend = MemoryCacheBackend(max_size=CACHE_MAX_SIZE)
-                logger.info(f"Initialized memory cache backend (max_size={CACHE_MAX_SIZE})")
+                self._backend = MemoryCacheBackend(max_size=max_size)
+                logger.info(f"Initialized memory cache backend (max_size={max_size})")
             elif backend_type == "redis":
                 # Redis backend will be implemented in US-009
                 logger.warning("Redis backend not yet implemented, falling back to memory backend")
-                self._backend = MemoryCacheBackend(max_size=CACHE_MAX_SIZE)
+                self._backend = MemoryCacheBackend(max_size=max_size)
             elif backend_type == "file":
                 # File backend will be implemented in US-010
                 logger.warning("File backend not yet implemented, falling back to memory backend")
-                self._backend = MemoryCacheBackend(max_size=CACHE_MAX_SIZE)
+                self._backend = MemoryCacheBackend(max_size=max_size)
             else:
                 logger.warning(
                     f"Unknown cache backend '{backend_type}', falling back to memory backend"
                 )
-                self._backend = MemoryCacheBackend(max_size=CACHE_MAX_SIZE)
+                self._backend = MemoryCacheBackend(max_size=max_size)
 
         return self._backend
 
@@ -203,6 +205,7 @@ class CacheManager:
 
         stats = {
             "enabled": self._enabled,
+            "backend": self._config.get_backend(),
             "hits": self._hits,
             "misses": self._misses,
             "total_requests": total_requests,
