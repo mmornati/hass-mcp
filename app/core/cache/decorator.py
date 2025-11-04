@@ -10,12 +10,14 @@ import hashlib
 import inspect
 import json
 import logging
+import time
 from collections.abc import Awaitable, Callable
 from typing import Any, TypeVar
 
 from app.core.cache.config import get_cache_config
 from app.core.cache.key_builder import CacheKeyBuilder
 from app.core.cache.manager import get_cache_manager
+from app.core.cache.metrics import get_cache_metrics
 
 logger = logging.getLogger(__name__)
 
@@ -66,8 +68,9 @@ def cached(
     def decorator(func: F) -> F:
         @functools.wraps(func)
         async def wrapper(*args: Any, **kwargs: Any) -> Any:
-            # Get cache manager
+            # Get cache manager and metrics
             cache = await get_cache_manager()
+            metrics = get_cache_metrics()
 
             # Build cache key
             cache_key = _build_cache_key(
@@ -79,19 +82,36 @@ def cached(
                 exclude_params=exclude_params,
             )
 
+            # Build endpoint identifier
+            module_path = func.__module__ or "unknown"
+            # Extract domain from module path (e.g., "app.api.entities" -> "entities")
+            domain = module_path.split(".")[-1] if "." in module_path else module_path
+            operation = func.__name__
+            endpoint = f"{domain}:{operation}"
+
             # Try to get from cache
             try:
-                cached_value = await cache.get(cache_key)
+                cached_value = await cache.get(cache_key, endpoint=endpoint)
                 if cached_value is not None:
-                    logger.debug(f"Cache hit for {func.__name__}: {cache_key}")
+                    logger.debug(
+                        f"Cache hit for {func.__name__}: {cache_key}",
+                        extra={"cache_key": cache_key, "endpoint": endpoint},
+                    )
                     return cached_value
             except Exception as e:
                 logger.warning(f"Cache get error for {func.__name__}: {e}", exc_info=True)
 
             # Cache miss - call the function
-            logger.debug(f"Cache miss for {func.__name__}: {cache_key}")
+            logger.debug(
+                f"Cache miss for {func.__name__}: {cache_key}",
+                extra={"cache_key": cache_key, "endpoint": endpoint},
+            )
             try:
+                # Record API call start time
+                api_start_time = time.time()
                 result = await func(*args, **kwargs)
+                api_time_ms = (time.time() - api_start_time) * 1000
+                metrics.record_api_call(endpoint, api_time_ms)
 
                 # Default condition: don't cache error responses
                 # Check if result is an error response (dict with "error" key or list with error dict)
@@ -152,9 +172,10 @@ def cached(
 
                 # Store in cache
                 try:
-                    await cache.set(cache_key, result, ttl=cache_ttl)
+                    await cache.set(cache_key, result, ttl=cache_ttl, endpoint=endpoint)
                     logger.debug(
-                        f"Cached result for {func.__name__}: {cache_key} (ttl={cache_ttl})"
+                        f"Cached result for {func.__name__}: {cache_key} (ttl={cache_ttl})",
+                        extra={"cache_key": cache_key, "endpoint": endpoint, "ttl": cache_ttl},
                     )
                 except Exception as e:
                     logger.warning(f"Cache set error for {func.__name__}: {e}", exc_info=True)

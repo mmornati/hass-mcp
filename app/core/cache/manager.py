@@ -7,11 +7,13 @@ the appropriate cache backend based on configuration.
 from __future__ import annotations
 
 import logging
+import time
 from typing import Any
 
 from app.core.cache.backend import CacheBackend
 from app.core.cache.config import get_cache_config
 from app.core.cache.memory import MemoryCacheBackend
+from app.core.cache.metrics import get_cache_metrics
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +37,7 @@ class CacheManager:
         self._enabled = self._config.is_enabled()
         self._hits = 0
         self._misses = 0
+        self._metrics = get_cache_metrics()
 
     async def _get_backend(self) -> CacheBackend | None:
         """
@@ -70,13 +73,14 @@ class CacheManager:
 
         return self._backend
 
-    async def get(self, key: str, default: Any = None) -> Any:
+    async def get(self, key: str, default: Any = None, endpoint: str | None = None) -> Any:
         """
         Retrieve a value from the cache.
 
         Args:
             key: The cache key to retrieve
             default: Default value to return if key not found
+            endpoint: Optional endpoint identifier for metrics tracking
 
         Returns:
             The cached value if found, default otherwise
@@ -84,26 +88,37 @@ class CacheManager:
         if not self._enabled:
             return default
 
+        start_time = time.time()
         try:
             backend = await self._get_backend()
             if backend is None:
                 return default
 
             value = await backend.get(key)
+            cache_time_ms = (time.time() - start_time) * 1000
+
             if value is not None:
                 self._hits += 1
-                logger.debug(f"Cache hit: {key}")
+                if endpoint:
+                    self._metrics.record_hit(endpoint, cache_time_ms)
+                logger.debug(f"Cache hit: {key}", extra={"cache_key": key, "endpoint": endpoint})
                 return value
             self._misses += 1
-            logger.debug(f"Cache miss: {key}")
+            if endpoint:
+                self._metrics.record_miss(endpoint)
+            logger.debug(f"Cache miss: {key}", extra={"cache_key": key, "endpoint": endpoint})
             return default
         except Exception as e:
             # Never break API calls on cache errors
             logger.warning(f"Cache get error for key '{key}': {e}", exc_info=True)
             self._misses += 1
+            if endpoint:
+                self._metrics.record_miss(endpoint)
             return default
 
-    async def set(self, key: str, value: Any, ttl: int | None = None) -> None:
+    async def set(
+        self, key: str, value: Any, ttl: int | None = None, endpoint: str | None = None
+    ) -> None:
         """
         Store a value in the cache.
 
@@ -111,6 +126,7 @@ class CacheManager:
             key: The cache key
             value: The value to cache
             ttl: Optional Time-To-Live in seconds
+            endpoint: Optional endpoint identifier for metrics tracking
         """
         if not self._enabled:
             return
@@ -121,17 +137,23 @@ class CacheManager:
                 return
 
             await backend.set(key, value, ttl)
-            logger.debug(f"Cache set: {key} (ttl={ttl})")
+            if endpoint:
+                self._metrics.record_set(endpoint)
+            logger.debug(
+                f"Cache set: {key} (ttl={ttl})",
+                extra={"cache_key": key, "endpoint": endpoint, "ttl": ttl},
+            )
         except Exception as e:
             # Never break API calls on cache errors
             logger.warning(f"Cache set error for key '{key}': {e}", exc_info=True)
 
-    async def delete(self, key: str) -> None:
+    async def delete(self, key: str, endpoint: str | None = None) -> None:
         """
         Delete a value from the cache.
 
         Args:
             key: The cache key to delete
+            endpoint: Optional endpoint identifier for metrics tracking
         """
         if not self._enabled:
             return
@@ -142,7 +164,9 @@ class CacheManager:
                 return
 
             await backend.delete(key)
-            logger.debug(f"Cache delete: {key}")
+            if endpoint:
+                self._metrics.record_delete(endpoint)
+            logger.debug(f"Cache delete: {key}", extra={"cache_key": key, "endpoint": endpoint})
         except Exception as e:
             # Never break API calls on cache errors
             logger.warning(f"Cache delete error for key '{key}': {e}", exc_info=True)
@@ -168,11 +192,16 @@ class CacheManager:
                 # Delete all matching keys
                 for key in matching_keys:
                     await backend.delete(key)
+                self._metrics.record_invalidation(pattern)
                 logger.info(
-                    f"Cache invalidated: {len(matching_keys)} entries matching pattern '{pattern}'"
+                    f"Cache invalidated: {len(matching_keys)} entries matching pattern '{pattern}'",
+                    extra={"pattern": pattern, "count": len(matching_keys)},
                 )
             else:
-                logger.debug(f"No cache entries found matching pattern '{pattern}'")
+                logger.debug(
+                    f"No cache entries found matching pattern '{pattern}'",
+                    extra={"pattern": pattern},
+                )
         except Exception as e:
             # Never break API calls on cache errors
             logger.warning(f"Cache invalidation error for pattern '{pattern}': {e}", exc_info=True)
@@ -239,6 +268,11 @@ class CacheManager:
         # Add backend-specific stats if available
         if self._backend and hasattr(self._backend, "size"):
             stats["size"] = self._backend.size()
+
+        # Add detailed metrics
+        metrics_stats = self._metrics.get_statistics()
+        stats["statistics"] = metrics_stats
+        stats["per_endpoint"] = self._metrics.get_all_endpoint_stats()
 
         return stats
 

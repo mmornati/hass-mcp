@@ -13,6 +13,7 @@ from app.api.system import (
     get_system_overview,
     restart_home_assistant,
 )
+from app.core.cache.manager import get_cache_manager
 
 
 class TestGetHassVersion:
@@ -27,6 +28,14 @@ class TestGetHassVersion:
             patch("app.core.decorators.HA_TOKEN", "test_token"),
         ):
             yield
+
+    @pytest.fixture(autouse=True)
+    async def clear_cache(self):
+        """Clear cache before each test to ensure isolation."""
+        cache = await get_cache_manager()
+        await cache.clear()
+        yield
+        await cache.clear()
 
     @pytest.mark.asyncio
     async def test_get_hass_version_success(self):
@@ -280,6 +289,14 @@ class TestGetCoreConfig:
             patch("app.core.decorators.HA_TOKEN", "test_token"),
         ):
             yield
+
+    @pytest.fixture(autouse=True)
+    async def clear_cache(self):
+        """Clear cache before each test to ensure isolation."""
+        cache = await get_cache_manager()
+        await cache.clear()
+        yield
+        await cache.clear()
 
     @pytest.mark.asyncio
     async def test_get_core_config_success(self):

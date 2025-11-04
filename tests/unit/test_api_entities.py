@@ -218,6 +218,16 @@ class TestGetEntityState:
 class TestGetEntities:
     """Test the get_entities function."""
 
+    @pytest.fixture(autouse=True)
+    async def clear_cache(self):
+        """Clear cache before each test to ensure isolation."""
+        from app.core.cache.manager import get_cache_manager
+
+        cache = await get_cache_manager()
+        await cache.clear()
+        yield
+        await cache.clear()
+
     @pytest.mark.asyncio
     async def test_get_entities_success(self):
         """Test get_entities with successful response."""

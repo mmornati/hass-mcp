@@ -17,6 +17,7 @@ from app.api.automations import (
     update_automation,
     validate_automation_config,
 )
+from app.core.cache.manager import get_cache_manager
 
 
 class TestGetAutomations:
@@ -31,6 +32,14 @@ class TestGetAutomations:
             patch("app.core.decorators.HA_TOKEN", "test_token"),
         ):
             yield
+
+    @pytest.fixture(autouse=True)
+    async def clear_cache(self):
+        """Clear cache before each test to ensure isolation."""
+        cache = await get_cache_manager()
+        await cache.clear()
+        yield
+        await cache.clear()
 
     @pytest.mark.asyncio
     async def test_get_automations_success(self):

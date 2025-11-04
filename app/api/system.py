@@ -12,6 +12,8 @@ from app.config import HA_URL, get_ha_headers
 from app.core import DOMAIN_IMPORTANT_ATTRIBUTES, get_client
 from app.core.cache.config import get_cache_config
 from app.core.cache.decorator import cached
+from app.core.cache.manager import get_cache_manager
+from app.core.cache.metrics import get_cache_metrics
 from app.core.cache.ttl import TTL_VERY_LONG
 from app.core.decorators import handle_api_errors
 
@@ -481,4 +483,141 @@ async def reload_cache_config() -> dict[str, Any]:
         "status": "success",
         "message": "Cache configuration reloaded",
         "config": config.get_all_config(),
+    }
+
+
+@handle_api_errors
+async def get_cache_statistics() -> dict[str, Any]:
+    """
+    Get comprehensive cache statistics and metrics.
+
+    Returns:
+        Dictionary containing:
+        - cache_enabled: Whether caching is enabled
+        - backend: The cache backend type
+        - size: Current cache size (if available)
+        - statistics: Overall cache statistics (hits, misses, hit rate, etc.)
+        - per_endpoint: Per-endpoint statistics
+        - top_endpoints: Top endpoints by various metrics
+        - health: Cache health information
+
+    Example response:
+        {
+            "cache_enabled": true,
+            "backend": "memory",
+            "size": 1234,
+            "statistics": {
+                "total_hits": 1523,
+                "total_misses": 234,
+                "total_sets": 1757,
+                "total_deletes": 45,
+                "total_invalidations": 12,
+                "total_requests": 1757,
+                "hit_rate": 0.867,
+                "uptime_seconds": 3600.0,
+                "performance": {
+                    "avg_api_time_ms": 45.2,
+                    "avg_cache_time_ms": 0.8,
+                    "time_saved_ms": 44.4,
+                    "total_api_calls": 234,
+                    "total_cache_calls": 1523
+                },
+                "endpoint_count": 15
+            },
+            "per_endpoint": {
+                "entities:get_entities": {
+                    "hits": 450,
+                    "misses": 12,
+                    "sets": 12,
+                    "deletes": 0,
+                    "hit_rate": 0.974,
+                    "avg_api_time_ms": 50.0,
+                    "avg_cache_time_ms": 1.0,
+                    "time_saved_ms": 49.0,
+                    "api_call_count": 12,
+                    "cache_call_count": 462
+                }
+            },
+            "top_endpoints": {
+                "by_hits": [
+                    ["entities:get_entities", {"hits": 450, ...}]
+                ],
+                "by_time_saved": [
+                    ["entities:get_entities", {"time_saved_ms": 49.0, ...}]
+                ]
+            },
+            "health": {
+                "status": "healthy",
+                "backend_available": true,
+                "size_limit": 1000,
+                "size_usage_percent": 12.34
+            }
+        }
+
+    Best Practices:
+        - Use this to monitor cache performance
+        - Check hit_rate to evaluate cache effectiveness
+        - Review per_endpoint stats to identify optimization opportunities
+        - Monitor health to detect issues early
+    """
+    cache = await get_cache_manager()
+    metrics = get_cache_metrics()
+
+    # Get basic statistics
+    stats = cache.get_statistics()
+
+    # Get top endpoints by different metrics
+    top_by_hits = metrics.get_top_endpoints(limit=10, sort_by="hits")
+    top_by_time_saved = metrics.get_top_endpoints(limit=10, sort_by="time_saved_ms")
+    top_by_hit_rate = metrics.get_top_endpoints(limit=10, sort_by="hit_rate")
+
+    # Calculate cache health
+    health = {
+        "status": "healthy",
+        "backend_available": cache._enabled and cache._backend is not None,
+    }
+
+    # Add size information if available
+    if cache._backend and hasattr(cache._backend, "size"):
+        current_size = cache._backend.size()
+        max_size = cache._config.get_max_size()
+        health["size_limit"] = max_size
+        health["current_size"] = current_size
+        health["size_usage_percent"] = round(
+            (current_size / max_size * 100) if max_size > 0 else 0, 2
+        )
+
+        # Warn if cache is getting full
+        if current_size >= max_size * 0.9:
+            health["status"] = "warning"
+            health["warning"] = "Cache is nearly full"
+        elif current_size >= max_size * 0.95:
+            health["status"] = "critical"
+            health["warning"] = "Cache is almost full"
+    else:
+        health["size_limit"] = None
+        health["current_size"] = None
+        health["size_usage_percent"] = None
+
+    # Check hit rate
+    hit_rate = metrics.hit_rate()
+    if hit_rate < 0.5:
+        health["status"] = "warning" if health["status"] == "healthy" else health["status"]
+        if "warning" not in health:
+            health["warning"] = "Low cache hit rate"
+        else:
+            health["warning"] += "; Low cache hit rate"
+
+    return {
+        "cache_enabled": stats["enabled"],
+        "backend": stats["backend"],
+        "size": stats.get("size"),
+        "statistics": stats["statistics"],
+        "per_endpoint": stats["per_endpoint"],
+        "top_endpoints": {
+            "by_hits": top_by_hits,
+            "by_time_saved": top_by_time_saved,
+            "by_hit_rate": top_by_hit_rate,
+        },
+        "health": health,
     }

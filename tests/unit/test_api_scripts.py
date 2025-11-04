@@ -11,6 +11,7 @@ from app.api.scripts import (
     reload_scripts,
     run_script,
 )
+from app.core.cache.manager import get_cache_manager
 
 
 class TestGetScripts:
@@ -25,6 +26,14 @@ class TestGetScripts:
             patch("app.core.decorators.HA_TOKEN", "test_token"),
         ):
             yield
+
+    @pytest.fixture(autouse=True)
+    async def clear_cache(self):
+        """Clear cache before each test to ensure isolation."""
+        cache = await get_cache_manager()
+        await cache.clear()
+        yield
+        await cache.clear()
 
     @pytest.mark.asyncio
     async def test_get_scripts_success(self):
@@ -99,6 +108,14 @@ class TestGetScriptConfig:
             patch("app.core.decorators.HA_TOKEN", "test_token"),
         ):
             yield
+
+    @pytest.fixture(autouse=True)
+    async def clear_cache(self):
+        """Clear cache before each test to ensure isolation."""
+        cache = await get_cache_manager()
+        await cache.clear()
+        yield
+        await cache.clear()
 
     @pytest.mark.asyncio
     async def test_get_script_config_via_config_api(self):
