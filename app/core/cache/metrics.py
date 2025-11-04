@@ -202,6 +202,11 @@ class CacheMetrics:
             total_requests = self._total_hits + self._total_misses
             uptime_seconds = time.time() - self._start_time
 
+            # Calculate hit rate (inline to avoid deadlock - don't call self.hit_rate() which also acquires lock)
+            hit_rate_value = (
+                round(self._total_hits / total_requests, 3) if total_requests > 0 else 0.0
+            )
+
             # Calculate overall performance metrics
             total_api_time = sum(stats.total_api_time_ms for stats in self._per_endpoint.values())
             total_cache_time = sum(
@@ -221,7 +226,7 @@ class CacheMetrics:
                 "total_deletes": self._total_deletes,
                 "total_invalidations": self._total_invalidations,
                 "total_requests": total_requests,
-                "hit_rate": round(self.hit_rate(), 3),
+                "hit_rate": hit_rate_value,
                 "uptime_seconds": round(uptime_seconds, 2),
                 "performance": {
                     "avg_api_time_ms": round(avg_api_time, 2),

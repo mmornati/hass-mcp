@@ -170,16 +170,16 @@ def cached(
                     else:
                         cache_ttl = config.get_default_ttl()
 
-                    # Store in cache
-                    try:
-                        await cache.set(cache_key, result, ttl=cache_ttl, endpoint=endpoint)
-                        logger.debug(
-                            f"Cached result for {func.__name__}: {cache_key} (ttl={cache_ttl})",
-                            extra={"cache_key": cache_key, "endpoint": endpoint, "ttl": cache_ttl},
-                        )
-                    except Exception as e:
-                        logger.warning(f"Cache set error for {func.__name__}: {e}", exc_info=True)
-                        # Don't fail the function call if cache set fails
+                # Store in cache
+                try:
+                    await cache.set(cache_key, result, ttl=cache_ttl, endpoint=endpoint)
+                    logger.debug(
+                        f"Cached result for {func.__name__}: {cache_key} (ttl={cache_ttl})",
+                        extra={"cache_key": cache_key, "endpoint": endpoint, "ttl": cache_ttl},
+                    )
+                except Exception as e:
+                    logger.warning(f"Cache set error for {func.__name__}: {e}", exc_info=True)
+                    # Don't fail the function call if cache set fails
 
                 return result
             except Exception as e:

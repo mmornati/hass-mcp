@@ -8,17 +8,17 @@ from app.api.system import get_cache_statistics
 from app.core.cache.manager import get_cache_manager
 from app.core.cache.metrics import get_cache_metrics
 
-
-@pytest.fixture(autouse=True)
-async def clear_cache_and_metrics():
-    """Clear cache and reset metrics before each test."""
-    cache = await get_cache_manager()
-    metrics = get_cache_metrics()
-    await cache.clear()
-    metrics.reset()
-    yield
-    await cache.clear()
-    metrics.reset()
+# Fixture disabled - all tests in this file are skipped
+# @pytest.fixture(autouse=True)
+# async def clear_cache_and_metrics():
+#     """Clear cache and reset metrics before each test."""
+#     cache = await get_cache_manager()
+#     metrics = get_cache_metrics()
+#     await cache.clear()
+#     metrics.reset()
+#     yield
+#     await cache.clear()
+#     metrics.reset()
 
 
 @pytest.mark.skip(
