@@ -117,6 +117,65 @@ These endpoints will always fetch fresh data from Home Assistant and never use c
 
 ### Cache Invalidation
 
+Cache is automatically invalidated when data is modified using sophisticated invalidation strategies:
+
+#### Pattern-Based Invalidation
+
+Cache invalidation uses wildcard patterns to match cache keys:
+
+- **Wildcard patterns**: `entities:*` invalidates all entity caches
+- **Specific patterns**: `entities:state:id=light.living_room*` invalidates specific entity state
+- **Multiple patterns**: Can specify multiple patterns to invalidate different cache categories
+
+#### Hierarchical Invalidation
+
+When a parent pattern is invalidated, all child patterns are also invalidated:
+
+- **Parent-child relationships**: Invalidating `entities:*` also invalidates `entities:state:*`, `entities:list:*`, etc.
+- **Selective expansion**: Specific patterns (with IDs) don't expand to avoid over-invalidation
+- **Automatic expansion**: General patterns automatically expand to include all children
+
+#### Invalidation Chains
+
+Pre-configured invalidation chains automatically invalidate related caches:
+
+- **Entity update chain**: Invalidates entity state, entity list, domain summary, and area entities
+- **Automation update chain**: Invalidates automation config and automation list
+- **Area update chain**: Invalidates area list and area entities
+- **Configurable chains**: Custom chains can be defined for specific operations
+
+#### Template-Based Invalidation
+
+Patterns support template variables for dynamic invalidation:
+
+```python
+@invalidate_cache(pattern="entities:state:id={entity_id}*")
+async def entity_action(entity_id: str, action: str):
+    # Automatically invalidates cache for the specific entity
+    ...
+
+@invalidate_cache(chain="entity_update", template_vars={"entity_id": "entity_id"})
+async def update_entity(entity_id: str, state: dict):
+    # Uses invalidation chain with template substitution
+    ...
+```
+
+#### Conditional Invalidation
+
+Invalidation can be conditional based on function results:
+
+```python
+@invalidate_cache(
+    pattern="automations:*",
+    condition=lambda args, kwargs, result: result.get("status") == "success"
+)
+async def create_automation(config: dict):
+    # Only invalidates cache if operation succeeds
+    ...
+```
+
+#### Automatic Invalidation
+
 Cache is automatically invalidated when data is modified:
 
 - **Entity States**: When performing entity actions (turn_on, turn_off, toggle) or calling services that affect entities
