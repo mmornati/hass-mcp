@@ -22,6 +22,8 @@ class LogbookAPI(BaseAPI):
 _logbook_api = LogbookAPI()
 
 
+# NOTE: This function is explicitly excluded from caching (US-006)
+# Logbook data is highly dynamic and time-sensitive, so it should not be cached
 @handle_api_errors
 async def get_logbook(
     timestamp: str | None = None,
@@ -89,6 +91,8 @@ async def get_logbook(
     return cast(list[dict[str, Any]], response)
 
 
+# NOTE: This function is explicitly excluded from caching (US-006)
+# Logbook data is highly dynamic and time-sensitive, so it should not be cached
 @handle_api_errors
 async def get_entity_logbook(entity_id: str, hours: int = 24) -> list[dict[str, Any]]:
     """
@@ -117,6 +121,8 @@ async def get_entity_logbook(entity_id: str, hours: int = 24) -> list[dict[str, 
     return await get_logbook(entity_id=entity_id, hours=hours)
 
 
+# NOTE: This function is explicitly excluded from caching (US-006)
+# Logbook data is highly dynamic and time-sensitive, so it should not be cached
 @handle_api_errors
 async def search_logbook(query: str, hours: int = 24) -> list[dict[str, Any]]:
     """

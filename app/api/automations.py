@@ -272,6 +272,8 @@ async def trigger_automation(automation_id: str) -> dict[str, Any]:
     return cast(dict[str, Any], response.json())
 
 
+# NOTE: This function is explicitly excluded from caching (US-006)
+# Execution logs are highly dynamic and time-sensitive, so they should not be cached
 @handle_api_errors
 async def get_automation_execution_log(automation_id: str, hours: int = 24) -> dict[str, Any]:
     """

@@ -107,6 +107,8 @@ async def list_event_types() -> list[str]:
     return common_event_types
 
 
+# NOTE: This function is explicitly excluded from caching (US-006)
+# Events are highly dynamic and time-sensitive, so they should not be cached
 @handle_api_errors
 async def get_events(entity_id: str | None = None, hours: int = 1) -> list[dict[str, Any]]:
     """

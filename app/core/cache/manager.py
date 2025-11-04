@@ -193,6 +193,30 @@ class CacheManager:
             # Never break API calls on cache errors
             logger.warning(f"Cache clear error: {e}", exc_info=True)
 
+    async def keys(self, pattern: str | None = None) -> list[str]:
+        """
+        Get cache keys matching a pattern.
+
+        Args:
+            pattern: Optional pattern to match keys (supports wildcards like '*')
+
+        Returns:
+            List of matching cache keys
+        """
+        if not self._enabled:
+            return []
+
+        try:
+            backend = await self._get_backend()
+            if backend is None:
+                return []
+
+            return await backend.keys(pattern)
+        except Exception as e:
+            # Never break API calls on cache errors
+            logger.warning(f"Cache keys error for pattern '{pattern}': {e}", exc_info=True)
+            return []
+
     def get_statistics(self) -> dict[str, Any]:
         """
         Get cache statistics.

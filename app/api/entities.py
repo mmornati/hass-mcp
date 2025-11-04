@@ -260,6 +260,8 @@ async def get_entities(
     return cast(list[dict[str, Any]], entities)
 
 
+# NOTE: This function is explicitly excluded from caching (US-006)
+# History data is highly dynamic and time-sensitive, so it should not be cached
 @handle_api_errors
 async def get_entity_history(entity_id: str, hours: int) -> list[dict[str, Any]]:
     """

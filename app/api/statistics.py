@@ -14,6 +14,8 @@ from app.core.decorators import handle_api_errors
 logger = logging.getLogger(__name__)
 
 
+# NOTE: This function is explicitly excluded from caching (US-006)
+# Statistics are derived from history data and are highly dynamic, so they should not be cached
 @handle_api_errors
 async def get_entity_statistics(entity_id: str, period_days: int = 7) -> dict[str, Any]:
     """
@@ -123,6 +125,8 @@ async def get_entity_statistics(entity_id: str, period_days: int = 7) -> dict[st
     return stats
 
 
+# NOTE: This function is explicitly excluded from caching (US-006)
+# Statistics are derived from history data and are highly dynamic, so they should not be cached
 @handle_api_errors
 async def get_domain_statistics(domain: str, period_days: int = 7) -> dict[str, Any]:
     """
@@ -200,6 +204,8 @@ async def get_domain_statistics(domain: str, period_days: int = 7) -> dict[str, 
     return stats
 
 
+# NOTE: This function is explicitly excluded from caching (US-006)
+# Usage patterns are derived from logbook data and are highly dynamic, so they should not be cached
 @handle_api_errors
 async def analyze_usage_patterns(entity_id: str, days: int = 30) -> dict[str, Any]:
     """

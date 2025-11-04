@@ -40,6 +40,8 @@ async def get_hass_version() -> str:
     return data.get("version", "unknown")
 
 
+# NOTE: This function is explicitly excluded from caching (US-006)
+# Error logs are highly dynamic and time-sensitive, so they should not be cached
 @handle_api_errors
 async def get_hass_error_log() -> dict[str, Any]:
     """
@@ -119,6 +121,8 @@ async def get_hass_error_log() -> dict[str, Any]:
         }
 
 
+# NOTE: This function is explicitly excluded from caching (US-006)
+# System overview includes current entity states which are highly dynamic, so it should not be cached
 @handle_api_errors
 async def get_system_overview() -> dict[str, Any]:
     """
