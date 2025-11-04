@@ -76,39 +76,58 @@ The caching system automatically:
 
 Different types of data have different TTL values:
 
-- **TTL_VERY_LONG** (1 hour): Very stable data (HA version, areas, zones, blueprints)
-- **TTL_LONG** (30 minutes): Stable data (automations, entities, scripts, scenes, devices, tags, helpers)
+- **TTL_VERY_LONG** (1 hour): Very stable data (HA version, areas, zones, blueprints, system config)
+- **TTL_LONG** (30 minutes): Stable data (automations, scripts, scenes, devices, tags, helpers, entity metadata)
 - **TTL_MEDIUM** (5 minutes): Moderately stable data (integrations, device statistics, area entities)
-- **TTL_SHORT** (1 minute): Semi-dynamic data (entity states)
+- **TTL_SHORT** (1 minute): Semi-dynamic data (entity states, entity lists with state info, domain summaries)
 - **TTL_DISABLED** (0): No caching (for highly dynamic data like logs)
 
 ### Cached Functions
 
 The following API functions are automatically cached:
 
-- **Entities**: `get_entities`, `summarize_domain`
-- **Automations**: `get_automations`, `get_automation_config`
-- **Scripts**: `get_scripts`, `get_script_config`
-- **Scenes**: `get_scenes`, `get_scene_config`
-- **Areas**: `get_areas`, `get_area_entities`
-- **Zones**: `list_zones`
-- **Devices**: `get_devices`, `get_device_details`, `get_device_statistics`
-- **Integrations**: `get_integrations`, `get_integration_config`
-- **Helpers**: `list_helpers`
-- **Blueprints**: `list_blueprints`, `get_blueprint`
-- **Tags**: `list_tags`
-- **System**: `get_hass_version`, `get_core_config`
+- **Entities**:
+  - `get_entity_state` (TTL_SHORT, 1 min) - entity states with conditional caching
+  - `get_entities` (TTL_LONG for metadata, TTL_SHORT for state info) - dynamic TTL based on lean flag
+  - `summarize_domain` (TTL_SHORT, 1 min) - domain summaries with state information
+- **Automations**: `get_automations`, `get_automation_config` (TTL_LONG, 30 min)
+- **Scripts**: `get_scripts`, `get_script_config` (TTL_LONG, 30 min)
+- **Scenes**: `get_scenes`, `get_scene_config` (TTL_LONG, 30 min)
+- **Areas**: `get_areas` (TTL_VERY_LONG, 1 hour), `get_area_entities` (TTL_MEDIUM, 5 min)
+- **Zones**: `list_zones` (TTL_VERY_LONG, 1 hour)
+- **Devices**: `get_devices`, `get_device_details` (TTL_LONG, 30 min), `get_device_statistics` (TTL_MEDIUM, 5 min)
+- **Integrations**: `get_integrations`, `get_integration_config` (TTL_MEDIUM, 5 min)
+- **Helpers**: `list_helpers` (TTL_LONG, 30 min)
+- **Blueprints**: `list_blueprints`, `get_blueprint` (TTL_VERY_LONG, 1 hour)
+- **Tags**: `list_tags` (TTL_LONG, 30 min)
+- **System**: `get_hass_version`, `get_core_config` (TTL_VERY_LONG, 1 hour)
 
 ### Cache Invalidation
 
 Cache is automatically invalidated when data is modified:
 
+- **Entity States**: When performing entity actions (turn_on, turn_off, toggle) or calling services that affect entities
 - **Automations**: When creating, updating, or deleting automations
 - **Areas**: When creating, updating, or deleting areas
 - **Zones**: When creating, updating, or deleting zones
 - **Scenes**: When creating scenes
 - **Integrations**: When reloading integrations
 - **Tags**: When creating or deleting tags
+
+### Dynamic TTL Selection
+
+The cache system supports dynamic TTL selection based on function parameters:
+
+- **`get_entities`**: Uses TTL_LONG (30 min) for metadata-only queries (`lean=True`), TTL_SHORT (1 min) for state-included queries (`lean=False` or `fields` specified)
+- **`get_entity_state`**: Uses TTL_SHORT (1 min) with conditional caching (skips caching for errors, unavailable states)
+
+### Conditional Caching
+
+Some functions use conditional caching to skip caching in certain scenarios:
+
+- **`get_entity_state`**: Only caches successful responses with available states (not "unknown" or "unavailable")
+- **Error responses**: Never cached by default
+- **Unavailable entities**: Not cached to ensure fresh data when entities become available
 
 ### Cache Statistics
 

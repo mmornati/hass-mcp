@@ -9,6 +9,7 @@ from typing import Any
 
 from app.api.entities import get_entities, get_entity_state
 from app.api.services import call_service
+from app.core.cache.decorator import invalidate_cache
 
 logger = logging.getLogger(__name__)
 
@@ -40,6 +41,7 @@ async def get_entity(
     return await get_entity_state(entity_id, lean=True)
 
 
+@invalidate_cache(pattern="entities:state:*")
 async def entity_action(entity_id: str, action: str, params: dict[str, Any] | None = None) -> dict:
     """
     Perform an action on a Home Assistant entity (on, off, toggle).

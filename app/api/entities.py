@@ -10,7 +10,7 @@ from typing import Any, cast
 from app.config import HA_URL, get_ha_headers
 from app.core import DEFAULT_LEAN_FIELDS, DOMAIN_IMPORTANT_ATTRIBUTES, get_client
 from app.core.cache.decorator import cached
-from app.core.cache.ttl import TTL_LONG, TTL_MEDIUM
+from app.core.cache.ttl import TTL_LONG, TTL_SHORT
 from app.core.decorators import handle_api_errors
 
 logger = logging.getLogger(__name__)
@@ -77,7 +77,25 @@ async def get_all_entity_states() -> dict[str, dict[str, Any]]:
     return cast(dict[str, dict[str, Any]], {entity["entity_id"]: entity for entity in entities})
 
 
+def should_cache_entity_state(args: tuple[Any, ...], kwargs: dict[str, Any], result: Any) -> bool:
+    """Only cache if result is successful and entity is available."""
+    if isinstance(result, dict):
+        # Don't cache error responses
+        if "error" in result:
+            return False
+        # Don't cache if entity state is "unknown" or "unavailable"
+        state = result.get("state", "").lower()
+        if state in ("unknown", "unavailable"):
+            return False
+    return True
+
+
 @handle_api_errors
+@cached(
+    ttl=TTL_SHORT,
+    key_prefix="entities:state",
+    condition=should_cache_entity_state,
+)
 async def get_entity_state(
     entity_id: str, fields: list[str] | None = None, lean: bool = False
 ) -> dict[str, Any]:
@@ -118,8 +136,35 @@ async def get_entity_state(
     return cast(dict[str, Any], entity_data)
 
 
+def should_cache_entities(args: tuple[Any, ...], kwargs: dict[str, Any], result: Any) -> bool:
+    """Only cache if result is successful."""
+    if isinstance(result, dict) and "error" in result:
+        return False
+    if isinstance(result, list) and len(result) == 1:
+        if isinstance(result[0], dict) and "error" in result[0]:
+            return False
+    return True
+
+
+def get_entities_ttl(args: tuple[Any, ...], kwargs: dict[str, Any], result: Any) -> int:
+    """Determine TTL based on whether lean mode is used or fields are specified."""
+    # If lean=False or fields are specified, we're including state info, use TTL_SHORT
+    # If lean=True and no fields, we're getting metadata only, use TTL_LONG
+    lean = kwargs.get("lean", True)
+    fields = kwargs.get("fields")
+
+    # If fields are specified, we're including state info
+    if fields:
+        return TTL_SHORT
+    # If lean=False, we're including state info
+    if not lean:
+        return TTL_SHORT
+    # Otherwise, metadata only, use TTL_LONG
+    return TTL_LONG
+
+
 @handle_api_errors
-@cached(ttl=TTL_LONG, key_prefix="entities")
+@cached(ttl=get_entities_ttl, key_prefix="entities", condition=should_cache_entities)
 async def get_entities(
     domain: str | None = None,
     search_query: str | None = None,
@@ -256,7 +301,7 @@ async def get_entity_history(entity_id: str, hours: int) -> list[dict[str, Any]]
 
 
 @handle_api_errors
-@cached(ttl=TTL_MEDIUM, key_prefix="entities")
+@cached(ttl=TTL_SHORT, key_prefix="entities")
 async def summarize_domain(domain: str, example_limit: int = 3) -> dict[str, Any]:
     """
     Generate a summary of entities in a domain.

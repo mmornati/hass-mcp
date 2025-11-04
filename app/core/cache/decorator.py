@@ -24,7 +24,7 @@ F = TypeVar("F", bound=Callable[..., Awaitable[Any]])
 
 
 def cached(
-    ttl: int | None = None,
+    ttl: int | Callable[[tuple[Any, ...], dict[str, Any], Any], int] | None = None,
     key_prefix: str | None = None,
     include_params: list[str] | None = None,
     exclude_params: list[str] | None = None,
@@ -121,8 +121,22 @@ def cached(
                     logger.debug(f"Skipping cache for error response in {func.__name__}")
                     return result
 
-                # Determine TTL: explicit > endpoint config > default
-                cache_ttl = ttl
+                # Determine TTL: explicit > callable > endpoint config > default
+                cache_ttl = None
+                if callable(ttl):
+                    # TTL is a callable function - call it with args, kwargs, result
+                    try:
+                        cache_ttl = ttl(args, kwargs, result)
+                    except Exception as e:
+                        logger.warning(
+                            f"TTL callable error for {func.__name__}: {e}", exc_info=True
+                        )
+                        # Fall back to default TTL if callable fails
+                        cache_ttl = None
+                elif ttl is not None:
+                    # TTL is a fixed value
+                    cache_ttl = ttl
+
                 if cache_ttl is None:
                     # Try to get TTL from endpoint configuration
                     config = get_cache_config()

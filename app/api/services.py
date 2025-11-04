@@ -8,12 +8,26 @@ from typing import Any, cast
 
 from app.config import HA_URL, get_ha_headers
 from app.core import get_client
+from app.core.cache.decorator import invalidate_cache
 from app.core.decorators import handle_api_errors
 
 logger = logging.getLogger(__name__)
 
 
+def should_invalidate_entity_cache(
+    args: tuple[Any, ...], kwargs: dict[str, Any], result: Any
+) -> bool:
+    """Determine if entity cache should be invalidated based on service call."""
+    # Check if this service call affects an entity
+    data = kwargs.get("data") or (args[2] if len(args) > 2 else None)
+    return isinstance(data, dict) and "entity_id" in data
+
+
 @handle_api_errors
+@invalidate_cache(
+    pattern="entities:state:*",
+    condition=should_invalidate_entity_cache,
+)
 async def call_service(
     domain: str, service: str, data: dict[str, Any] | None = None
 ) -> dict[str, Any]:
