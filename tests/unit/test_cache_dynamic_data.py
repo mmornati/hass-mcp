@@ -1,6 +1,5 @@
 """Unit tests for dynamic data caching (US-005)."""
 
-import contextlib
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -41,7 +40,10 @@ class TestEntityStateCaching:
 
         call_count = 0
 
-        with patch("app.api.entities.get_client", return_value=mock_client):
+        with (
+            patch("app.api.entities.get_client", return_value=mock_client),
+            patch("app.core.decorators.HA_TOKEN", "test_token"),
+        ):
             # First call - should call API
             result1 = await get_entity_state("light.living_room")
             assert result1 == mock_entity
@@ -56,22 +58,34 @@ class TestEntityStateCaching:
     @pytest.mark.asyncio
     async def test_get_entity_state_conditional_caching_error(self):
         """Test that error responses are not cached."""
+        import httpx
+
         mock_client = AsyncMock()
         mock_response = MagicMock()
         mock_response.status_code = 404
-        mock_response.raise_for_status.side_effect = Exception("Not Found")
+        mock_response.reason_phrase = "Not Found"
+        mock_response.raise_for_status.side_effect = httpx.HTTPStatusError(
+            "Not Found",
+            request=httpx.Request("GET", "http://localhost:8123/api/states/light.nonexistent"),
+            response=mock_response,
+        )
         mock_client.get = AsyncMock(return_value=mock_response)
 
-        with patch("app.api.entities.get_client", return_value=mock_client):
-            # First call - should get error
-            with contextlib.suppress(Exception):
-                await get_entity_state("light.nonexistent")
+        with (
+            patch("app.api.entities.get_client", return_value=mock_client),
+            patch("app.core.decorators.HA_TOKEN", "test_token"),
+        ):
+            # First call - should get error dict (handle_api_errors catches exception)
+            result1 = await get_entity_state("light.nonexistent")
+            assert isinstance(result1, dict)
+            assert "error" in result1
+            call_count = mock_client.get.call_count
 
             # Second call - should call API again (not cached)
-            call_count_before = mock_client.get.call_count
-            with contextlib.suppress(Exception):
-                await get_entity_state("light.nonexistent")
-            assert mock_client.get.call_count > call_count_before  # Called again
+            result2 = await get_entity_state("light.nonexistent")
+            assert isinstance(result2, dict)
+            assert "error" in result2
+            assert mock_client.get.call_count > call_count  # Called again
 
     @pytest.mark.asyncio
     async def test_get_entity_state_conditional_caching_unavailable(self):
@@ -88,14 +102,19 @@ class TestEntityStateCaching:
         mock_response.raise_for_status = MagicMock()
         mock_client.get = AsyncMock(return_value=mock_response)
 
-        with patch("app.api.entities.get_client", return_value=mock_client):
+        with (
+            patch("app.api.entities.get_client", return_value=mock_client),
+            patch("app.core.decorators.HA_TOKEN", "test_token"),
+        ):
             # First call
             result1 = await get_entity_state("light.living_room")
+            assert isinstance(result1, dict)
             assert result1["state"] == "unavailable"
             call_count = mock_client.get.call_count
 
             # Second call - should call API again (not cached)
             result2 = await get_entity_state("light.living_room")
+            assert isinstance(result2, dict)
             assert result2["state"] == "unavailable"
             assert mock_client.get.call_count > call_count  # Called again
 
@@ -114,9 +133,13 @@ class TestEntityStateCaching:
         mock_response.raise_for_status = MagicMock()
         mock_client.get = AsyncMock(return_value=mock_response)
 
-        with patch("app.api.entities.get_client", return_value=mock_client):
+        with (
+            patch("app.api.entities.get_client", return_value=mock_client),
+            patch("app.core.decorators.HA_TOKEN", "test_token"),
+        ):
             # First call
             result1 = await get_entity_state("light.living_room")
+            assert isinstance(result1, dict)
             assert result1["state"] == "on"
             call_count = mock_client.get.call_count
 
@@ -126,6 +149,7 @@ class TestEntityStateCaching:
 
             # Second call immediately - should use cache
             result2 = await get_entity_state("light.living_room")
+            assert isinstance(result2, dict)
             assert result2["state"] == "on"
             assert mock_client.get.call_count == call_count  # No new API call
 
@@ -150,14 +174,19 @@ class TestGetEntitiesDynamicTTL:
         mock_response.raise_for_status = MagicMock()
         mock_client.get = AsyncMock(return_value=mock_response)
 
-        with patch("app.api.entities.get_client", return_value=mock_client):
+        with (
+            patch("app.api.entities.get_client", return_value=mock_client),
+            patch("app.core.decorators.HA_TOKEN", "test_token"),
+        ):
             # First call with lean=True
             result1 = await get_entities(lean=True)
+            assert isinstance(result1, list)
             assert len(result1) == 1
             call_count = mock_client.get.call_count
 
             # Second call - should use cache
             result2 = await get_entities(lean=True)
+            assert isinstance(result2, list)
             assert len(result2) == 1
             assert mock_client.get.call_count == call_count  # No new API call
 
@@ -178,14 +207,19 @@ class TestGetEntitiesDynamicTTL:
         mock_response.raise_for_status = MagicMock()
         mock_client.get = AsyncMock(return_value=mock_response)
 
-        with patch("app.api.entities.get_client", return_value=mock_client):
+        with (
+            patch("app.api.entities.get_client", return_value=mock_client),
+            patch("app.core.decorators.HA_TOKEN", "test_token"),
+        ):
             # First call with lean=False
             result1 = await get_entities(lean=False)
+            assert isinstance(result1, list)
             assert len(result1) == 1
             call_count = mock_client.get.call_count
 
             # Second call - should use cache (even with TTL_SHORT, it's still cached)
             result2 = await get_entities(lean=False)
+            assert isinstance(result2, list)
             assert len(result2) == 1
             assert mock_client.get.call_count == call_count  # No new API call
 
@@ -206,14 +240,19 @@ class TestGetEntitiesDynamicTTL:
         mock_response.raise_for_status = MagicMock()
         mock_client.get = AsyncMock(return_value=mock_response)
 
-        with patch("app.api.entities.get_client", return_value=mock_client):
+        with (
+            patch("app.api.entities.get_client", return_value=mock_client),
+            patch("app.core.decorators.HA_TOKEN", "test_token"),
+        ):
             # First call with fields
             result1 = await get_entities(fields=["state", "attr.brightness"])
+            assert isinstance(result1, list)
             assert len(result1) == 1
             call_count = mock_client.get.call_count
 
             # Second call - should use cache
             result2 = await get_entities(fields=["state", "attr.brightness"])
+            assert isinstance(result2, list)
             assert len(result2) == 1
             assert mock_client.get.call_count == call_count  # No new API call
 
@@ -243,15 +282,20 @@ class TestSummarizeDomainShortTTL:
         mock_response.raise_for_status = MagicMock()
         mock_client.get = AsyncMock(return_value=mock_response)
 
-        with patch("app.api.entities.get_client", return_value=mock_client):
+        with (
+            patch("app.api.entities.get_client", return_value=mock_client),
+            patch("app.core.decorators.HA_TOKEN", "test_token"),
+        ):
             # First call
             result1 = await summarize_domain("light")
+            assert isinstance(result1, dict)
             assert result1["domain"] == "light"
             assert result1["total_count"] == 2
             call_count = mock_client.get.call_count
 
             # Second call - should use cache
             result2 = await summarize_domain("light")
+            assert isinstance(result2, dict)
             assert result2["domain"] == "light"
             assert result2["total_count"] == 2
             # Note: get_entities is called internally, so we check get_client calls
@@ -282,16 +326,19 @@ class TestEntityStateCacheInvalidation:
             patch("app.api.entities.get_client", return_value=mock_client),
             patch("app.api.services.get_client", return_value=mock_client),
             patch("app.tools.entities.call_service", new_callable=AsyncMock) as mock_call_service,
+            patch("app.core.decorators.HA_TOKEN", "test_token"),
         ):
             mock_call_service.return_value = []
 
             # Cache entity state
             result1 = await get_entity_state("light.living_room")
+            assert isinstance(result1, dict)
             assert result1["state"] == "on"
             call_count = mock_client.get.call_count
 
             # Verify cache hit
             result2 = await get_entity_state("light.living_room")
+            assert isinstance(result2, dict)
             assert result2["state"] == "on"
             assert mock_client.get.call_count == call_count  # Cached
 
@@ -302,6 +349,7 @@ class TestEntityStateCacheInvalidation:
             result3 = await get_entity_state("light.living_room")
             # Note: In a real scenario, the state would change, but in tests we mock it
             # The important thing is that the cache was invalidated
+            assert isinstance(result3, dict)
             assert mock_client.get.call_count > call_count  # Called again
 
     @pytest.mark.asyncio
@@ -323,14 +371,17 @@ class TestEntityStateCacheInvalidation:
         with (
             patch("app.api.entities.get_client", return_value=mock_client),
             patch("app.api.services.get_client", return_value=mock_client),
+            patch("app.core.decorators.HA_TOKEN", "test_token"),
         ):
             # Cache entity state
             result1 = await get_entity_state("light.living_room")
+            assert isinstance(result1, dict)
             assert result1["state"] == "on"
             call_count = mock_client.get.call_count
 
             # Verify cache hit
             result2 = await get_entity_state("light.living_room")
+            assert isinstance(result2, dict)
             assert result2["state"] == "on"
             assert mock_client.get.call_count == call_count  # Cached
 
@@ -340,6 +391,7 @@ class TestEntityStateCacheInvalidation:
             # Verify cache was invalidated - next call should hit API
             result3 = await get_entity_state("light.living_room")
             # The cache should be invalidated
+            assert isinstance(result3, dict)
             assert mock_client.get.call_count > call_count  # Called again
 
     @pytest.mark.asyncio
@@ -361,14 +413,17 @@ class TestEntityStateCacheInvalidation:
         with (
             patch("app.api.entities.get_client", return_value=mock_client),
             patch("app.api.services.get_client", return_value=mock_client),
+            patch("app.core.decorators.HA_TOKEN", "test_token"),
         ):
             # Cache entity state
             result1 = await get_entity_state("light.living_room")
+            assert isinstance(result1, dict)
             assert result1["state"] == "on"
             call_count = mock_client.get.call_count
 
             # Verify cache hit
             result2 = await get_entity_state("light.living_room")
+            assert isinstance(result2, dict)
             assert result2["state"] == "on"
             assert mock_client.get.call_count == call_count  # Cached
 
@@ -383,6 +438,7 @@ class TestEntityStateCacheInvalidation:
             # So it will invalidate. This is expected behavior.
 
             # Verify cache was invalidated
+            assert isinstance(result3, dict)
             assert (
                 mock_client.get.call_count > call_count
             )  # Called again (because condition matches)
@@ -410,11 +466,15 @@ class TestCacheKeyGeneration:
         mock_response.raise_for_status = MagicMock()
         mock_client.get = AsyncMock()
 
-        with patch("app.api.entities.get_client", return_value=mock_client):
+        with (
+            patch("app.api.entities.get_client", return_value=mock_client),
+            patch("app.core.decorators.HA_TOKEN", "test_token"),
+        ):
             # First entity
             mock_response.json.return_value = mock_entity1
             mock_client.get.return_value = mock_response
             result1 = await get_entity_state("light.living_room")
+            assert isinstance(result1, dict)
             assert result1["entity_id"] == "light.living_room"
             call_count1 = mock_client.get.call_count
 
@@ -422,11 +482,13 @@ class TestCacheKeyGeneration:
             mock_response.json.return_value = mock_entity2
             mock_client.get.return_value = mock_response
             result2 = await get_entity_state("light.kitchen")
+            assert isinstance(result2, dict)
             assert result2["entity_id"] == "light.kitchen"
             assert mock_client.get.call_count > call_count1  # Called again
 
             # First entity again - should use cache
             result3 = await get_entity_state("light.living_room")
+            assert isinstance(result3, dict)
             assert result3["entity_id"] == "light.living_room"
             # Should use cache, so no new call
             final_call_count = mock_client.get.call_count
@@ -452,11 +514,15 @@ class TestCacheKeyGeneration:
         mock_response.raise_for_status = MagicMock()
         mock_client.get = AsyncMock()
 
-        with patch("app.api.entities.get_client", return_value=mock_client):
+        with (
+            patch("app.api.entities.get_client", return_value=mock_client),
+            patch("app.core.decorators.HA_TOKEN", "test_token"),
+        ):
             # Full entity
             mock_response.json.return_value = mock_entity_full
             mock_client.get.return_value = mock_response
             result1 = await get_entity_state("light.living_room")
+            assert isinstance(result1, dict)
             assert "brightness" in result1["attributes"]
             call_count1 = mock_client.get.call_count
 
@@ -466,11 +532,13 @@ class TestCacheKeyGeneration:
             result2 = await get_entity_state(
                 "light.living_room", fields=["state", "attr.brightness"]
             )
+            assert isinstance(result2, dict)
             assert "brightness" in result2["attributes"]
             assert mock_client.get.call_count > call_count1  # Called again
 
             # Full entity again - should use cache
             result3 = await get_entity_state("light.living_room")
+            assert isinstance(result3, dict)
             assert "brightness" in result3["attributes"]
             # Should use cache from first call
             final_call_count = mock_client.get.call_count
