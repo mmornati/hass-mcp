@@ -205,3 +205,16 @@ class MemoryCacheBackend(CacheBackend):
             Number of entries in the cache
         """
         return len(self._cache)
+
+    async def cleanup_expired(self) -> int:
+        """
+        Remove all expired entries from the cache.
+
+        Returns:
+            Number of expired entries removed
+        """
+        async with self._lock:
+            expired_keys = [key for key, entry in self._cache.items() if entry.is_expired()]
+            for key in expired_keys:
+                del self._cache[key]
+            return len(expired_keys)

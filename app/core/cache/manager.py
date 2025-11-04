@@ -12,6 +12,7 @@ from typing import Any
 
 from app.core.cache.backend import CacheBackend
 from app.core.cache.config import get_cache_config
+from app.core.cache.invalidation import InvalidationStrategy
 from app.core.cache.memory import MemoryCacheBackend
 from app.core.cache.metrics import get_cache_metrics
 
@@ -171,40 +172,97 @@ class CacheManager:
             # Never break API calls on cache errors
             logger.warning(f"Cache delete error for key '{key}': {e}", exc_info=True)
 
-    async def invalidate(self, pattern: str) -> None:
+    async def invalidate(
+        self, pattern: str, hierarchical: bool = True, expand_children: bool = True
+    ) -> dict[str, Any]:
         """
         Invalidate cache entries matching a pattern.
 
         Args:
             pattern: Pattern to match keys (supports wildcards like '*')
+            hierarchical: If True, also invalidate hierarchical children (default: True)
+            expand_children: If True, expand pattern to include child patterns (default: True)
+
+        Returns:
+            Dictionary with invalidation results:
+            - pattern: Original pattern
+            - expanded_patterns: List of patterns that were invalidated
+            - total_invalidated: Total number of cache entries invalidated
+            - keys_invalidated: List of cache keys that were invalidated
         """
         if not self._enabled:
-            return
+            return {
+                "pattern": pattern,
+                "expanded_patterns": [],
+                "total_invalidated": 0,
+                "keys_invalidated": [],
+            }
 
         try:
             backend = await self._get_backend()
             if backend is None:
-                return
+                return {
+                    "pattern": pattern,
+                    "expanded_patterns": [],
+                    "total_invalidated": 0,
+                    "keys_invalidated": [],
+                }
 
-            # Get matching keys
-            matching_keys = await backend.keys(pattern)
-            if matching_keys:
-                # Delete all matching keys
-                for key in matching_keys:
-                    await backend.delete(key)
+            # Expand pattern to include hierarchical children if requested
+            patterns_to_invalidate = [pattern]
+            if expand_children and hierarchical:
+                expanded = InvalidationStrategy.expand_pattern(pattern)
+                patterns_to_invalidate = expanded
+
+            # Collect all matching keys
+            all_invalidated_keys: list[str] = []
+            total_invalidated = 0
+
+            for invalidation_pattern in patterns_to_invalidate:
+                matching_keys = await backend.keys(invalidation_pattern)
+                if matching_keys:
+                    # Delete all matching keys
+                    for key in matching_keys:
+                        if key not in all_invalidated_keys:
+                            await backend.delete(key)
+                            all_invalidated_keys.append(key)
+                            total_invalidated += 1
+
+            if total_invalidated > 0:
                 self._metrics.record_invalidation(pattern)
                 logger.info(
-                    f"Cache invalidated: {len(matching_keys)} entries matching pattern '{pattern}'",
-                    extra={"pattern": pattern, "count": len(matching_keys)},
+                    f"Cache invalidated: {total_invalidated} entries matching pattern '{pattern}' "
+                    f"(expanded to {len(patterns_to_invalidate)} patterns)",
+                    extra={
+                        "pattern": pattern,
+                        "expanded_patterns": patterns_to_invalidate,
+                        "count": total_invalidated,
+                        "keys": all_invalidated_keys[:10],  # Log first 10 keys
+                    },
                 )
             else:
                 logger.debug(
-                    f"No cache entries found matching pattern '{pattern}'",
-                    extra={"pattern": pattern},
+                    f"No cache entries found matching pattern '{pattern}' "
+                    f"(checked {len(patterns_to_invalidate)} patterns)",
+                    extra={"pattern": pattern, "expanded_patterns": patterns_to_invalidate},
                 )
+
+            return {
+                "pattern": pattern,
+                "expanded_patterns": patterns_to_invalidate,
+                "total_invalidated": total_invalidated,
+                "keys_invalidated": all_invalidated_keys,
+            }
         except Exception as e:
             # Never break API calls on cache errors
             logger.warning(f"Cache invalidation error for pattern '{pattern}': {e}", exc_info=True)
+            return {
+                "pattern": pattern,
+                "expanded_patterns": [],
+                "total_invalidated": 0,
+                "keys_invalidated": [],
+                "error": str(e),
+            }
 
     async def clear(self) -> None:
         """Clear all entries from the cache."""
@@ -221,6 +279,39 @@ class CacheManager:
         except Exception as e:
             # Never break API calls on cache errors
             logger.warning(f"Cache clear error: {e}", exc_info=True)
+
+    async def cleanup_expired(self) -> int:
+        """
+        Remove all expired entries from the cache.
+
+        This method proactively cleans up expired entries that haven't
+        been automatically removed during get operations.
+
+        Returns:
+            Number of expired entries removed
+        """
+        if not self._enabled:
+            return 0
+
+        try:
+            backend = await self._get_backend()
+            if backend is None:
+                return 0
+
+            # Check if backend supports cleanup
+            if hasattr(backend, "cleanup_expired"):
+                removed = await backend.cleanup_expired()
+                if removed > 0:
+                    logger.info(f"Cleaned up {removed} expired cache entries")
+                return removed
+            # For backends without explicit cleanup, use keys() which auto-cleans
+            # This will trigger cleanup of expired entries
+            await backend.keys(None)
+            return 0
+        except Exception as e:
+            # Never break API calls on cache errors
+            logger.warning(f"Cache cleanup error: {e}", exc_info=True)
+            return 0
 
     async def keys(self, pattern: str | None = None) -> list[str]:
         """
