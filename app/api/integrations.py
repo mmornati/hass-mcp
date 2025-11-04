@@ -8,12 +8,15 @@ from typing import Any, cast
 
 from app.config import HA_URL, get_ha_headers
 from app.core import get_client
+from app.core.cache.decorator import cached, invalidate_cache
+from app.core.cache.ttl import TTL_MEDIUM
 from app.core.decorators import handle_api_errors
 
 logger = logging.getLogger(__name__)
 
 
 @handle_api_errors
+@cached(ttl=TTL_MEDIUM, key_prefix="integrations")
 async def get_integrations(domain: str | None = None) -> list[dict[str, Any]]:
     """
     Get list of all configuration entries (integrations).
@@ -59,6 +62,7 @@ async def get_integrations(domain: str | None = None) -> list[dict[str, Any]]:
 
 
 @handle_api_errors
+@cached(ttl=TTL_MEDIUM, key_prefix="integrations")
 async def get_integration_config(entry_id: str) -> dict[str, Any]:
     """
     Get detailed configuration for a specific integration entry.
@@ -95,6 +99,7 @@ async def get_integration_config(entry_id: str) -> dict[str, Any]:
 
 
 @handle_api_errors
+@invalidate_cache(pattern="integrations:*")
 async def reload_integration(entry_id: str) -> dict[str, Any]:
     """
     Reload a specific integration.

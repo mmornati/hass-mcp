@@ -213,3 +213,34 @@ def mock_config():
         "config_dir": "/Users/matt/Developer/hass-mcp/config",
         "log_level": "INFO",
     }
+
+
+# Clear cache before each test to prevent interference between tests
+@pytest.fixture(autouse=True)
+async def clear_cache_before_test(request):
+    """Clear cache before each test to prevent interference."""
+    # Skip for integration tests
+    if _is_integration_test(request):
+        yield
+        return
+
+    try:
+        from app.core.cache.manager import get_cache_manager
+
+        cache = await get_cache_manager()
+        await cache.clear()
+    except Exception:
+        # If cache is not available or not initialized, that's okay
+        pass
+
+    yield
+
+    # Also clear after test
+    try:
+        from app.core.cache.manager import get_cache_manager
+
+        cache = await get_cache_manager()
+        await cache.clear()
+    except Exception:
+        # If cache is not available or not initialized, that's okay
+        pass

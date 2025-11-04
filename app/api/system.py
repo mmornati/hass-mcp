@@ -11,12 +11,15 @@ from app.api.entities import filter_fields
 from app.config import HA_URL, get_ha_headers
 from app.core import DOMAIN_IMPORTANT_ATTRIBUTES, get_client
 from app.core.cache.config import get_cache_config
+from app.core.cache.decorator import cached
+from app.core.cache.ttl import TTL_VERY_LONG
 from app.core.decorators import handle_api_errors
 
 logger = logging.getLogger(__name__)
 
 
 @handle_api_errors
+@cached(ttl=TTL_VERY_LONG, key_prefix="system")
 async def get_hass_version() -> str:
     """
     Get the Home Assistant version from the API.
@@ -285,6 +288,7 @@ async def get_system_health() -> dict[str, Any]:
 
 
 @handle_api_errors
+@cached(ttl=TTL_VERY_LONG, key_prefix="system")
 async def get_core_config() -> dict[str, Any]:
     """
     Get core configuration from Home Assistant.

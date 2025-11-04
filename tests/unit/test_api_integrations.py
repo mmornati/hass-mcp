@@ -10,6 +10,7 @@ from app.api.integrations import (
     get_integrations,
     reload_integration,
 )
+from app.core.cache.manager import get_cache_manager
 
 
 class TestGetIntegrations:
@@ -99,6 +100,10 @@ class TestGetIntegrations:
     @pytest.mark.asyncio
     async def test_get_integrations_empty(self):
         """Test retrieval when no integrations are found."""
+        # Clear cache before test to ensure isolation
+        cache = await get_cache_manager()
+        await cache.clear()
+
         mock_client = AsyncMock()
         mock_response = MagicMock()
         mock_response.json.return_value = []
@@ -112,6 +117,10 @@ class TestGetIntegrations:
     @pytest.mark.asyncio
     async def test_get_integrations_http_error(self):
         """Test handling of HTTP error."""
+        # Clear cache before test to ensure isolation
+        cache = await get_cache_manager()
+        await cache.clear()
+
         mock_client = AsyncMock()
         mock_response = MagicMock()
         mock_response.status_code = 500
