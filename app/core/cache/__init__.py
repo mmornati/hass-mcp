@@ -5,6 +5,7 @@ This module provides caching infrastructure to reduce API calls to Home Assistan
 
 from app.core.cache.config import CacheConfig, get_cache_config
 from app.core.cache.decorator import cached, invalidate_cache
+from app.core.cache.invalidation import InvalidationStrategy
 from app.core.cache.manager import CacheManager, get_cache_manager
 from app.core.cache.metrics import CacheMetrics, get_cache_metrics
 from app.core.cache.ttl import (
@@ -19,6 +20,7 @@ __all__ = [
     "CacheConfig",
     "CacheManager",
     "CacheMetrics",
+    "InvalidationStrategy",
     "cached",
     "get_cache_config",
     "get_cache_manager",

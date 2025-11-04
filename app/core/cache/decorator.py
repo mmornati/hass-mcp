@@ -15,6 +15,7 @@ from collections.abc import Awaitable, Callable
 from typing import Any, TypeVar
 
 from app.core.cache.config import get_cache_config
+from app.core.cache.invalidation import InvalidationStrategy
 from app.core.cache.key_builder import CacheKeyBuilder
 from app.core.cache.manager import get_cache_manager
 from app.core.cache.metrics import get_cache_metrics
@@ -195,7 +196,10 @@ def cached(
 def invalidate_cache(
     pattern: str | None = None,
     patterns: list[str] | None = None,
+    chain: str | None = None,
     condition: Callable[[tuple[Any, ...], dict[str, Any], Any], bool] | None = None,
+    hierarchical: bool = True,
+    template_vars: dict[str, str] | None = None,
 ) -> Callable[[F], F]:
     """
     Decorator to invalidate cache entries after function execution.
@@ -205,9 +209,14 @@ def invalidate_cache(
 
     Args:
         pattern: Single pattern to match cache keys (supports wildcards like '*')
-        patterns: List of patterns to match cache keys
+                 Supports template variables: {entity_id}, {automation_id}, etc.
+        patterns: List of patterns to match cache keys (supports templates)
+        chain: Name of invalidation chain to use (e.g., "entity_update", "automation_update")
         condition: Function to determine if cache should be invalidated.
                    Receives (args, kwargs, result) and returns bool.
+        hierarchical: If True, also invalidate hierarchical children (default: True)
+        template_vars: Dictionary mapping variable names to parameter names for template substitution.
+                       If None, attempts to extract from function args/kwargs automatically.
 
     Returns:
         Decorator function
@@ -222,6 +231,17 @@ def invalidate_cache(
             condition=lambda args, kwargs, result: result.get("status") == "success"
         )
         async def update_automation(automation_id: str, config: dict):
+            ...
+
+        @invalidate_cache(
+            pattern="entities:state:id={entity_id}*",
+            template_vars={"entity_id": "entity_id"}
+        )
+        async def entity_action(entity_id: str, action: str):
+            ...
+
+        @invalidate_cache(chain="entity_update", template_vars={"entity_id": "entity_id"})
+        async def update_entity(entity_id: str, state: dict):
             ...
     """
 
@@ -247,25 +267,108 @@ def invalidate_cache(
             # Get cache manager
             cache = await get_cache_manager()
 
+            # Build template variables from function arguments
+            template_variables: dict[str, Any] = {}
+            if template_vars:
+                # Use provided mapping
+                sig = inspect.signature(func)
+                bound_args = sig.bind(*args, **kwargs)
+                bound_args.apply_defaults()
+                params = dict(bound_args.arguments)
+
+                for template_var, param_name in template_vars.items():
+                    if param_name in params:
+                        template_variables[template_var] = params[param_name]
+            else:
+                # Auto-extract common variables
+                sig = inspect.signature(func)
+                bound_args = sig.bind(*args, **kwargs)
+                bound_args.apply_defaults()
+                params = dict(bound_args.arguments)
+
+                # Common parameter names
+                if "entity_id" in params:
+                    entity_id = params["entity_id"]
+                    template_variables["entity_id"] = entity_id
+                    # Extract domain from entity_id
+                    if entity_id and isinstance(entity_id, str) and "." in entity_id:
+                        template_variables["domain"] = entity_id.split(".")[0]
+                if "automation_id" in params:
+                    template_variables["automation_id"] = params["automation_id"]
+                if "scene_id" in params:
+                    template_variables["scene_id"] = params["scene_id"]
+                if "area_id" in params:
+                    template_variables["area_id"] = params["area_id"]
+                if "device_id" in params:
+                    template_variables["device_id"] = params["device_id"]
+                if "script_id" in params:
+                    template_variables["script_id"] = params["script_id"]
+
             # Collect patterns to invalidate
             patterns_to_invalidate: list[str] = []
-            if pattern:
-                patterns_to_invalidate.append(pattern)
-            if patterns:
-                patterns_to_invalidate.extend(patterns)
 
-            # Invalidate each pattern
+            # Handle invalidation chain
+            if chain:
+                try:
+                    chain_patterns = InvalidationStrategy.get_invalidation_chain(
+                        chain, **template_variables
+                    )
+                    patterns_to_invalidate.extend(chain_patterns)
+                except ValueError as e:
+                    logger.warning(
+                        f"Invalidation chain '{chain}' not found for {func.__name__}: {e}"
+                    )
+
+            # Handle explicit patterns
+            if pattern:
+                # Resolve template variables in pattern
+                resolved_pattern = InvalidationStrategy.resolve_pattern_template(
+                    pattern, **template_variables
+                )
+                patterns_to_invalidate.append(resolved_pattern)
+
+            if patterns:
+                for pat in patterns:
+                    # Resolve template variables in pattern
+                    resolved_pattern = InvalidationStrategy.resolve_pattern_template(
+                        pat, **template_variables
+                    )
+                    patterns_to_invalidate.append(resolved_pattern)
+
+            # Invalidate each pattern with hierarchical expansion
+            total_invalidated = 0
             for invalidation_pattern in patterns_to_invalidate:
                 try:
-                    await cache.invalidate(invalidation_pattern)
+                    invalidation_result = await cache.invalidate(
+                        invalidation_pattern, hierarchical=hierarchical
+                    )
+                    invalidated_count = invalidation_result.get("total_invalidated", 0)
+                    total_invalidated += invalidated_count
                     logger.debug(
-                        f"Invalidated cache pattern '{invalidation_pattern}' for {func.__name__}"
+                        f"Invalidated cache pattern '{invalidation_pattern}' for {func.__name__} "
+                        f"({invalidated_count} entries)",
+                        extra={
+                            "pattern": invalidation_pattern,
+                            "count": invalidated_count,
+                            "expanded": invalidation_result.get("expanded_patterns", []),
+                        },
                     )
                 except Exception as e:
                     logger.warning(
                         f"Cache invalidation error for {func.__name__}: {e}", exc_info=True
                     )
                     # Don't fail the function call if invalidation fails
+
+            if total_invalidated > 0:
+                logger.info(
+                    f"Cache invalidation completed for {func.__name__}: "
+                    f"{total_invalidated} entries invalidated across {len(patterns_to_invalidate)} patterns",
+                    extra={
+                        "function": func.__name__,
+                        "patterns": patterns_to_invalidate,
+                        "total_invalidated": total_invalidated,
+                    },
+                )
 
             return result
 
