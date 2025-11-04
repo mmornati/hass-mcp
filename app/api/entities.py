@@ -9,6 +9,8 @@ from typing import Any, cast
 
 from app.config import HA_URL, get_ha_headers
 from app.core import DEFAULT_LEAN_FIELDS, DOMAIN_IMPORTANT_ATTRIBUTES, get_client
+from app.core.cache.decorator import cached
+from app.core.cache.ttl import TTL_LONG, TTL_MEDIUM
 from app.core.decorators import handle_api_errors
 
 logger = logging.getLogger(__name__)
@@ -117,6 +119,7 @@ async def get_entity_state(
 
 
 @handle_api_errors
+@cached(ttl=TTL_LONG, key_prefix="entities")
 async def get_entities(
     domain: str | None = None,
     search_query: str | None = None,
@@ -253,6 +256,7 @@ async def get_entity_history(entity_id: str, hours: int) -> list[dict[str, Any]]
 
 
 @handle_api_errors
+@cached(ttl=TTL_MEDIUM, key_prefix="entities")
 async def summarize_domain(domain: str, example_limit: int = 3) -> dict[str, Any]:
     """
     Generate a summary of entities in a domain.

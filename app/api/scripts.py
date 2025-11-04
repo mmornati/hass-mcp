@@ -9,12 +9,15 @@ from typing import Any, cast
 from app.api.entities import get_entities, get_entity_state
 from app.config import HA_URL, get_ha_headers
 from app.core import get_client
+from app.core.cache.decorator import cached
+from app.core.cache.ttl import TTL_LONG
 from app.core.decorators import handle_api_errors
 
 logger = logging.getLogger(__name__)
 
 
 @handle_api_errors
+@cached(ttl=TTL_LONG, key_prefix="scripts")
 async def get_scripts() -> list[dict[str, Any]]:
     """
     Get list of all scripts from Home Assistant.
@@ -72,6 +75,7 @@ async def get_scripts() -> list[dict[str, Any]]:
 
 
 @handle_api_errors
+@cached(ttl=TTL_LONG, key_prefix="scripts")
 async def get_script_config(script_id: str) -> dict[str, Any]:
     """
     Get script configuration (sequence of actions).

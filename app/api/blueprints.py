@@ -11,6 +11,8 @@ from typing import Any
 
 from app.api.automations import create_automation
 from app.api.base import BaseAPI
+from app.core.cache.decorator import cached
+from app.core.cache.ttl import TTL_VERY_LONG
 from app.core.decorators import handle_api_errors
 
 logger = logging.getLogger(__name__)
@@ -26,6 +28,7 @@ _blueprints_api = BlueprintsAPI()
 
 
 @handle_api_errors
+@cached(ttl=TTL_VERY_LONG, key_prefix="blueprints")
 async def list_blueprints(domain: str | None = None) -> list[dict[str, Any]]:
     """
     Get list of available blueprints.
@@ -64,6 +67,7 @@ async def list_blueprints(domain: str | None = None) -> list[dict[str, Any]]:
 
 
 @handle_api_errors
+@cached(ttl=TTL_VERY_LONG, key_prefix="blueprints")
 async def get_blueprint(blueprint_id: str, domain: str | None = None) -> dict[str, Any]:
     """
     Get blueprint definition and metadata.

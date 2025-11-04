@@ -9,6 +9,8 @@ from typing import Any, cast
 
 from app.api.automations import get_automation_config, get_automations
 from app.api.base import BaseAPI
+from app.core.cache.decorator import cached, invalidate_cache
+from app.core.cache.ttl import TTL_LONG
 from app.core.decorators import handle_api_errors
 
 logger = logging.getLogger(__name__)
@@ -24,6 +26,7 @@ _tags_api = TagsAPI()
 
 
 @handle_api_errors
+@cached(ttl=TTL_LONG, key_prefix="tags")
 async def list_tags() -> list[dict[str, Any]]:
     """
     Get list of all RFID/NFC tags.
@@ -60,6 +63,7 @@ async def list_tags() -> list[dict[str, Any]]:
 
 
 @handle_api_errors
+@invalidate_cache(pattern="tags:*")
 async def create_tag(tag_id: str, name: str) -> dict[str, Any]:
     """
     Create a new tag.
@@ -91,6 +95,7 @@ async def create_tag(tag_id: str, name: str) -> dict[str, Any]:
 
 
 @handle_api_errors
+@invalidate_cache(pattern="tags:*")
 async def delete_tag(tag_id: str) -> dict[str, Any]:
     """
     Delete a tag.

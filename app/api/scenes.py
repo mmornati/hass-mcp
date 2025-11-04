@@ -10,12 +10,15 @@ from typing import Any, cast
 from app.api.entities import get_entities, get_entity_state
 from app.config import HA_URL, get_ha_headers
 from app.core import get_client
+from app.core.cache.decorator import cached, invalidate_cache
+from app.core.cache.ttl import TTL_LONG
 from app.core.decorators import handle_api_errors
 
 logger = logging.getLogger(__name__)
 
 
 @handle_api_errors
+@cached(ttl=TTL_LONG, key_prefix="scenes")
 async def get_scenes() -> list[dict[str, Any]]:
     """
     Get list of all scenes.
@@ -69,6 +72,7 @@ async def get_scenes() -> list[dict[str, Any]]:
 
 
 @handle_api_errors
+@cached(ttl=TTL_LONG, key_prefix="scenes")
 async def get_scene_config(scene_id: str) -> dict[str, Any]:
     """
     Get scene configuration (what entities/values it saves).
@@ -116,6 +120,7 @@ async def get_scene_config(scene_id: str) -> dict[str, Any]:
 
 
 @handle_api_errors
+@invalidate_cache(pattern="scenes:*")
 async def create_scene(
     name: str,
     entity_ids: list[str],

@@ -9,12 +9,15 @@ from typing import Any, cast
 from app.api.entities import get_entity_state
 from app.config import HA_URL, get_ha_headers
 from app.core import get_client
+from app.core.cache.decorator import cached
+from app.core.cache.ttl import TTL_LONG, TTL_MEDIUM
 from app.core.decorators import handle_api_errors
 
 logger = logging.getLogger(__name__)
 
 
 @handle_api_errors
+@cached(ttl=TTL_LONG, key_prefix="devices")
 async def get_devices(domain: str | None = None) -> list[dict[str, Any]]:
     """
     Get list of all devices, optionally filtered by integration domain.
@@ -79,6 +82,7 @@ async def get_devices(domain: str | None = None) -> list[dict[str, Any]]:
 
 
 @handle_api_errors
+@cached(ttl=TTL_LONG, key_prefix="devices")
 async def get_device_details(device_id: str) -> dict[str, Any]:
     """
     Get detailed device information.
@@ -171,6 +175,7 @@ async def get_device_entities(device_id: str) -> list[dict[str, Any]]:
 
 
 @handle_api_errors
+@cached(ttl=TTL_MEDIUM, key_prefix="devices")
 async def get_device_statistics() -> dict[str, Any]:
     """
     Get statistics about devices (counts by manufacturer, model, etc.).

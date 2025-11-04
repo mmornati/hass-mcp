@@ -11,12 +11,15 @@ from typing import Any, cast
 from app.api.entities import get_entities
 from app.config import HA_URL, get_ha_headers
 from app.core import get_client
+from app.core.cache.decorator import cached, invalidate_cache
+from app.core.cache.ttl import TTL_LONG
 from app.core.decorators import handle_api_errors
 
 logger = logging.getLogger(__name__)
 
 
 @handle_api_errors
+@cached(ttl=TTL_LONG, key_prefix="automations")
 async def get_automations() -> list[dict[str, Any]]:
     """Get a list of all automations from Home Assistant"""
     # Reuse the get_entities function with domain filtering
@@ -64,6 +67,7 @@ async def reload_automations() -> dict[str, Any]:
 
 
 @handle_api_errors
+@cached(ttl=TTL_LONG, key_prefix="automations")
 async def get_automation_config(automation_id: str) -> dict[str, Any]:
     """
     Get full automation configuration including triggers, conditions, actions
@@ -102,6 +106,7 @@ async def get_automation_config(automation_id: str) -> dict[str, Any]:
 
 
 @handle_api_errors
+@invalidate_cache(pattern="automations:*")
 async def create_automation(config: dict[str, Any]) -> dict[str, Any]:
     """
     Create a new automation from configuration dictionary
@@ -140,6 +145,7 @@ async def create_automation(config: dict[str, Any]) -> dict[str, Any]:
 
 
 @handle_api_errors
+@invalidate_cache(pattern="automations:*")
 async def update_automation(automation_id: str, config: dict[str, Any]) -> dict[str, Any]:
     """
     Update an existing automation with new configuration
@@ -166,6 +172,7 @@ async def update_automation(automation_id: str, config: dict[str, Any]) -> dict[
 
 
 @handle_api_errors
+@invalidate_cache(pattern="automations:*")
 async def delete_automation(automation_id: str) -> dict[str, Any]:
     """
     Delete an automation

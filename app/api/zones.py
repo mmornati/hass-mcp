@@ -8,6 +8,8 @@ import logging
 from typing import Any
 
 from app.api.base import BaseAPI
+from app.core.cache.decorator import cached, invalidate_cache
+from app.core.cache.ttl import TTL_VERY_LONG
 from app.core.decorators import handle_api_errors
 
 logger = logging.getLogger(__name__)
@@ -23,6 +25,7 @@ _zones_api = ZonesAPI()
 
 
 @handle_api_errors
+@cached(ttl=TTL_VERY_LONG, key_prefix="zones")
 async def list_zones() -> list[dict[str, Any]]:
     """
     Get list of all zones (GPS coordinates).
@@ -63,6 +66,7 @@ async def list_zones() -> list[dict[str, Any]]:
 
 
 @handle_api_errors
+@invalidate_cache(pattern="zones:*")
 async def create_zone(
     name: str,
     latitude: float,
@@ -137,6 +141,7 @@ async def create_zone(
 
 
 @handle_api_errors
+@invalidate_cache(pattern="zones:*")
 async def update_zone(
     zone_id: str,
     name: str | None = None,
@@ -218,6 +223,7 @@ async def update_zone(
 
 
 @handle_api_errors
+@invalidate_cache(pattern="zones:*")
 async def delete_zone(zone_id: str) -> dict[str, Any]:
     """
     Delete a zone.

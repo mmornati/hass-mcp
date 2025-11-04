@@ -10,12 +10,15 @@ from typing import Any
 from app.api.entities import get_entities
 from app.config import HA_URL, get_ha_headers
 from app.core import get_client
+from app.core.cache.decorator import cached, invalidate_cache
+from app.core.cache.ttl import TTL_MEDIUM, TTL_VERY_LONG
 from app.core.decorators import handle_api_errors
 
 logger = logging.getLogger(__name__)
 
 
 @handle_api_errors
+@cached(ttl=TTL_VERY_LONG, key_prefix="areas")
 async def get_areas() -> list[dict[str, Any]]:
     """
     Get list of all areas.
@@ -78,6 +81,7 @@ async def get_areas() -> list[dict[str, Any]]:
 
 
 @handle_api_errors
+@cached(ttl=TTL_MEDIUM, key_prefix="areas")
 async def get_area_entities(area_id: str) -> list[dict[str, Any]]:
     """
     Get all entities belonging to a specific area.
@@ -118,6 +122,7 @@ async def get_area_entities(area_id: str) -> list[dict[str, Any]]:
 
 
 @handle_api_errors
+@invalidate_cache(pattern="areas:*")
 async def create_area(
     name: str,
     aliases: list[str] | None = None,
@@ -163,6 +168,7 @@ async def create_area(
 
 
 @handle_api_errors
+@invalidate_cache(pattern="areas:*")
 async def update_area(
     area_id: str,
     name: str | None = None,
@@ -213,6 +219,7 @@ async def update_area(
 
 
 @handle_api_errors
+@invalidate_cache(pattern="areas:*")
 async def delete_area(area_id: str) -> dict[str, Any]:
     """
     Delete an area.

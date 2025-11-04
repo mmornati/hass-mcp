@@ -93,6 +93,15 @@ def cached(
             try:
                 result = await func(*args, **kwargs)
 
+                # Default condition: don't cache error responses
+                # Check if result is an error response (dict with "error" key or list with error dict)
+                is_error_response = False
+                if isinstance(result, dict) and "error" in result:
+                    is_error_response = True
+                elif isinstance(result, list) and len(result) == 1:
+                    if isinstance(result[0], dict) and "error" in result[0]:
+                        is_error_response = True
+
                 # Check condition if provided
                 if condition is not None:
                     try:
@@ -107,6 +116,10 @@ def cached(
                         )
                         # If condition check fails, don't cache (safer)
                         return result
+                elif is_error_response:
+                    # Don't cache error responses by default
+                    logger.debug(f"Skipping cache for error response in {func.__name__}")
+                    return result
 
                 # Determine TTL: explicit > endpoint config > default
                 cache_ttl = ttl
