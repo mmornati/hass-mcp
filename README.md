@@ -102,6 +102,19 @@ The following API functions are automatically cached:
 - **Tags**: `list_tags` (TTL_LONG, 30 min)
 - **System**: `get_hass_version`, `get_core_config` (TTL_VERY_LONG, 1 hour)
 
+### Excluded from Caching (US-006)
+
+The following API functions are **explicitly excluded from caching** because they return highly dynamic, time-sensitive data:
+
+- **Logbook**: `get_logbook`, `get_entity_logbook`, `search_logbook` - Logbook entries are time-sensitive and change frequently
+- **History**: `get_entity_history` - Entity history is time-based and highly dynamic
+- **Statistics**: `get_entity_statistics`, `get_domain_statistics`, `analyze_usage_patterns` - Statistics are derived from history/logbook data and are highly dynamic
+- **Events**: `get_events` - Events are time-sensitive and change frequently
+- **Automation Execution Logs**: `get_automation_execution_log` - Execution logs are time-sensitive and change frequently
+- **System**: `get_hass_error_log`, `get_system_overview` - Error logs and system overview include current entity states which are highly dynamic
+
+These endpoints will always fetch fresh data from Home Assistant and never use cached results, ensuring accuracy for time-sensitive operations.
+
 ### Cache Invalidation
 
 Cache is automatically invalidated when data is modified:
