@@ -6,6 +6,7 @@ import httpx
 import pytest
 
 from app.api.zones import create_zone, delete_zone, list_zones, update_zone
+from app.core.cache.manager import get_cache_manager
 
 
 class TestListZones:
@@ -20,6 +21,14 @@ class TestListZones:
             patch("app.core.decorators.HA_TOKEN", "test_token"),
         ):
             yield
+
+    @pytest.fixture(autouse=True)
+    async def clear_cache(self):
+        """Clear cache before each test to ensure isolation."""
+        cache = await get_cache_manager()
+        await cache.clear()
+        yield
+        await cache.clear()
 
     @pytest.mark.asyncio
     async def test_list_zones_success(self):

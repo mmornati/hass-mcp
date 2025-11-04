@@ -11,6 +11,7 @@ from app.api.tags import (
     get_tag_automations,
     list_tags,
 )
+from app.core.cache.manager import get_cache_manager
 
 
 class TestListTags:
@@ -25,6 +26,14 @@ class TestListTags:
             patch("app.core.decorators.HA_TOKEN", "test_token"),
         ):
             yield
+
+    @pytest.fixture(autouse=True)
+    async def clear_cache(self):
+        """Clear cache before each test to ensure isolation."""
+        cache = await get_cache_manager()
+        await cache.clear()
+        yield
+        await cache.clear()
 
     @pytest.mark.asyncio
     async def test_list_tags_success(self):
