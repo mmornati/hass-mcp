@@ -13,7 +13,7 @@ import logging
 from collections.abc import Awaitable, Callable
 from typing import Any, TypeVar
 
-from app.config import CACHE_DEFAULT_TTL
+from app.core.cache.config import get_cache_config
 from app.core.cache.key_builder import CacheKeyBuilder
 from app.core.cache.manager import get_cache_manager
 
@@ -93,6 +93,15 @@ def cached(
             try:
                 result = await func(*args, **kwargs)
 
+                # Default condition: don't cache error responses
+                # Check if result is an error response (dict with "error" key or list with error dict)
+                is_error_response = False
+                if isinstance(result, dict) and "error" in result:
+                    is_error_response = True
+                elif isinstance(result, list) and len(result) == 1:
+                    if isinstance(result[0], dict) and "error" in result[0]:
+                        is_error_response = True
+
                 # Check condition if provided
                 if condition is not None:
                     try:
@@ -107,10 +116,28 @@ def cached(
                         )
                         # If condition check fails, don't cache (safer)
                         return result
+                elif is_error_response:
+                    # Don't cache error responses by default
+                    logger.debug(f"Skipping cache for error response in {func.__name__}")
+                    return result
+
+                # Determine TTL: explicit > endpoint config > default
+                cache_ttl = ttl
+                if cache_ttl is None:
+                    # Try to get TTL from endpoint configuration
+                    config = get_cache_config()
+                    module_path = func.__module__ or "unknown"
+                    # Extract domain from module path (e.g., "app.api.entities" -> "entities")
+                    domain = module_path.split(".")[-1] if "." in module_path else module_path
+                    operation = func.__name__
+                    endpoint_ttl = config.get_endpoint_ttl(domain, operation)
+                    if endpoint_ttl is not None:
+                        cache_ttl = endpoint_ttl
+                    else:
+                        cache_ttl = config.get_default_ttl()
 
                 # Store in cache
                 try:
-                    cache_ttl = ttl if ttl is not None else CACHE_DEFAULT_TTL
                     await cache.set(cache_key, result, ttl=cache_ttl)
                     logger.debug(
                         f"Cached result for {func.__name__}: {cache_key} (ttl={cache_ttl})"

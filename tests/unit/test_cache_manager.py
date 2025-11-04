@@ -128,14 +128,19 @@ class TestCacheManager:
         os.environ["HASS_MCP_CACHE_ENABLED"] = "false"
 
         try:
+            import app.core.cache.config as config_module
             import app.core.cache.manager as manager_module
 
+            # Clear all singleton instances
             manager_module._cache_manager = None
-            # Reload config
+            config_module._cache_config = None
+
+            # Reload config modules
             import importlib
 
-            import app.config as config_module
+            import app.config as config_module_base
 
+            importlib.reload(config_module_base)
             importlib.reload(config_module)
             importlib.reload(manager_module)
 
@@ -154,8 +159,10 @@ class TestCacheManager:
             # Reload modules
             import importlib
 
-            import app.config as config_module
+            import app.config as config_module_base
+            import app.core.cache.config as config_module
             import app.core.cache.manager as manager_module
 
+            importlib.reload(config_module_base)
             importlib.reload(config_module)
             importlib.reload(manager_module)

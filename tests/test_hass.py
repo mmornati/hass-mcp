@@ -168,7 +168,11 @@ class TestHassAPI:
                     assert automations[0]["alias"] == "Turn on lights in the morning"
                     assert automations[0]["last_triggered"] == "2025-03-15T07:00:00Z"
 
-                # Test error response
+                # Test error response - clear cache first to ensure we get the error response
+                from app.core.cache.manager import get_cache_manager
+
+                cache = await get_cache_manager()
+                await cache.clear()
                 with patch(
                     "app.api.automations.get_entities",
                     AsyncMock(return_value={"error": "HTTP error: 404 - Not Found"}),

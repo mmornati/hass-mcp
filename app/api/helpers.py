@@ -9,6 +9,8 @@ from typing import Any
 
 from app.api.entities import get_entities, get_entity_state
 from app.api.services import call_service
+from app.core.cache.decorator import cached
+from app.core.cache.ttl import TTL_LONG
 from app.core.decorators import handle_api_errors
 
 logger = logging.getLogger(__name__)
@@ -29,6 +31,7 @@ HELPER_TYPES = [
 
 
 @handle_api_errors
+@cached(ttl=TTL_LONG, key_prefix="helpers")
 async def list_helpers(helper_type: str | None = None) -> list[dict[str, Any]]:
     """
     Get list of input helpers (input_boolean, input_number, etc.).

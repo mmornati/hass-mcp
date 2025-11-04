@@ -3,6 +3,7 @@
 This module provides caching infrastructure to reduce API calls to Home Assistant.
 """
 
+from app.core.cache.config import CacheConfig, get_cache_config
 from app.core.cache.decorator import cached, invalidate_cache
 from app.core.cache.manager import CacheManager, get_cache_manager
 from app.core.cache.ttl import (
@@ -14,9 +15,11 @@ from app.core.cache.ttl import (
 )
 
 __all__ = [
+    "CacheConfig",
     "CacheManager",
-    "get_cache_manager",
     "cached",
+    "get_cache_config",
+    "get_cache_manager",
     "invalidate_cache",
     "TTL_DISABLED",
     "TTL_SHORT",

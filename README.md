@@ -34,6 +34,104 @@ Hass-MCP provides a Model Context Protocol server that enables AI assistants to 
 2. **API Layer** (`app/api/`): Business logic for interacting with Home Assistant (entities, automations, system, etc.)
 3. **Tools Layer** (`app/tools/`): Thin MCP tool wrappers that register with the MCP server
 
+## Caching System
+
+Hass-MCP includes a comprehensive caching system to reduce API calls to Home Assistant and improve response times. The cache is designed to be transparent and automatically handles caching, expiration, and invalidation.
+
+### Configuration
+
+Caching can be configured via environment variables:
+
+```bash
+# Enable/disable caching (default: true)
+export HASS_MCP_CACHE_ENABLED=true
+
+# Cache backend type (default: memory)
+export HASS_MCP_CACHE_BACKEND=memory  # Options: memory, redis, file
+
+# Default TTL in seconds (default: 300)
+export HASS_MCP_CACHE_DEFAULT_TTL=300
+
+# Maximum cache size (default: 1000)
+export HASS_MCP_CACHE_MAX_SIZE=1000
+
+# Redis URL (if using Redis backend)
+export HASS_MCP_CACHE_REDIS_URL=redis://localhost:6379
+
+# Cache directory (if using file backend)
+export HASS_MCP_CACHE_DIR=.cache
+```
+
+### Cache Behavior
+
+The caching system automatically:
+
+1. **Caches successful responses** from API functions decorated with `@cached`
+2. **Expires cached data** based on TTL (Time-To-Live) settings
+3. **Invalidates cache** when data is modified (via `@invalidate_cache` decorator)
+4. **Skips caching** for error responses by default
+5. **Gracefully degrades** if cache operations fail (never breaks API calls)
+
+### TTL Presets
+
+Different types of data have different TTL values:
+
+- **TTL_VERY_LONG** (1 hour): Very stable data (HA version, areas, zones, blueprints)
+- **TTL_LONG** (30 minutes): Stable data (automations, entities, scripts, scenes, devices, tags, helpers)
+- **TTL_MEDIUM** (5 minutes): Moderately stable data (integrations, device statistics, area entities)
+- **TTL_SHORT** (1 minute): Semi-dynamic data (entity states)
+- **TTL_DISABLED** (0): No caching (for highly dynamic data like logs)
+
+### Cached Functions
+
+The following API functions are automatically cached:
+
+- **Entities**: `get_entities`, `summarize_domain`
+- **Automations**: `get_automations`, `get_automation_config`
+- **Scripts**: `get_scripts`, `get_script_config`
+- **Scenes**: `get_scenes`, `get_scene_config`
+- **Areas**: `get_areas`, `get_area_entities`
+- **Zones**: `list_zones`
+- **Devices**: `get_devices`, `get_device_details`, `get_device_statistics`
+- **Integrations**: `get_integrations`, `get_integration_config`
+- **Helpers**: `list_helpers`
+- **Blueprints**: `list_blueprints`, `get_blueprint`
+- **Tags**: `list_tags`
+- **System**: `get_hass_version`, `get_core_config`
+
+### Cache Invalidation
+
+Cache is automatically invalidated when data is modified:
+
+- **Automations**: When creating, updating, or deleting automations
+- **Areas**: When creating, updating, or deleting areas
+- **Zones**: When creating, updating, or deleting zones
+- **Scenes**: When creating scenes
+- **Integrations**: When reloading integrations
+- **Tags**: When creating or deleting tags
+
+### Cache Statistics
+
+You can check cache statistics programmatically:
+
+```python
+from app.core.cache.manager import get_cache_manager
+
+cache = await get_cache_manager()
+stats = cache.get_statistics()
+# Returns: {"enabled": True, "hits": 100, "misses": 50, "total_requests": 150, "hit_rate": 0.667, "size": 42}
+```
+
+### Disabling Caching
+
+To disable caching entirely:
+
+```bash
+export HASS_MCP_CACHE_ENABLED=false
+```
+
+This will bypass all cache operations without affecting functionality.
+
 ## Development Setup
 
 ### Prerequisites
