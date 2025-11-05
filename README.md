@@ -269,6 +269,20 @@ The following API functions are **explicitly excluded from caching** because the
 
 These endpoints will always fetch fresh data from Home Assistant and never use cached results, ensuring accuracy for time-sensitive operations.
 
+### Documentation
+
+Comprehensive caching documentation is available in the [docs/caching/](docs/caching/) directory:
+
+- **[Architecture](docs/caching/architecture.md)**: Cache system architecture and design
+- **[Configuration](docs/caching/configuration.md)**: How to configure caching
+- **[User Guide](docs/caching/user-guide.md)**: How to use and monitor caching
+- **[Developer Guide](docs/caching/developer-guide.md)**: How to add caching to endpoints
+- **[Performance](docs/caching/performance.md)**: Performance considerations and optimization
+- **[Troubleshooting](docs/caching/troubleshooting.md)**: Common issues and solutions
+- **[Migration](docs/caching/migration.md)**: Migrating between backends
+- **[Examples](docs/caching/examples.md)**: Configuration and usage examples
+- **[FAQ](docs/caching/faq.md)**: Frequently asked questions
+
 ### Cache Invalidation
 
 Cache is automatically invalidated when data is modified using sophisticated invalidation strategies:
