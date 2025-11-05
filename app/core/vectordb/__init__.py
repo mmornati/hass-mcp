@@ -14,6 +14,7 @@ from app.core.vectordb.indexing import (
     update_entity_index,
 )
 from app.core.vectordb.manager import VectorDBManager, get_vectordb_manager
+from app.core.vectordb.search import semantic_search
 
 __all__ = [
     "VectorDBConfig",
@@ -27,4 +28,5 @@ __all__ = [
     "update_entity_index",
     "remove_entity_from_index",
     "get_indexing_status",
+    "semantic_search",
 ]
