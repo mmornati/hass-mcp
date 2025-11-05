@@ -13,7 +13,76 @@ The Vector DB infrastructure provides:
 
 ## Configuration
 
+Vector DB configuration can be set via:
+1. **Configuration Files** (JSON/YAML) - Recommended for complex setups
+2. **Environment Variables** - Override config files
+3. **Default Values** - Fallback if not specified
+
+Configuration files are automatically discovered in:
+- Current working directory
+- Home directory
+- `HASS_MCP_CONFIG_DIR` environment variable
+- `/etc/hass-mcp`
+
+Supported file names:
+- `vectordb.json`, `vectordb.yaml`, `vectordb.yml`
+- `.vectordb.json`, `.vectordb.yaml`
+
+### Configuration File Format
+
+#### JSON Configuration
+
+```json
+{
+  "vector_db": {
+    "backend": "chroma",
+    "path": ".vectordb",
+    "collection_name": "entities",
+    "embeddings": {
+      "model": "sentence-transformers",
+      "model_name": "all-MiniLM-L6-v2",
+      "dimensions": 384,
+      "device": "cpu"
+    },
+    "indexing": {
+      "batch_size": 100,
+      "auto_index": false,
+      "update_on_change": true
+    },
+    "search": {
+      "default_limit": 10,
+      "similarity_threshold": 0.7,
+      "hybrid_search": false
+    }
+  }
+}
+```
+
+#### YAML Configuration
+
+```yaml
+vector_db:
+  backend: chroma
+  path: .vectordb
+  collection_name: entities
+  embeddings:
+    model: sentence-transformers
+    model_name: all-MiniLM-L6-v2
+    dimensions: 384
+    device: cpu
+  indexing:
+    batch_size: 100
+    auto_index: false
+    update_on_change: true
+  search:
+    default_limit: 10
+    similarity_threshold: 0.7
+    hybrid_search: false
+```
+
 ### Environment Variables
+
+Environment variables override configuration file values.
 
 #### Backend Selection
 
@@ -80,6 +149,9 @@ export HASS_MCP_PINECONE_ENVIRONMENT=your_environment
 ```bash
 # OpenAI API key (required for OpenAI embeddings)
 export HASS_MCP_OPENAI_API_KEY=sk-...
+
+# OpenAI model name (default: text-embedding-3-small)
+export HASS_MCP_OPENAI_MODEL=text-embedding-3-small
 ```
 
 #### Cohere Configuration
@@ -87,7 +159,66 @@ export HASS_MCP_OPENAI_API_KEY=sk-...
 ```bash
 # Cohere API key (required for Cohere embeddings)
 export HASS_MCP_COHERE_API_KEY=your_api_key
+
+# Cohere model name (default: embed-english-v3.0)
+export HASS_MCP_COHERE_MODEL=embed-english-v3.0
 ```
+
+#### Performance Configuration
+
+```bash
+# Indexing batch size (default: 100)
+export HASS_MCP_INDEXING_BATCH_SIZE=100
+
+# Auto-index on startup (default: false)
+export HASS_MCP_INDEXING_AUTO_INDEX=false
+
+# Update index on entity changes (default: true)
+export HASS_MCP_INDEXING_UPDATE_ON_CHANGE=true
+
+# Search default limit (default: 10)
+export HASS_MCP_SEARCH_DEFAULT_LIMIT=10
+
+# Search similarity threshold (default: 0.7)
+export HASS_MCP_SEARCH_SIMILARITY_THRESHOLD=0.7
+
+# Use hybrid search (default: false)
+export HASS_MCP_SEARCH_HYBRID_SEARCH=false
+```
+
+#### Embedding Model Configuration
+
+```bash
+# Embedding device (default: cpu)
+export HASS_MCP_EMBEDDING_DEVICE=cpu  # Options: cpu, gpu, cuda
+
+# Collection name (default: entities)
+export HASS_MCP_VECTOR_DB_COLLECTION=entities
+
+# Pinecone index name (default: entities)
+export HASS_MCP_PINECONE_INDEX_NAME=entities
+```
+
+### Configuration Validation
+
+The configuration system validates settings on initialization:
+
+```python
+from app.core.vectordb.config import VectorDBConfig
+
+config = VectorDBConfig()
+is_valid, errors = config.validate()
+
+if not is_valid:
+    for error in errors:
+        print(f"Configuration error: {error}")
+```
+
+Validation checks:
+- Backend and embedding model validity
+- Required API keys for cloud services
+- Performance settings within valid ranges
+- Device configuration validity
 
 ## Installation
 
