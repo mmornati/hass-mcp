@@ -77,6 +77,16 @@ nav:
     - Events: events.md
     - Logbook: logbook.md
     - Templates: templates.md
+  - Caching:
+    - Overview: caching/architecture.md
+    - Configuration: caching/configuration.md
+    - User Guide: caching/user-guide.md
+    - Developer Guide: caching/developer-guide.md
+    - Performance: caching/performance.md
+    - Troubleshooting: caching/troubleshooting.md
+    - Migration: caching/migration.md
+    - Examples: caching/examples.md
+    - FAQ: caching/faq.md
   - Advanced:
     - Prompts: prompts.md
     - Best Practices: best-practices.md
