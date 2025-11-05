@@ -1,6 +1,6 @@
 """Unit tests for app.api.entity_suggestions module."""
 
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -196,8 +196,8 @@ class TestFindEntitiesByVectorSimilarity:
             ]
         )
 
-        mock_config = AsyncMock()
-        mock_config.is_enabled = AsyncMock(return_value=True)
+        mock_config = MagicMock()
+        mock_config.is_enabled = MagicMock(return_value=True)
 
         with (
             patch("app.api.entity_suggestions.get_vectordb_config", return_value=mock_config),
@@ -216,8 +216,8 @@ class TestFindEntitiesByVectorSimilarity:
     @pytest.mark.asyncio
     async def test_find_entities_vector_disabled(self):
         """Test finding entities when vector DB is disabled."""
-        mock_config = AsyncMock()
-        mock_config.is_enabled = AsyncMock(return_value=False)
+        mock_config = MagicMock()
+        mock_config.is_enabled = MagicMock(return_value=False)
 
         with patch("app.api.entity_suggestions.get_vectordb_config", return_value=mock_config):
             results = await _find_entities_by_vector_similarity("light.test", limit=10)

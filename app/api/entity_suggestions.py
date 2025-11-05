@@ -23,8 +23,9 @@ RELATIONSHIP_TYPES = {
     "same_domain": "Entities of the same type",
     "similar_name": "Entities with similar names",
     "similar_capabilities": "Entities with similar capabilities",
-    "frequently_used_together": "Entities often used together",
-    "same_manufacturer": "Entities from the same manufacturer",
+    # TODO: Future relationship types to implement:
+    # "frequently_used_together": "Entities often used together",
+    # "same_manufacturer": "Entities from the same manufacturer",
 }
 
 
