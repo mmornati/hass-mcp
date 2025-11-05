@@ -104,6 +104,7 @@ mcp.tool()(async_handler("get_version")(system.get_version))
 mcp.tool()(async_handler("system_overview")(system.system_overview))
 mcp.tool()(async_handler("get_error_log")(system.get_error_log))
 mcp.tool()(async_handler("system_health")(system.system_health))
+mcp.tool()(async_handler("get_cache_statistics")(system.get_cache_statistics_tool))
 mcp.tool()(async_handler("core_config")(system.core_config))
 mcp.tool()(async_handler("restart_ha")(system.restart_ha))
 mcp.tool()(async_handler("get_history")(system.get_history))
@@ -233,6 +234,7 @@ core_config = system.core_config
 restart_ha = system.restart_ha
 get_history = system.get_history
 domain_summary_tool = system.domain_summary_tool
+get_cache_statistics_tool = system.get_cache_statistics_tool
 call_service_tool = services.call_service_tool
 test_template_tool = templates.test_template_tool
 get_logbook_tool = logbook.get_logbook_tool

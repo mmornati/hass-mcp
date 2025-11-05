@@ -9,6 +9,7 @@ from typing import Any
 
 from app.api.entities import get_entity_history, summarize_domain
 from app.api.system import (
+    get_cache_statistics,
     get_core_config,
     get_hass_error_log,
     get_hass_version,
@@ -293,3 +294,80 @@ async def domain_summary_tool(domain: str, example_limit: int = 3) -> dict[str, 
     """
     logger.info(f"Getting domain summary for: {domain}")
     return await summarize_domain(domain, example_limit)
+
+
+async def get_cache_statistics_tool() -> dict[str, Any]:
+    """
+    Get comprehensive cache statistics and metrics.
+
+    Returns:
+        Dictionary containing:
+        - cache_enabled: Whether caching is enabled
+        - backend: The cache backend type
+        - size: Current cache size (if available)
+        - statistics: Overall cache statistics (hits, misses, hit rate, etc.)
+        - per_endpoint: Per-endpoint statistics
+        - top_endpoints: Top endpoints by various metrics
+        - health: Cache health information
+
+    Example response:
+        {
+            "cache_enabled": true,
+            "backend": "memory",
+            "size": 1234,
+            "statistics": {
+                "total_hits": 1523,
+                "total_misses": 234,
+                "total_sets": 1757,
+                "total_deletes": 45,
+                "total_invalidations": 12,
+                "total_requests": 1757,
+                "hit_rate": 0.867,
+                "uptime_seconds": 3600.0,
+                "performance": {
+                    "avg_api_time_ms": 45.2,
+                    "avg_cache_time_ms": 0.8,
+                    "time_saved_ms": 44.4,
+                    "total_api_calls": 234,
+                    "total_cache_calls": 1523
+                },
+                "endpoint_count": 15
+            },
+            "per_endpoint": {
+                "entities:get_entities": {
+                    "hits": 450,
+                    "misses": 12,
+                    "sets": 12,
+                    "deletes": 0,
+                    "hit_rate": 0.974,
+                    "avg_api_time_ms": 50.0,
+                    "avg_cache_time_ms": 1.0,
+                    "time_saved_ms": 49.0,
+                    "api_call_count": 12,
+                    "cache_call_count": 462
+                }
+            },
+            "top_endpoints": {
+                "by_hits": [
+                    ["entities:get_entities", {"hits": 450, ...}]
+                ],
+                "by_time_saved": [
+                    ["entities:get_entities", {"time_saved_ms": 49.0, ...}]
+                ]
+            },
+            "health": {
+                "status": "healthy",
+                "backend_available": true,
+                "size_limit": 1000,
+                "size_usage_percent": 12.34
+            }
+        }
+
+    Best Practices:
+        - Use this to monitor cache performance
+        - Check hit_rate to evaluate cache effectiveness
+        - Review per_endpoint stats to identify optimization opportunities
+        - Monitor health to detect issues early
+    """
+    logger.info("Getting cache statistics")
+    return await get_cache_statistics()
