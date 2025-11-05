@@ -58,9 +58,34 @@ class CacheManager:
                 self._backend = MemoryCacheBackend(max_size=max_size)
                 logger.info(f"Initialized memory cache backend (max_size={max_size})")
             elif backend_type == "redis":
-                # Redis backend will be implemented in US-009
-                logger.warning("Redis backend not yet implemented, falling back to memory backend")
-                self._backend = MemoryCacheBackend(max_size=max_size)
+                try:
+                    # Import is done here to avoid circular imports and allow optional dependency
+                    from app.core.cache.redis import RedisCacheBackend  # noqa: PLC0415
+
+                    redis_url = self._config.get_redis_url()
+                    if not redis_url:
+                        logger.warning(
+                            "Redis backend selected but no Redis URL configured. "
+                            "Falling back to memory backend. "
+                            "Set HASS_MCP_CACHE_REDIS_URL environment variable."
+                        )
+                        self._backend = MemoryCacheBackend(max_size=max_size)
+                    else:
+                        self._backend = RedisCacheBackend(url=redis_url)
+                        logger.info(f"Initialized Redis cache backend (url={redis_url})")
+                except ImportError as e:
+                    logger.warning(
+                        f"Redis package not installed: {e}. "
+                        "Install it with: pip install redis or uv pip install redis. "
+                        "Falling back to memory backend."
+                    )
+                    self._backend = MemoryCacheBackend(max_size=max_size)
+                except Exception as e:
+                    logger.warning(
+                        f"Failed to initialize Redis backend: {e}. Falling back to memory backend.",
+                        exc_info=True,
+                    )
+                    self._backend = MemoryCacheBackend(max_size=max_size)
             elif backend_type == "file":
                 # File backend will be implemented in US-010
                 logger.warning("File backend not yet implemented, falling back to memory backend")

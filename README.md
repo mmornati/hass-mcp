@@ -56,11 +56,92 @@ export HASS_MCP_CACHE_DEFAULT_TTL=300
 export HASS_MCP_CACHE_MAX_SIZE=1000
 
 # Redis URL (if using Redis backend)
-export HASS_MCP_CACHE_REDIS_URL=redis://localhost:6379
+export HASS_MCP_CACHE_REDIS_URL=redis://localhost:6379/0
+# Or use REDIS_URL environment variable (alternative)
+export REDIS_URL=redis://localhost:6379/0
 
 # Cache directory (if using file backend)
 export HASS_MCP_CACHE_DIR=.cache
 ```
+
+### Cache Backends
+
+The caching system supports multiple backend implementations:
+
+#### Memory Backend (Default)
+
+The memory backend stores cache entries in-process memory. This is the default backend and requires no additional setup.
+
+**Pros:**
+- Fastest performance (no network overhead)
+- No additional dependencies
+- Simple configuration
+
+**Cons:**
+- Cache is lost on server restart
+- Not shared across multiple server instances
+- Limited by available memory
+
+#### Redis Backend
+
+The Redis backend stores cache entries in a Redis database, enabling distributed caching and persistence.
+
+**Installation:**
+
+```bash
+# Install Redis package
+pip install redis
+# Or with uv
+uv pip install redis
+```
+
+**Configuration:**
+
+```bash
+# Set backend to Redis
+export HASS_MCP_CACHE_BACKEND=redis
+
+# Set Redis URL (optional, defaults to redis://localhost:6379/0)
+export HASS_MCP_CACHE_REDIS_URL=redis://localhost:6379/0
+# Or use REDIS_URL (alternative)
+export REDIS_URL=redis://localhost:6379/0
+```
+
+**Redis URL Format:**
+
+- `redis://localhost:6379/0` - Local Redis on default port, database 0
+- `redis://user:password@host:port/db` - Redis with authentication
+- `rediss://host:port/db` - Redis with SSL/TLS
+- `unix:///path/to/redis.sock` - Unix socket connection
+
+**Features:**
+
+- **Connection Pooling**: Automatic connection pooling for better performance
+- **Automatic Reconnection**: Handles connection failures gracefully
+- **TTL Support**: Uses Redis EXPIRE for automatic expiration
+- **Pattern Matching**: Uses SCAN (not KEYS) for production-safe pattern matching
+- **Serialization**: JSON for simple types, pickle for complex types
+- **Graceful Degradation**: Falls back to memory backend if Redis is unavailable
+
+**Pros:**
+- Cache persists across server restarts
+- Shared across multiple server instances
+- Scalable for high-traffic deployments
+- Automatic expiration via Redis TTL
+
+**Cons:**
+- Requires Redis server setup
+- Network latency (minimal with local Redis)
+- Additional dependency (`redis` package)
+
+**Fallback Behavior:**
+
+If Redis is selected but:
+- Redis package is not installed: Falls back to memory backend with warning
+- Redis URL is not configured: Falls back to memory backend with warning (defaults to `redis://localhost:6379/0` if backend is `redis`)
+- Redis connection fails: Falls back to memory backend with warning
+
+This ensures the MCP server continues to function even if Redis is unavailable.
 
 ### Cache Behavior
 

@@ -210,8 +210,20 @@ class CacheConfig:
 
     def get_redis_url(self) -> str | None:
         """Get Redis URL if configured."""
+        # Check environment variable first (highest priority)
+        if REDIS_URL:
+            return REDIS_URL
+
+        # Check config file
         redis_url = self._config_data.get("redis_url")
-        return str(redis_url) if redis_url else None
+        if redis_url:
+            return str(redis_url)
+
+        # Default Redis URL if backend is redis but URL not specified
+        if self.get_backend().lower() == "redis":
+            return "redis://localhost:6379/0"
+
+        return None
 
     def get_cache_dir(self) -> str:
         """Get the cache directory path."""
