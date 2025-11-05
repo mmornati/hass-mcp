@@ -143,6 +143,79 @@ If Redis is selected but:
 
 This ensures the MCP server continues to function even if Redis is unavailable.
 
+#### File Backend
+
+The file backend stores cache entries as files on disk, enabling persistent caching without requiring external dependencies like Redis.
+
+**Installation:**
+
+```bash
+# Install aiofiles package
+pip install aiofiles
+# Or with uv
+uv pip install aiofiles
+# Or using optional dependencies
+uv pip install -e ".[file]"
+```
+
+**Configuration:**
+
+```bash
+# Set backend to file
+export HASS_MCP_CACHE_BACKEND=file
+
+# Set cache directory (optional, defaults to .cache)
+export HASS_MCP_CACHE_DIR=.cache
+```
+
+**File Structure:**
+
+Cache files are organized in a directory structure:
+
+```
+.cache/
+├── entities/
+│   ├── a1b2c3d4.json          # Cache entry
+│   └── a1b2c3d4.meta.json    # Metadata (TTL, key)
+├── automations/
+│   ├── e5f6g7h8.json
+│   └── e5f6g7h8.meta.json
+└── ...
+```
+
+**Features:**
+
+- **Async File I/O**: Uses `aiofiles` for non-blocking file operations
+- **Directory Organization**: Files organized by cache key prefix (entities, automations, etc.)
+- **TTL Support**: Expiration timestamps stored in metadata files
+- **Serialization**: JSON for simple types, pickle for complex types
+- **Automatic Cleanup**: Background cleanup of expired entries
+- **Graceful Degradation**: Falls back to memory backend if file operations fail
+
+**Pros:**
+
+- Cache persists across server restarts
+- No external dependencies (only requires `aiofiles` package)
+- Simple configuration
+- Works on any filesystem
+- No network latency
+
+**Cons:**
+
+- Slower than memory backend (disk I/O)
+- Not shared across multiple server instances (unless using shared filesystem)
+- Requires disk space
+- Disk I/O overhead
+
+**Fallback Behavior:**
+
+If file backend is selected but:
+- `aiofiles` package is not installed: Falls back to memory backend with warning
+- Cache directory cannot be created: Falls back to memory backend with warning
+- File operations fail: Falls back to memory backend with warning
+
+This ensures the MCP server continues to function even if file operations fail.
+
 ### Cache Behavior
 
 The caching system automatically:
