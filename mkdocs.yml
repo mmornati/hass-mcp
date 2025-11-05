@@ -87,6 +87,8 @@ nav:
     - Migration: caching/migration.md
     - Examples: caching/examples.md
     - FAQ: caching/faq.md
+  - Vector DB:
+    - Overview: vectordb.md
   - Advanced:
     - Prompts: prompts.md
     - Best Practices: best-practices.md

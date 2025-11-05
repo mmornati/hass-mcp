@@ -34,6 +34,24 @@ redis = [
 file = [
     "aiofiles>=24.1.0",
 ]
+vectordb = [
+    "chromadb>=0.4.0",
+    "sentence-transformers>=2.2.0",
+]
+vectordb-openai = [
+    "chromadb>=0.4.0",
+    "openai>=1.0.0",
+]
+vectordb-cohere = [
+    "chromadb>=0.4.0",
+    "cohere>=4.0.0",
+]
+vectordb-all = [
+    "chromadb>=0.4.0",
+    "sentence-transformers>=2.2.0",
+    "openai>=1.0.0",
+    "cohere>=4.0.0",
+]
 
 [project.scripts]
 hass-mcp = "app.run:main"
