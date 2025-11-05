@@ -500,11 +500,72 @@ result = await update_entity_index("light.living_room")
 result = await remove_entity_from_index("light.living_room")
 ```
 
+## Semantic Search
+
+### Natural Language Entity Search
+
+Entities can be searched using natural language queries:
+
+```python
+from app.core.vectordb.search import semantic_search
+
+# Search for entities using natural language
+results = await semantic_search("living room lights")
+# Returns: [
+#     {
+#         "entity_id": "light.living_room",
+#         "similarity_score": 0.95,
+#         "entity": {...},
+#         "explanation": "Entity 'Living Room Light' (light) matched with 95% similarity",
+#         "metadata": {...}
+#     },
+#     ...
+# ]
+
+# Search with filters
+results = await semantic_search(
+    "temperature sensors",
+    domain="sensor",
+    area_id="kitchen",
+    limit=10,
+    similarity_threshold=0.7
+)
+```
+
+### Hybrid Search
+
+Hybrid search combines semantic and keyword search for better results:
+
+```python
+# Enable hybrid search (combines semantic + keyword)
+results = await semantic_search(
+    "living room lights",
+    hybrid_search=True,
+    limit=10
+)
+```
+
+### Search Filters
+
+Filter search results by:
+- **Domain**: Filter by entity domain (light, sensor, switch, etc.)
+- **Area**: Filter by area/room
+- **Device Manufacturer**: Filter by device manufacturer
+- **Entity State**: Filter by entity state (on, off, etc.)
+
+### Result Ranking
+
+Results are ranked by:
+- Semantic similarity score
+- Exact matches (entity_id, friendly_name) get boosted scores
+- Domain matches get boosted scores
+- Area/room matches get boosted scores
+
 ## Related Features
 
 - **US-VD-002**: Entity Embedding and Indexing (✅ Implemented)
-- **US-VD-003**: Vector DB Configuration
-- **US-VD-004**: Semantic Entity Search
+- **US-VD-003**: Vector DB Configuration (✅ Implemented)
+- **US-VD-004**: Semantic Entity Search (✅ Implemented)
 
 ## See Also
 
