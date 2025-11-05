@@ -305,9 +305,73 @@ The vector DB infrastructure includes graceful error handling:
 - Verify backend URL configuration
 - Check backend logs for errors
 
+## Entity Indexing
+
+### Indexing Entities
+
+Entities can be automatically indexed in the vector database for semantic search:
+
+```python
+from app.core.vectordb.indexing import index_entity, index_entities, get_indexing_status
+
+# Index a single entity
+result = await index_entity("light.living_room")
+# Returns: {"entity_id": "light.living_room", "success": True, "description": "..."}
+
+# Index all entities
+result = await index_entities(batch_size=100)
+# Returns: {"total": 50, "succeeded": 50, "failed": 0, "results": [...]}
+
+# Get indexing status
+status = await get_indexing_status()
+# Returns: {"collection_exists": True, "total_entities": 50, "dimensions": 384, ...}
+```
+
+### Entity Descriptions
+
+Entity descriptions are automatically generated from metadata:
+
+- Friendly name
+- Domain type
+- Area/room information
+- Device information (manufacturer, model)
+- Domain-specific capabilities (brightness, color modes, etc.)
+- Current state
+
+Example descriptions:
+- `"Living Room Light - light entity in the Living Room area. Supports brightness, color_temp. Currently on."`
+- `"Temperature - temperature sensor in the Kitchen area. measured in °C. Currently 21.5."`
+
+### Batch Indexing
+
+Batch indexing processes entities in configurable batch sizes for performance:
+
+```python
+# Index all entities in batches of 100
+result = await index_entities(batch_size=100)
+
+# Index specific entities
+result = await index_entities(
+    entity_ids=["light.living_room", "sensor.temperature"],
+    batch_size=50,
+)
+```
+
+### Incremental Updates
+
+Update entities when they change:
+
+```python
+# Update an entity in the index
+result = await update_entity_index("light.living_room")
+
+# Remove an entity from the index
+result = await remove_entity_from_index("light.living_room")
+```
+
 ## Related Features
 
-- **US-VD-002**: Entity Embedding and Indexing
+- **US-VD-002**: Entity Embedding and Indexing (✅ Implemented)
 - **US-VD-003**: Vector DB Configuration
 - **US-VD-004**: Semantic Entity Search
 
