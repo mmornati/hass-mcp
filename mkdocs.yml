@@ -89,6 +89,7 @@ nav:
     - FAQ: caching/faq.md
   - Vector DB:
     - Overview: vectordb.md
+    - Entity Indexing: vectordb-indexing.md
   - Advanced:
     - Prompts: prompts.md
     - Best Practices: best-practices.md

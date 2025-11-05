@@ -26,7 +26,16 @@ class TestVectorDBManager:
         mock_embedding = MagicMock()
         mock_embedding.initialize = AsyncMock()
 
+        mock_sentence_transformers = MagicMock()
+        mock_sentence_transformers.SentenceTransformer = MagicMock(return_value=MagicMock())
+
+        def mock_import(name, *args, **kwargs):
+            if name == "sentence_transformers":
+                return mock_sentence_transformers
+            return __import__(name, *args, **kwargs)
+
         with (
+            patch("builtins.__import__", side_effect=mock_import),
             patch(
                 "app.core.vectordb.manager.ChromaBackend",
                 return_value=mock_backend,
@@ -58,8 +67,21 @@ class TestVectorDBManager:
         with patch.dict("os.environ", {"HASS_MCP_VECTOR_DB_BACKEND": "invalid"}, clear=False):
             config = VectorDBConfig()
             manager = VectorDBManager(config)
-            with pytest.raises(ValueError, match="Unsupported vector DB backend"):
-                await manager.initialize()
+            # The error should be raised before trying to initialize embedding model
+            # but we need to mock it just in case
+            mock_sentence_transformers = MagicMock()
+            mock_sentence_transformers.SentenceTransformer = MagicMock(return_value=MagicMock())
+
+            original_import = __import__
+
+            def mock_import(name, globals=None, locals=None, fromlist=(), level=0):
+                if name == "sentence_transformers":
+                    return mock_sentence_transformers
+                return original_import(name, globals, locals, fromlist, level)
+
+            with patch("builtins.__import__", side_effect=mock_import):
+                with pytest.raises(ValueError, match="Unsupported vector DB backend"):
+                    await manager.initialize()
 
     @pytest.mark.asyncio
     async def test_health_check_success(self, config):
@@ -71,7 +93,16 @@ class TestVectorDBManager:
         mock_embedding = MagicMock()
         mock_embedding.initialize = AsyncMock()
 
+        mock_sentence_transformers = MagicMock()
+        mock_sentence_transformers.SentenceTransformer = MagicMock(return_value=MagicMock())
+
+        def mock_import(name, *args, **kwargs):
+            if name == "sentence_transformers":
+                return mock_sentence_transformers
+            return __import__(name, *args, **kwargs)
+
         with (
+            patch("builtins.__import__", side_effect=mock_import),
             patch(
                 "app.core.vectordb.manager.ChromaBackend",
                 return_value=mock_backend,
@@ -96,7 +127,16 @@ class TestVectorDBManager:
         mock_embedding.initialize = AsyncMock()
         mock_embedding.embed = AsyncMock(return_value=[[0.1, 0.2, 0.3]])
 
+        mock_sentence_transformers = MagicMock()
+        mock_sentence_transformers.SentenceTransformer = MagicMock(return_value=MagicMock())
+
+        def mock_import(name, *args, **kwargs):
+            if name == "sentence_transformers":
+                return mock_sentence_transformers
+            return __import__(name, *args, **kwargs)
+
         with (
+            patch("builtins.__import__", side_effect=mock_import),
             patch(
                 "app.core.vectordb.manager.ChromaBackend",
                 return_value=mock_backend,
@@ -124,7 +164,16 @@ class TestVectorDBManager:
         mock_embedding.initialize = AsyncMock()
         mock_embedding.embed = AsyncMock(return_value=[[0.1, 0.2, 0.3]])
 
+        mock_sentence_transformers = MagicMock()
+        mock_sentence_transformers.SentenceTransformer = MagicMock(return_value=MagicMock())
+
+        def mock_import(name, *args, **kwargs):
+            if name == "sentence_transformers":
+                return mock_sentence_transformers
+            return __import__(name, *args, **kwargs)
+
         with (
+            patch("builtins.__import__", side_effect=mock_import),
             patch(
                 "app.core.vectordb.manager.ChromaBackend",
                 return_value=mock_backend,
@@ -153,7 +202,16 @@ class TestVectorDBManager:
         mock_embedding.initialize = AsyncMock()
         mock_embedding.embed = AsyncMock(return_value=[[0.1, 0.2, 0.3]])
 
+        mock_sentence_transformers = MagicMock()
+        mock_sentence_transformers.SentenceTransformer = MagicMock(return_value=MagicMock())
+
+        def mock_import(name, *args, **kwargs):
+            if name == "sentence_transformers":
+                return mock_sentence_transformers
+            return __import__(name, *args, **kwargs)
+
         with (
+            patch("builtins.__import__", side_effect=mock_import),
             patch(
                 "app.core.vectordb.manager.ChromaBackend",
                 return_value=mock_backend,
@@ -181,7 +239,16 @@ class TestVectorDBManager:
         mock_embedding.initialize = AsyncMock()
         mock_embedding.close = AsyncMock()
 
+        mock_sentence_transformers = MagicMock()
+        mock_sentence_transformers.SentenceTransformer = MagicMock(return_value=MagicMock())
+
+        def mock_import(name, *args, **kwargs):
+            if name == "sentence_transformers":
+                return mock_sentence_transformers
+            return __import__(name, *args, **kwargs)
+
         with (
+            patch("builtins.__import__", side_effect=mock_import),
             patch(
                 "app.core.vectordb.manager.ChromaBackend",
                 return_value=mock_backend,
