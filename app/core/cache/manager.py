@@ -88,9 +88,26 @@ class CacheManager:
                     )
                     self._backend = MemoryCacheBackend(max_size=max_size)
             elif backend_type == "file":
-                # File backend will be implemented in US-010
-                logger.warning("File backend not yet implemented, falling back to memory backend")
-                self._backend = MemoryCacheBackend(max_size=max_size)
+                try:
+                    # Import is done here to avoid circular imports and allow optional dependency
+                    from app.core.cache.file import FileCacheBackend  # noqa: PLC0415
+
+                    cache_dir = self._config.get_cache_dir()
+                    self._backend = FileCacheBackend(cache_dir=cache_dir)
+                    logger.info(f"Initialized file cache backend (cache_dir={cache_dir})")
+                except ImportError as e:
+                    logger.warning(
+                        f"File backend package not installed: {e}. "
+                        "Install it with: pip install aiofiles or uv pip install aiofiles. "
+                        "Falling back to memory backend."
+                    )
+                    self._backend = MemoryCacheBackend(max_size=max_size)
+                except Exception as e:
+                    logger.warning(
+                        f"Failed to initialize file backend: {e}. Falling back to memory backend.",
+                        exc_info=True,
+                    )
+                    self._backend = MemoryCacheBackend(max_size=max_size)
             else:
                 logger.warning(
                     f"Unknown cache backend '{backend_type}', falling back to memory backend"

@@ -31,6 +31,9 @@ dev = [
 redis = [
     "redis>=5.0.0",
 ]
+file = [
+    "aiofiles>=24.1.0",
+]
 
 [project.scripts]
 hass-mcp = "app.run:main"
