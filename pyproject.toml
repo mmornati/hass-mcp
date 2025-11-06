@@ -70,7 +70,8 @@ log_cli = true
 log_cli_level = "INFO"
 markers = [
     "asyncio: Tests that use asyncio",
-    "integration: mark test as an integration test (requires real Home Assistant)"
+    "integration: mark test as an integration test (requires real Home Assistant)",
+    "performance: mark test as a performance test (benchmarks and load tests)"
 ]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
