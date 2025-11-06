@@ -710,6 +710,35 @@ The tool supports three search modes:
 
 For more details, see the [Entities Tools Documentation](entities.md#semantic_search_entities_tool).
 
+## Natural Language Query Processing
+
+### Processing Natural Language Queries
+
+The natural language query processing tool processes user queries to extract entities, actions, and parameters:
+
+```python
+from app.tools.query_processing import process_natural_language_query
+
+# Process a natural language query
+result = await process_natural_language_query("Turn on the living room lights")
+
+print(result["intent"])  # "CONTROL"
+print(result["entities"])  # [{"entity_id": "light.living_room", "confidence": 0.92}, ...]
+print(result["action"])  # "on"
+print(result["execution_plan"])  # [{"entity": "light.living_room", "action": "on"}, ...]
+```
+
+### Query Processing Pipeline
+
+The tool processes queries through:
+1. **Intent Classification**: Identifies query intent (CONTROL, STATUS, SEARCH, etc.)
+2. **Entity Resolution**: Resolves entity references using semantic search
+3. **Action Extraction**: Extracts actions (on, off, set, etc.)
+4. **Parameter Extraction**: Extracts parameters (temperature, brightness, etc.)
+5. **Execution Plan**: Builds structured execution plans
+
+For more details, see the [Natural Language Query Processing Guide](query-processing.md).
+
 ## Related Features
 
 - **US-VD-002**: Entity Embedding and Indexing (✅ Implemented)
@@ -719,6 +748,7 @@ For more details, see the [Entities Tools Documentation](entities.md#semantic_se
 - **US-VD-007**: Query History and Learning (✅ Implemented)
 - **US-VD-008**: Entity Relationship Graph (✅ Implemented)
 - **US-VD-009**: Enhanced Entity Search Tool (✅ Implemented)
+- **US-VD-010**: Natural Language Query Processing (✅ Implemented)
 
 ## See Also
 
