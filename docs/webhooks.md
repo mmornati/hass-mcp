@@ -4,32 +4,32 @@ Manage and test webhooks in Home Assistant.
 
 ## Available Tools
 
-### `list_webhooks`
+### `manage_webhooks` (Unified Tool)
 
-Get information about webhook configuration.
+Unified webhooks tool that replaces `list_webhooks` and `test_webhook`.
+
+**Parameters:**
+- `action` (required): Action to perform. Options:
+  - `"list"`: List registered webhooks
+  - `"test"`: Test webhook endpoint (requires `webhook_id`)
+- `webhook_id` (optional): Webhook ID to test (required for `"test"` action)
+- `payload` (optional): Payload to send with webhook request (for `"test"` action)
 
 **Example Usage:**
 ```
 User: "How do I configure webhooks?"
-Claude: [Uses list_webhooks]
+Claude: [Uses manage_webhooks with action="list"]
 ✅ Webhook Information:
    Webhooks are typically defined in configuration.yaml
    Format: /api/webhook/{webhook_id}
-```
 
-### `test_webhook`
-
-Test a webhook endpoint.
-
-**Parameters:**
-- `webhook_id` (required): The webhook ID to test
-- `data` (optional): Data to send to the webhook
-
-**Example Usage:**
-```
 User: "Test webhook 'my_webhook'"
-Claude: [Uses test_webhook]
+Claude: [Uses manage_webhooks with action="test", webhook_id="my_webhook"]
 ✅ Webhook tested successfully
+
+User: "Test webhook with data"
+Claude: [Uses manage_webhooks with action="test", webhook_id="my_webhook", payload={"entity_id": "light.living_room"}]
+✅ Webhook tested with payload
 ```
 
 ## Use Cases

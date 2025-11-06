@@ -4,49 +4,35 @@ Send and test notifications through Home Assistant notification services.
 
 ## Available Tools
 
-### `list_notification_services`
+### `manage_notifications` (Unified Tool)
 
-List all available notification services.
+Unified notifications tool that replaces `list_notification_services`, `send_notification`, and `test_notification`.
+
+**Parameters:**
+- `action` (required): Action to perform. Options:
+  - `"list"`: List available notification services
+  - `"send"`: Send a notification (requires `message`)
+  - `"test"`: Test notification delivery (requires `message` and `target`)
+- `message` (optional): Notification message (required for `"send"` and `"test"` actions)
+- `target` (optional): Target notification service/platform (required for `"test"`, optional for `"send"`)
+- `data` (optional): Dictionary of additional notification data (for `"send"` action)
 
 **Example Usage:**
 ```
 User: "What notification services are available?"
-Claude: [Uses list_notification_services]
+Claude: [Uses manage_notifications with action="list"]
 ✅ Notification Services:
 - mobile_app.iphone
 - mobile_app.android
 - notify.telegram
 ...
-```
 
-### `send_notification`
-
-Send a notification.
-
-**Parameters:**
-- `service` (required): Notification service name
-- `message` (required): Notification message
-- `title` (optional): Notification title
-- `data` (optional): Additional notification data
-
-**Example Usage:**
-```
 User: "Send a notification to my phone saying 'Hello'"
-Claude: [Uses send_notification]
+Claude: [Uses manage_notifications with action="send", message="Hello", target="mobile_app.iphone"]
 ✅ Notification sent successfully
-```
 
-### `test_notification`
-
-Test a notification service.
-
-**Parameters:**
-- `service` (required): Notification service to test
-
-**Example Usage:**
-```
 User: "Test the mobile_app.iphone notification service"
-Claude: [Uses test_notification]
+Claude: [Uses manage_notifications with action="test", message="Test", target="mobile_app.iphone"]
 ✅ Test notification sent
 ```
 

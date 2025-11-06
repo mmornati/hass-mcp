@@ -27,26 +27,47 @@ Claude: [Uses get_entity]
 - **Detailed**: All attributes and metadata
 - **Fields**: Only specified fields
 
-### `list_entities`
+### `search_entities` (Unified Tool)
 
-List all entities or filter by domain/search query.
+Unified entity search tool that replaces `list_entities`, `search_entities_tool`, and `semantic_search_entities_tool`. Supports multiple search modes: keyword, semantic, and hybrid.
 
 **Parameters:**
+- `query` (optional): Search query string. If None, returns all entities (up to limit)
 - `domain` (optional): Filter by domain, e.g., `light`, `switch`, `sensor`
-- `search_query` (optional): Search entities by name or ID
+- `search_mode` (optional): Search mode - `"keyword"` (default), `"semantic"`, or `"hybrid"`
 - `limit` (optional): Maximum number of results (default: 100)
-- `lean` (optional): Use lean format for efficiency (default: `true`)
+- `area_id` (optional): Area filter for semantic search
+- `similarity_threshold` (optional): Similarity threshold for semantic search (default: 0.7)
 
 **Example Usage:**
 ```
 User: "Show me all the lights in my house"
-Claude: [Uses list_entities with domain="light"]
+Claude: [Uses search_entities with domain="light", search_mode="keyword"]
 ✅ Found 23 lights:
 - light.living_room (on)
 - light.kitchen (off)
 - light.bedroom (on)
 ...
+
+User: "Find lights in the living room"
+Claude: [Uses search_entities with query="lights", area_id="living_room", search_mode="semantic"]
+✅ Found 5 lights in living room:
+- light.living_room (on)
+- light.living_room_spot_01 (on)
+...
+
+User: "Search for temperature sensors"
+Claude: [Uses search_entities with query="temperature", search_mode="keyword"]
+✅ Found 5 temperature-related entities:
+- sensor.living_room_temperature
+- sensor.outdoor_temperature
+...
 ```
+
+**Search Modes:**
+- `keyword`: Fast keyword-based search (default)
+- `semantic`: Semantic search using vector embeddings (requires Vector DB)
+- `hybrid`: Combines both semantic and keyword search for best results
 
 ### `entity_action`
 
@@ -79,81 +100,31 @@ Claude: [Uses entity_action with action="toggle"]
 - **Covers**: `position` (0-100), `tilt_position`
 - **Media Players**: `source`, `volume_level` (0-1)
 
-### `search_entities_tool`
+### `generate_entity_description` (Unified Tool)
 
-Search for entities by name, ID, or attributes (keyword search).
+Unified entity description generation tool that replaces `generate_entity_description` and `generate_entity_descriptions_batch`. Handles both single entity and batch modes.
 
 **Parameters:**
-- `query` (required): Search query string
-- `limit` (optional): Maximum number of results (default: 20)
+- `entity_id` (optional): Single entity ID to generate description for (for single entity mode)
+- `entity_ids` (optional): List of entity IDs to generate descriptions for (for batch mode)
+- `use_template` (optional): Whether to use template-based generation (default: `true`)
+- `language` (optional): Language for description (default: `"en"`)
 
 **Example Usage:**
 ```
-User: "Find all entities with 'temperature' in the name"
-Claude: [Uses search_entities_tool]
-✅ Found 5 temperature-related entities:
-- sensor.living_room_temperature
-- sensor.outdoor_temperature
-...
+User: "Generate a description for light.living_room"
+Claude: [Uses generate_entity_description with entity_id="light.living_room"]
+✅ Generated description:
+   "Living Room Light - light entity in the Living Room area. Supports brightness control. Currently on."
+
+User: "Generate descriptions for all lights"
+Claude: [Uses generate_entity_description with entity_ids=["light.living_room", "light.kitchen"]]
+✅ Generated 2 descriptions:
+   - light.living_room: "Living Room Light - light entity..."
+   - light.kitchen: "Kitchen Light - light entity..."
 ```
 
-### `semantic_search_entities_tool`
-
-Search for entities using semantic search with natural language queries.
-
-This tool combines semantic and keyword search to find entities more accurately using natural language. It supports three search modes:
-- **semantic**: Pure semantic search using vector embeddings
-- **keyword**: Pure keyword search (fallback)
-- **hybrid**: Combines both semantic and keyword search (default)
-
-**Parameters:**
-- `query` (required): Natural language search query (e.g., "living room lights", "temperature sensors")
-- `domain` (optional): Domain filter (e.g., "light", "sensor", "switch")
-- `area_id` (optional): Area/room filter (e.g., "living_room", "kitchen")
-- `limit` (optional): Maximum number of results (default: 10)
-- `similarity_threshold` (optional): Minimum similarity score (0.0-1.0, default: 0.7)
-- `search_mode` (optional): Search mode - "semantic", "keyword", or "hybrid" (default: "hybrid")
-
-**Example Usage:**
-```
-User: "Find lights in the living room"
-Claude: [Uses semantic_search_entities_tool]
-✅ Found 3 lights in living room:
-- light.living_room (similarity: 0.95) - "Living Room Light" (light) matched with 95% similarity
-- light.living_room_spot (similarity: 0.88) - "Living Room Spot" (light) matched with 88% similarity
-...
-```
-
-**Response Format:**
-```json
-{
-  "query": "living room lights",
-  "count": 3,
-  "results": [
-    {
-      "entity_id": "light.living_room",
-      "state": "on",
-      "domain": "light",
-      "friendly_name": "Living Room Light",
-      "similarity": 0.95,
-      "match_reason": "Entity 'Living Room Light' (light) matched with 95% similarity",
-      "metadata": {"domain": "light", "area_id": "living_room"}
-    }
-  ],
-  "search_mode": "hybrid",
-  "domains": {"light": 3}
-}
-```
-
-**Search Modes:**
-- **hybrid** (default): Combines semantic and keyword search for best results
-- **semantic**: Pure semantic search using vector embeddings (requires Vector DB)
-- **keyword**: Pure keyword search (fallback when Vector DB unavailable)
-
-**When to Use:**
-- Use `semantic_search_entities_tool` for natural language queries and better accuracy
-- Use `search_entities_tool` for simple keyword matching
-- Use `semantic_search_entities_tool` with `search_mode="hybrid"` for best results
+**Note:** Either `entity_id` or `entity_ids` must be provided. If `entity_ids` is provided, the tool operates in batch mode.
 
 ## Use Cases
 

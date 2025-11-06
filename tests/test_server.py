@@ -50,16 +50,17 @@ class TestMCPServer:
         import app.server
 
         # List of expected tool functions
-        # Note: Some tools have been extracted to app.tools modules but are re-exported
+        # Note: Some tools have been unified and extracted to app.tools modules but are re-exported
         expected_tools = [
-            "get_version",
             "get_entity",
-            "list_entities",
             "entity_action",
-            "domain_summary_tool",  # Domain summaries tool
+            "search_entities",  # Unified tool replacing list_entities, search_entities_tool, semantic_search_entities_tool
+            "get_system_info",  # Unified tool replacing get_version, system_overview, system_health, core_config
+            "get_system_data",  # Unified tool replacing get_error_log, get_cache_statistics, get_history, domain_summary
+            "list_items",  # Unified tool for listing items
+            "get_item",  # Unified tool for getting items
+            "manage_item",  # Unified tool for managing items
             "list_automations",  # Re-exported from app.tools.automations
-            "system_health",  # System health monitoring
-            "core_config",  # Core configuration
             # Tools that exist but may be in different modules:
             "list_scripts_tool",  # Re-exported from app.tools.scripts
             "list_devices_tool",  # Re-exported from app.tools.devices
@@ -148,19 +149,17 @@ class TestMCPServer:
         import app.server
 
         # List of expected tool functions
-        # Note: Some tools have been extracted to app.tools modules but are re-exported
+        # Note: Some tools have been unified and extracted to app.tools modules but are re-exported
         tool_functions = [
-            "get_version",
             "get_entity",
-            "list_entities",
             "entity_action",
-            "domain_summary_tool",
+            "search_entities",  # Unified tool replacing list_entities, search_entities_tool, semantic_search_entities_tool
+            "get_system_info",  # Unified tool replacing get_version, system_overview, system_health, core_config
+            "get_system_data",  # Unified tool replacing get_error_log, get_cache_statistics, get_history, domain_summary
+            "list_items",  # Unified tool for listing items
+            "get_item",  # Unified tool for getting items
+            "manage_item",  # Unified tool for managing items
             "list_automations",  # Re-exported from app.tools.automations
-            "search_entities_tool",  # Re-exported from app.tools.entities
-            "system_overview",
-            "get_error_log",
-            "system_health",  # System health monitoring
-            "core_config",  # Core configuration
             # Tools that exist but may be in different modules:
             "list_scripts_tool",  # Re-exported from app.tools.scripts
             "list_devices_tool",  # Re-exported from app.tools.devices
@@ -191,8 +190,8 @@ class TestMCPServer:
 
     @pytest.mark.asyncio
     async def test_search_entities_resource(self):
-        """Test the search_entities_tool function"""
-        from app.server import search_entities_tool
+        """Test the search_entities unified tool function"""
+        from app.server import search_entities
 
         # Mock the get_entities function with test data
         mock_entities = [
@@ -209,47 +208,47 @@ class TestMCPServer:
         ]
 
         with patch(
-            "app.tools.entities.get_entities", new_callable=AsyncMock, return_value=mock_entities
+            "app.tools.unified.get_entities", new_callable=AsyncMock, return_value=mock_entities
         ) as mock_get:
-            # Test search with a valid query
-            result = await search_entities_tool(query="living")
+            # Test search with a valid query (keyword mode by default)
+            result = await search_entities(query="living", search_mode="keyword")
 
             # Verify the function was called with the right parameters including lean format
-            mock_get.assert_called_once_with(search_query="living", limit=20, lean=True)
+            mock_get.assert_called_once_with(search_query="living", limit=100, lean=True)
 
             # Check that the result contains the expected entity data
             assert result["count"] == 2
             assert any(e["entity_id"] == "light.living_room" for e in result["results"])
-            # Note: query is only included in response for empty queries, not for normal searches
 
             # Check that domain counts are included
             assert "domains" in result
             assert "light" in result["domains"]
 
             # Test with empty query (returns all entities instead of error)
-            result = await search_entities_tool(query="")
+            mock_get.reset_mock()
+            result = await search_entities(query=None, search_mode="keyword")
             assert "error" not in result
             assert result["count"] > 0
-            assert "all entities (no filtering)" in result["query"]
 
             # Test that simplified representation includes domain-specific attributes
-            result = await search_entities_tool(query="living")
+            mock_get.reset_mock()
+            result = await search_entities(query="living", search_mode="keyword")
             assert any("brightness" in e for e in result["results"])
 
             # Test with custom limit as an integer
             mock_get.reset_mock()
-            result = await search_entities_tool(query="light", limit=5)
+            result = await search_entities(query="light", limit=5, search_mode="keyword")
             mock_get.assert_called_once_with(search_query="light", limit=5, lean=True)
 
             # Test with a different limit to ensure it's respected
             mock_get.reset_mock()
-            result = await search_entities_tool(query="light", limit=10)
+            result = await search_entities(query="light", limit=10, search_mode="keyword")
             mock_get.assert_called_once_with(search_query="light", limit=10, lean=True)
 
     @pytest.mark.asyncio
-    async def test_domain_summary_tool(self):
-        """Test the domain_summary_tool function"""
-        from app.server import domain_summary_tool
+    async def test_get_system_data_domain_summary(self):
+        """Test the get_system_data unified tool function with domain_summary data_type"""
+        from app.server import get_system_data
 
         # Mock the summarize_domain function
         mock_summary = {
@@ -263,23 +262,16 @@ class TestMCPServer:
             "common_attributes": [("friendly_name", 2), ("brightness", 1)],
         }
 
-        with (
-            patch(
-                "app.tools.system.summarize_domain",
-                new_callable=AsyncMock,
-                return_value=mock_summary,
-            ) as mock_summarize,
-            patch(
-                "app.api.entities.summarize_domain",
-                new_callable=AsyncMock,
-                return_value=mock_summary,
-            ),
-        ):
+        with patch(
+            "app.tools.unified.summarize_domain",
+            new_callable=AsyncMock,
+            return_value=mock_summary,
+        ) as mock_summarize:
             # Test the function
-            result = await domain_summary_tool(domain="light", example_limit=3)
+            result = await get_system_data(data_type="domain_summary", domain="light")
 
             # Verify the function was called with the right parameters
-            mock_summarize.assert_called_once_with("light", 3)
+            mock_summarize.assert_called_once_with("light")
 
             # Check that the result matches the mock data
             assert result == mock_summary
@@ -335,11 +327,11 @@ class TestMCPServer:
             assert result == mock_filtered
 
     @pytest.mark.asyncio
-    async def test_system_health_tool(self):
-        """Test the system_health tool function"""
-        from app.server import system_health
+    async def test_get_system_info_tool(self):
+        """Test the get_system_info unified tool function"""
+        from app.server import get_system_info
 
-        # Mock system health data
+        # Test system_health info_type
         mock_health_data = {
             "homeassistant": {"healthy": True, "version": "2025.3.0"},
             "supervisor": {"healthy": True, "version": "2025.03.1"},
@@ -347,12 +339,12 @@ class TestMCPServer:
         }
 
         with patch(
-            "app.tools.system.get_system_health",
+            "app.tools.unified.system.get_system_health",
             new_callable=AsyncMock,
             return_value=mock_health_data,
         ) as mock_get:
-            # Test the function
-            result = await system_health()
+            # Test the function with health info_type
+            result = await get_system_info(info_type="health")
 
             # Verify the function was called
             mock_get.assert_called_once()
@@ -363,12 +355,7 @@ class TestMCPServer:
             assert result["homeassistant"]["healthy"] is True
             assert "supervisor" in result
 
-    @pytest.mark.asyncio
-    async def test_core_config_tool(self):
-        """Test the core_config tool function"""
-        from app.server import core_config
-
-        # Mock core config data
+        # Test core_config info_type
         mock_config_data = {
             "location_name": "Home",
             "time_zone": "America/New_York",
@@ -385,12 +372,12 @@ class TestMCPServer:
         }
 
         with patch(
-            "app.tools.system.get_core_config",
+            "app.tools.unified.system.get_core_config",
             new_callable=AsyncMock,
             return_value=mock_config_data,
         ) as mock_get:
-            # Test the function
-            result = await core_config()
+            # Test the function with config info_type
+            result = await get_system_info(info_type="config")
 
             # Verify the function was called
             mock_get.assert_called_once()
@@ -400,3 +387,14 @@ class TestMCPServer:
             assert result["location_name"] == "Home"
             assert result["time_zone"] == "America/New_York"
             assert "mqtt" in result["components"]
+
+        # Test version info_type
+        mock_version = "2025.3.0"
+        with patch(
+            "app.tools.unified.system.get_hass_version",
+            new_callable=AsyncMock,
+            return_value=mock_version,
+        ) as mock_get:
+            result = await get_system_info(info_type="version")
+            mock_get.assert_called_once()
+            assert result == "2025.3.0"

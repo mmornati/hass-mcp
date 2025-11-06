@@ -4,71 +4,39 @@ System tools provide information about your Home Assistant instance - version, h
 
 ## Available Tools
 
-### `get_version`
+### `get_system_info` (Unified Tool)
 
-Get the Home Assistant version.
+Unified system info tool that replaces `get_version`, `system_overview`, `system_health`, and `core_config`.
+
+**Parameters:**
+- `info_type` (required): Type of system info. Options:
+  - `"version"`: Get Home Assistant version
+  - `"overview"`: Get comprehensive system overview
+  - `"health"`: Get system health information
+  - `"config"`: Get core configuration
 
 **Example Usage:**
 ```
 User: "What version of Home Assistant am I running?"
-Claude: [Uses get_version]
+Claude: [Uses get_system_info with info_type="version"]
 ✅ Home Assistant version: 2025.3.0
-```
 
-### `system_overview`
-
-Get a comprehensive overview of your Home Assistant system.
-
-**Returns:**
-- Total number of entities
-- Entities by domain
-- Sample entities for each domain
-- System version
-
-**Example Usage:**
-```
 User: "Give me an overview of my Home Assistant system"
-Claude: [Uses system_overview]
+Claude: [Uses get_system_info with info_type="overview"]
 ✅ System Overview:
    - Total Entities: 156
    - Domains: light (23), switch (15), sensor (45)...
    - Version: 2025.3.0
-```
 
-### `system_health`
-
-Check the health status of Home Assistant components.
-
-**Returns:**
-- Health status of various components
-- Version information
-- Component availability
-
-**Example Usage:**
-```
 User: "Is my Home Assistant system healthy?"
-Claude: [Uses system_health]
+Claude: [Uses get_system_info with info_type="health"]
 ✅ System Health Check:
    - Home Assistant: Healthy
    - Supervisor: Healthy
    - All components operational
-```
 
-### `core_config`
-
-Get core configuration information.
-
-**Returns:**
-- Location name
-- Timezone
-- Unit system
-- Loaded components
-- Version
-
-**Example Usage:**
-```
 User: "What's my Home Assistant configuration?"
-Claude: [Uses core_config]
+Claude: [Uses get_system_info with info_type="config"]
 ✅ Core Configuration:
    - Location: Home
    - Timezone: America/New_York
@@ -76,23 +44,43 @@ Claude: [Uses core_config]
    - Loaded Components: 45
 ```
 
-### `get_error_log`
+### `get_system_data` (Unified Tool)
 
-Retrieve Home Assistant error logs.
+Unified system data tool that replaces `get_error_log`, `get_cache_statistics`, `get_history`, and `domain_summary`.
 
 **Parameters:**
-- `limit` (optional): Number of log entries (default: 50)
+- `data_type` (required): Type of system data. Options:
+  - `"error_log"`: Get error log
+  - `"cache_statistics"`: Get cache statistics
+  - `"history"`: Get entity history (requires `entity_id`)
+  - `"domain_summary"`: Get domain summary (requires `domain`)
+- `entity_id` (optional): Entity ID (required for `"history"` type)
+- `domain` (optional): Domain name (required for `"domain_summary"` type)
 
 **Example Usage:**
 ```
 User: "Show me the recent errors in my Home Assistant logs"
-Claude: [Uses get_error_log]
+Claude: [Uses get_system_data with data_type="error_log"]
 ⚠️ Recent Errors:
    1. [2025-01-15 10:30] Integration 'mqtt' - Connection failed
    2. [2025-01-15 09:15] Entity 'sensor.temperature' unavailable
+
+User: "Get the history for sensor.temperature"
+Claude: [Uses get_system_data with data_type="history", entity_id="sensor.temperature"]
+✅ Entity History:
+   - 2025-01-15 10:00: 22.5°C
+   - 2025-01-15 09:00: 22.3°C
+   ...
+
+User: "Get a summary of the light domain"
+Claude: [Uses get_system_data with data_type="domain_summary", domain="light"]
+✅ Light Domain Summary:
+   - Total: 23 lights
+   - States: on (15), off (8)
+   - Examples: light.living_room, light.kitchen
 ```
 
-### `get_history`
+### `get_history` (Deprecated - Use `get_system_data`)
 
 Get entity state history.
 

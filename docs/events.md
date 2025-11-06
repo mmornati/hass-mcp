@@ -4,51 +4,39 @@ Fire custom events and manage event types in Home Assistant.
 
 ## Available Tools
 
-### `fire_event`
+### `manage_events` (Unified Tool)
 
-Fire a custom event.
+Unified events tool that replaces `fire_event`, `list_event_types`, and `get_events`.
 
 **Parameters:**
-- `event_type` (required): The event type
-- `event_data` (optional): Event data dictionary
+- `action` (required): Action to perform. Options:
+  - `"fire"`: Fire a custom event (requires `event_type`)
+  - `"list_types"`: List common event types
+  - `"get"`: Get recent events (optional `entity_id` filter)
+- `event_type` (optional): Event type name (required for `"fire"` action)
+- `event_data` (optional): Event data/payload (for `"fire"` action)
+- `entity_id` (optional): Entity ID to filter events (for `"get"` action)
+- `hours` (optional): Number of hours of history to retrieve (default: 1, for `"get"` action)
 
 **Example Usage:**
 ```
 User: "Fire a custom event called 'test_event' with data {'value': 123}"
-Claude: [Uses fire_event]
+Claude: [Uses manage_events with action="fire", event_type="test_event", event_data={"value": 123}]
 ✅ Event fired successfully
-```
 
-### `list_event_types`
-
-List all event types in Home Assistant.
-
-**Example Usage:**
-```
 User: "What event types are available?"
-Claude: [Uses list_event_types]
+Claude: [Uses manage_events with action="list_types"]
 ✅ Event Types:
 - state_changed
 - automation_triggered
 - custom_event
 ...
-```
 
-### `get_events`
-
-Get recent events.
-
-**Parameters:**
-- `event_type` (optional): Filter by event type
-- `limit` (optional): Number of events to return
-
-**Example Usage:**
-```
-User: "Show me recent state_changed events"
-Claude: [Uses get_events]
+User: "Show me recent events for light.living_room"
+Claude: [Uses manage_events with action="get", entity_id="light.living_room", hours=24]
 ✅ Recent Events:
 - 2025-01-15 10:30 - state_changed (light.living_room)
-- 2025-01-15 10:29 - state_changed (switch.kitchen)
+- 2025-01-15 10:29 - state_changed (light.living_room)
 ...
 ```
 
