@@ -561,11 +561,63 @@ Results are ranked by:
 - Domain matches get boosted scores
 - Area/room matches get boosted scores
 
+## Query Intent Classification
+
+### Natural Language Understanding
+
+The query intent classification module processes natural language queries to understand user intent and extract relevant information:
+
+```python
+from app.core.vectordb.classification import process_query
+
+# Process a query
+result = await process_query("turn on the living room lights to 50% brightness")
+
+print(result["intent"])  # "CONTROL"
+print(result["action"])  # "on"
+print(result["domain"])  # "light"
+print(result["entity_filters"]["area_id"])  # "living_room"
+print(result["action_params"]["value"])  # 50
+```
+
+### Intent Types
+
+The module classifies queries into six intent types:
+- **SEARCH**: Find or discover entities
+- **CONTROL**: Control or modify entities
+- **STATUS**: Get the current status of entities
+- **CONFIGURE**: Configure or setup entities
+- **DISCOVER**: Discover related entities
+- **ANALYZE**: Analyze entity data or patterns
+
+### Integration with Semantic Search
+
+Classification results can be used to improve semantic search:
+
+```python
+from app.core.vectordb.classification import process_query
+from app.core.vectordb.search import semantic_search
+
+# Classify query
+classification = await process_query("find all temperature sensors in the kitchen")
+
+# Use classification results for semantic search
+results = await semantic_search(
+    query=classification["refined_query"],
+    domain=classification["domain"],
+    area_id=classification["entity_filters"].get("area_id"),
+    limit=10,
+)
+```
+
+For more details, see the [Query Intent Classification Guide](vectordb-classification.md).
+
 ## Related Features
 
 - **US-VD-002**: Entity Embedding and Indexing (✅ Implemented)
 - **US-VD-003**: Vector DB Configuration (✅ Implemented)
 - **US-VD-004**: Semantic Entity Search (✅ Implemented)
+- **US-VD-006**: Query Intent Classification (✅ Implemented)
 
 ## See Also
 
