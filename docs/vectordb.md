@@ -612,12 +612,54 @@ results = await semantic_search(
 
 For more details, see the [Query Intent Classification Guide](vectordb-classification.md).
 
+## Query History and Learning
+
+### Learning from User Patterns
+
+The query history and learning module stores query history and learns from user patterns:
+
+```python
+from app.core.vectordb.history import store_query_history, boost_entity_ranking
+from app.core.vectordb.search import semantic_search
+
+# Perform semantic search
+results = await semantic_search("living room lights")
+
+# Boost results based on popularity
+boosted_results = await boost_entity_ranking(results)
+
+# Store query history
+await store_query_history(
+    query="living room lights",
+    results=boosted_results,
+    selected_entity_id=boosted_results[0]["entity_id"] if boosted_results else None,
+)
+```
+
+### Query Statistics
+
+Get insights into query patterns:
+
+```python
+from app.core.vectordb.history import get_query_statistics
+
+# Get statistics for the last 30 days
+stats = await get_query_statistics(days=30)
+
+print(stats["total_queries"])  # Total number of queries
+print(stats["most_common_queries"])  # Most common queries
+print(stats["most_selected_entities"])  # Most selected entities
+```
+
+For more details, see the [Query History and Learning Guide](vectordb-history.md).
+
 ## Related Features
 
 - **US-VD-002**: Entity Embedding and Indexing (✅ Implemented)
 - **US-VD-003**: Vector DB Configuration (✅ Implemented)
 - **US-VD-004**: Semantic Entity Search (✅ Implemented)
 - **US-VD-006**: Query Intent Classification (✅ Implemented)
+- **US-VD-007**: Query History and Learning (✅ Implemented)
 
 ## See Also
 

@@ -93,6 +93,7 @@ nav:
     - Entity Indexing: vectordb-indexing.md
     - Semantic Search: vectordb-search.md
     - Query Intent Classification: vectordb-classification.md
+    - Query History and Learning: vectordb-history.md
   - Advanced:
     - Prompts: prompts.md
     - Best Practices: best-practices.md
