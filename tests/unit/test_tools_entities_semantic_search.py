@@ -62,7 +62,7 @@ class TestSemanticSearchEntitiesTool:
     async def test_semantic_search_hybrid_mode(self, mock_semantic_search, mock_get_entities):
         """Test semantic search in hybrid mode."""
         with (
-            patch("app.core.vectordb.search.semantic_search", mock_semantic_search),
+            patch("app.tools.entities.semantic_search", mock_semantic_search),
             patch("app.tools.entities.get_entities", mock_get_entities),
         ):
             result = await semantic_search_entities_tool(
@@ -82,7 +82,7 @@ class TestSemanticSearchEntitiesTool:
     async def test_semantic_search_semantic_mode(self, mock_semantic_search, mock_get_entities):
         """Test semantic search in semantic-only mode."""
         with (
-            patch("app.core.vectordb.search.semantic_search", mock_semantic_search),
+            patch("app.tools.entities.semantic_search", mock_semantic_search),
             patch("app.tools.entities.get_entities", mock_get_entities),
         ):
             result = await semantic_search_entities_tool(
@@ -98,7 +98,7 @@ class TestSemanticSearchEntitiesTool:
     async def test_semantic_search_keyword_mode(self, mock_semantic_search, mock_get_entities):
         """Test semantic search in keyword-only mode."""
         with (
-            patch("app.core.vectordb.search.semantic_search", mock_semantic_search),
+            patch("app.tools.entities.semantic_search", mock_semantic_search),
             patch("app.tools.entities.get_entities", mock_get_entities),
         ):
             result = await semantic_search_entities_tool(
@@ -116,7 +116,7 @@ class TestSemanticSearchEntitiesTool:
     ):
         """Test semantic search with domain filter."""
         with (
-            patch("app.core.vectordb.search.semantic_search", mock_semantic_search),
+            patch("app.tools.entities.semantic_search", mock_semantic_search),
             patch("app.tools.entities.get_entities", mock_get_entities),
         ):
             result = await semantic_search_entities_tool(
@@ -131,7 +131,7 @@ class TestSemanticSearchEntitiesTool:
     async def test_semantic_search_with_area_filter(self, mock_semantic_search, mock_get_entities):
         """Test semantic search with area filter."""
         with (
-            patch("app.core.vectordb.search.semantic_search", mock_semantic_search),
+            patch("app.tools.entities.semantic_search", mock_semantic_search),
             patch("app.tools.entities.get_entities", mock_get_entities),
         ):
             result = await semantic_search_entities_tool(
@@ -147,7 +147,7 @@ class TestSemanticSearchEntitiesTool:
     ):
         """Test semantic search with similarity threshold."""
         with (
-            patch("app.core.vectordb.search.semantic_search", mock_semantic_search),
+            patch("app.tools.entities.semantic_search", mock_semantic_search),
             patch("app.tools.entities.get_entities", mock_get_entities),
         ):
             result = await semantic_search_entities_tool(
@@ -161,7 +161,7 @@ class TestSemanticSearchEntitiesTool:
     async def test_semantic_search_empty_query(self, mock_semantic_search, mock_get_entities):
         """Test semantic search with empty query."""
         with (
-            patch("app.core.vectordb.search.semantic_search", mock_semantic_search),
+            patch("app.tools.entities.semantic_search", mock_semantic_search),
             patch("app.tools.entities.get_entities", mock_get_entities),
         ):
             result = await semantic_search_entities_tool(query="", search_mode="hybrid")
@@ -174,7 +174,7 @@ class TestSemanticSearchEntitiesTool:
     async def test_semantic_search_invalid_mode(self, mock_semantic_search, mock_get_entities):
         """Test semantic search with invalid search mode."""
         with (
-            patch("app.core.vectordb.search.semantic_search", mock_semantic_search),
+            patch("app.tools.entities.semantic_search", mock_semantic_search),
             patch("app.tools.entities.get_entities", mock_get_entities),
         ):
             result = await semantic_search_entities_tool(query="lights", search_mode="invalid")
@@ -189,7 +189,7 @@ class TestSemanticSearchEntitiesTool:
         mock_semantic_search.side_effect = Exception("Semantic search failed")
 
         with (
-            patch("app.core.vectordb.search.semantic_search", mock_semantic_search),
+            patch("app.tools.entities.semantic_search", mock_semantic_search),
             patch("app.tools.entities.get_entities", mock_get_entities),
         ):
             result = await semantic_search_entities_tool(query="lights", search_mode="hybrid")
@@ -201,7 +201,7 @@ class TestSemanticSearchEntitiesTool:
     async def test_semantic_search_result_format(self, mock_semantic_search, mock_get_entities):
         """Test semantic search result format."""
         with (
-            patch("app.core.vectordb.search.semantic_search", mock_semantic_search),
+            patch("app.tools.entities.semantic_search", mock_semantic_search),
             patch("app.tools.entities.get_entities", mock_get_entities),
         ):
             result = await semantic_search_entities_tool(
@@ -227,7 +227,7 @@ class TestSemanticSearchEntitiesTool:
     async def test_semantic_search_with_limit(self, mock_semantic_search, mock_get_entities):
         """Test semantic search with limit."""
         with (
-            patch("app.core.vectordb.search.semantic_search", mock_semantic_search),
+            patch("app.tools.entities.semantic_search", mock_semantic_search),
             patch("app.tools.entities.get_entities", mock_get_entities),
         ):
             result = await semantic_search_entities_tool(
@@ -241,7 +241,7 @@ class TestSemanticSearchEntitiesTool:
     async def test_semantic_search_domains_count(self, mock_semantic_search, mock_get_entities):
         """Test semantic search domains count."""
         with (
-            patch("app.core.vectordb.search.semantic_search", mock_semantic_search),
+            patch("app.tools.entities.semantic_search", mock_semantic_search),
             patch("app.tools.entities.get_entities", mock_get_entities),
         ):
             result = await semantic_search_entities_tool(query="lights", search_mode="hybrid")
