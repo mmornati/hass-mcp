@@ -208,7 +208,7 @@ class TestMCPServer:
         ]
 
         with patch(
-            "app.api.entities.get_entities", new_callable=AsyncMock, return_value=mock_entities
+            "app.tools.unified.get_entities", new_callable=AsyncMock, return_value=mock_entities
         ) as mock_get:
             # Test search with a valid query (keyword mode by default)
             result = await search_entities(query="living", search_mode="keyword")
@@ -265,7 +265,7 @@ class TestMCPServer:
         }
 
         with patch(
-            "app.api.entities.summarize_domain",
+            "app.tools.unified.summarize_domain",
             new_callable=AsyncMock,
             return_value=mock_summary,
         ) as mock_summarize:
