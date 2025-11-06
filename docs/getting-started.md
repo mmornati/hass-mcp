@@ -58,8 +58,9 @@ Docker is the easiest way to run Hass-MCP and is recommended for most users.
 
    #### Recommended Configuration with File Cache and Vector DB
 
-   For persistent cache and vector DB data, mount volumes to your home directory:
+   For persistent cache and vector DB data, mount volumes to your home directory. **Important**: Docker doesn't expand `~`, so you must use the full path.
 
+   **macOS/Linux:**
    ```json
    {
      "mcpServers": {
@@ -74,8 +75,8 @@ Docker is the easiest way to run Hass-MCP and is recommended for most users.
            "-e", "HASS_MCP_VECTOR_DB_ENABLED",
            "-e", "HASS_MCP_VECTOR_DB_BACKEND",
            "-e", "HASS_MCP_VECTOR_DB_PATH",
-           "-v", "~/.hass-mcp/cache:/app/.cache",
-           "-v", "~/.hass-mcp/vectordb:/app/.vectordb",
+           "-v", "/Users/YOUR_USERNAME/.hass-mcp/cache:/app/.cache",
+           "-v", "/Users/YOUR_USERNAME/.hass-mcp/vectordb:/app/.vectordb",
            "mmornati/hass-mcp:latest"
          ],
          "env": {
@@ -92,16 +93,70 @@ Docker is the easiest way to run Hass-MCP and is recommended for most users.
    }
    ```
 
-   **Note for Cursor on macOS/Windows**: Use the full path instead of `~`:
+   **Windows:**
    ```json
-   "-v", "/Users/YOUR_USERNAME/.hass-mcp/cache:/app/.cache",
-   "-v", "/Users/YOUR_USERNAME/.hass-mcp/vectordb:/app/.vectordb"
+   {
+     "mcpServers": {
+       "hass-mcp": {
+         "command": "docker",
+         "args": [
+           "run", "-i", "--rm",
+           "-e", "HA_URL",
+           "-e", "HA_TOKEN",
+           "-e", "HASS_MCP_CACHE_BACKEND",
+           "-e", "HASS_MCP_CACHE_DIR",
+           "-e", "HASS_MCP_VECTOR_DB_ENABLED",
+           "-e", "HASS_MCP_VECTOR_DB_BACKEND",
+           "-e", "HASS_MCP_VECTOR_DB_PATH",
+           "-v", "C:\\Users\\YOUR_USERNAME\\.hass-mcp\\cache:/app/.cache",
+           "-v", "C:\\Users\\YOUR_USERNAME\\.hass-mcp\\vectordb:/app/.vectordb",
+           "mmornati/hass-mcp:latest"
+         ],
+         "env": {
+           "HA_URL": "http://homeassistant.local:8123",
+           "HA_TOKEN": "YOUR_LONG_LIVED_TOKEN",
+           "HASS_MCP_CACHE_BACKEND": "file",
+           "HASS_MCP_CACHE_DIR": "/app/.cache",
+           "HASS_MCP_VECTOR_DB_ENABLED": "true",
+           "HASS_MCP_VECTOR_DB_BACKEND": "chroma",
+           "HASS_MCP_VECTOR_DB_PATH": "/app/.vectordb"
+         }
+       }
+     }
+   }
    ```
 
-   Or on Windows:
+   **Linux:**
    ```json
-   "-v", "C:\\Users\\YOUR_USERNAME\\.hass-mcp\\cache:/app/.cache",
-   "-v", "C:\\Users\\YOUR_USERNAME\\.hass-mcp\\vectordb:/app/.vectordb"
+   {
+     "mcpServers": {
+       "hass-mcp": {
+         "command": "docker",
+         "args": [
+           "run", "-i", "--rm",
+           "-e", "HA_URL",
+           "-e", "HA_TOKEN",
+           "-e", "HASS_MCP_CACHE_BACKEND",
+           "-e", "HASS_MCP_CACHE_DIR",
+           "-e", "HASS_MCP_VECTOR_DB_ENABLED",
+           "-e", "HASS_MCP_VECTOR_DB_BACKEND",
+           "-e", "HASS_MCP_VECTOR_DB_PATH",
+           "-v", "/home/YOUR_USERNAME/.hass-mcp/cache:/app/.cache",
+           "-v", "/home/YOUR_USERNAME/.hass-mcp/vectordb:/app/.vectordb",
+           "mmornati/hass-mcp:latest"
+         ],
+         "env": {
+           "HA_URL": "http://homeassistant.local:8123",
+           "HA_TOKEN": "YOUR_LONG_LIVED_TOKEN",
+           "HASS_MCP_CACHE_BACKEND": "file",
+           "HASS_MCP_CACHE_DIR": "/app/.cache",
+           "HASS_MCP_VECTOR_DB_ENABLED": "true",
+           "HASS_MCP_VECTOR_DB_BACKEND": "chroma",
+           "HASS_MCP_VECTOR_DB_PATH": "/app/.vectordb"
+         }
+       }
+     }
+   }
    ```
 
    #### Configuration Explanation
