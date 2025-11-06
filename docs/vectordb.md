@@ -653,6 +653,38 @@ print(stats["most_selected_entities"])  # Most selected entities
 
 For more details, see the [Query History and Learning Guide](vectordb-history.md).
 
+## Entity Relationship Graph
+
+### Understanding Entity Relationships
+
+The entity relationship graph module builds and maintains entity relationships:
+
+```python
+from app.core.vectordb.relationships import build_relationship_graph, get_entities_in_area
+
+# Build relationship graph
+result = await build_relationship_graph()
+
+# Get entities in an area
+entities = await get_entities_in_area("living_room")
+```
+
+### Relationship Queries
+
+Find entities by relationship type:
+
+```python
+from app.core.vectordb.relationships import get_related_entities
+
+# Get related entities
+related = await get_related_entities("light.living_room")
+
+for entity_info in related:
+    print(f"{entity_info['entity_id']} via {entity_info['relationship_type']}")
+```
+
+For more details, see the [Entity Relationship Graph Guide](vectordb-relationships.md).
+
 ## Related Features
 
 - **US-VD-002**: Entity Embedding and Indexing (✅ Implemented)
@@ -660,6 +692,7 @@ For more details, see the [Query History and Learning Guide](vectordb-history.md
 - **US-VD-004**: Semantic Entity Search (✅ Implemented)
 - **US-VD-006**: Query Intent Classification (✅ Implemented)
 - **US-VD-007**: Query History and Learning (✅ Implemented)
+- **US-VD-008**: Entity Relationship Graph (✅ Implemented)
 
 ## See Also
 

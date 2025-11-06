@@ -31,6 +31,14 @@ from app.core.vectordb.indexing import (
     update_entity_index,
 )
 from app.core.vectordb.manager import VectorDBManager, get_vectordb_manager
+from app.core.vectordb.relationships import (
+    build_relationship_graph,
+    find_entities_by_relationship,
+    get_entities_from_device,
+    get_entities_in_area,
+    get_related_entities,
+    get_relationship_statistics,
+)
 from app.core.vectordb.search import semantic_search
 
 __all__ = [
@@ -59,4 +67,10 @@ __all__ = [
     "get_query_statistics",
     "get_entity_popularity",
     "boost_entity_ranking",
+    "build_relationship_graph",
+    "find_entities_by_relationship",
+    "get_entities_in_area",
+    "get_entities_from_device",
+    "get_related_entities",
+    "get_relationship_statistics",
 ]
