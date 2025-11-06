@@ -25,16 +25,40 @@ Before you begin, make sure you have:
 
 Docker is the easiest way to run Hass-MCP and is recommended for most users.
 
+#### Available Docker Images
+
+Hass-MCP provides two Docker images:
+
+1. **Base Image** (`mmornati/hass-mcp:latest` or `mmornati/hass-mcp:latest-vectordb`)
+   - **Size**: ~200-300MB (base) or ~2GB (with VectorDB)
+   - **VectorDB**: Disabled by default (base) or enabled (vectordb tag)
+   - **Use Case**: Base image for minimal deployments or when using external VectorDB server
+
+2. **VectorDB Image** (`mmornati/hass-mcp:latest-vectordb`)
+   - **Size**: ~2GB
+   - **VectorDB**: Enabled by default with CPU-only PyTorch
+   - **Use Case**: Full semantic search capabilities with built-in embeddings
+
+**Choose based on your needs:**
+- **Base image** (`latest`): Smaller, faster pulls, no ML dependencies. Use if you don't need semantic search or want to use an external VectorDB server.
+- **VectorDB image** (`latest-vectordb`): Full semantic search with built-in embeddings. Use if you want semantic search without external dependencies.
+
 1. **Pull the Docker image:**
    ```bash
+   # Base image (without VectorDB)
    docker pull mmornati/hass-mcp:latest
+
+   # Or VectorDB image (with semantic search)
+   docker pull mmornati/hass-mcp:latest-vectordb
    ```
 
 2. **Configure Claude Desktop or Cursor:**
 
    Open your MCP client settings (Claude Desktop: Developer → Edit Config, or Cursor: Settings → MCP) and add:
 
-   #### Basic Configuration
+   #### Basic Configuration (Base Image - No VectorDB)
+
+   This configuration uses the base image without VectorDB dependencies (~200-300MB):
 
    ```json
    {
@@ -56,9 +80,11 @@ Docker is the easiest way to run Hass-MCP and is recommended for most users.
    }
    ```
 
-   #### Recommended Configuration with File Cache and Vector DB
+   **Note**: VectorDB is disabled by default in the base image. Semantic search features will fall back to keyword search.
 
-   For persistent cache and vector DB data, mount volumes to your home directory. **Important**: Docker doesn't expand `~`, so you must use the full path.
+   #### Configuration with VectorDB (Built-in Semantic Search)
+
+   This configuration uses the VectorDB image (`latest-vectordb`) with built-in semantic search capabilities:
 
    **macOS/Linux:**
    ```json
@@ -77,7 +103,7 @@ Docker is the easiest way to run Hass-MCP and is recommended for most users.
            "-e", "HASS_MCP_VECTOR_DB_PATH",
            "-v", "/Users/YOUR_USERNAME/.hass-mcp/cache:/app/.cache",
            "-v", "/Users/YOUR_USERNAME/.hass-mcp/vectordb:/app/.vectordb",
-           "mmornati/hass-mcp:latest"
+           "mmornati/hass-mcp:latest-vectordb"
          ],
          "env": {
            "HA_URL": "http://homeassistant.local:8123",
@@ -110,7 +136,7 @@ Docker is the easiest way to run Hass-MCP and is recommended for most users.
            "-e", "HASS_MCP_VECTOR_DB_PATH",
            "-v", "C:\\Users\\YOUR_USERNAME\\.hass-mcp\\cache:/app/.cache",
            "-v", "C:\\Users\\YOUR_USERNAME\\.hass-mcp\\vectordb:/app/.vectordb",
-           "mmornati/hass-mcp:latest"
+           "mmornati/hass-mcp:latest-vectordb"
          ],
          "env": {
            "HA_URL": "http://homeassistant.local:8123",
@@ -143,7 +169,7 @@ Docker is the easiest way to run Hass-MCP and is recommended for most users.
            "-e", "HASS_MCP_VECTOR_DB_PATH",
            "-v", "/home/YOUR_USERNAME/.hass-mcp/cache:/app/.cache",
            "-v", "/home/YOUR_USERNAME/.hass-mcp/vectordb:/app/.vectordb",
-           "mmornati/hass-mcp:latest"
+           "mmornati/hass-mcp:latest-vectordb"
          ],
          "env": {
            "HA_URL": "http://homeassistant.local:8123",
@@ -159,17 +185,78 @@ Docker is the easiest way to run Hass-MCP and is recommended for most users.
    }
    ```
 
+   #### Configuration with External VectorDB Server
+
+   **Note**: External VectorDB backends (Qdrant, Weaviate, Pinecone) are planned but not yet implemented. This section shows the configuration for when they become available.
+
+   If you're using a separate VectorDB server (e.g., Qdrant, Weaviate, Pinecone), use the base image and configure it to connect to your external server:
+
+   **macOS/Linux:**
+   ```json
+   {
+     "mcpServers": {
+       "hass-mcp": {
+         "command": "docker",
+         "args": [
+           "run", "-i", "--rm",
+           "-e", "HA_URL",
+           "-e", "HA_TOKEN",
+           "-e", "HASS_MCP_CACHE_BACKEND",
+           "-e", "HASS_MCP_CACHE_DIR",
+           "-e", "HASS_MCP_VECTOR_DB_ENABLED",
+           "-e", "HASS_MCP_VECTOR_DB_BACKEND",
+           "-e", "HASS_MCP_QDRANT_URL",
+           "-e", "HASS_MCP_EMBEDDING_MODEL",
+           "-e", "HASS_MCP_OPENAI_API_KEY",
+           "-v", "/Users/YOUR_USERNAME/.hass-mcp/cache:/app/.cache",
+           "mmornati/hass-mcp:latest"
+         ],
+         "env": {
+           "HA_URL": "http://homeassistant.local:8123",
+           "HA_TOKEN": "YOUR_LONG_LIVED_TOKEN",
+           "HASS_MCP_CACHE_BACKEND": "file",
+           "HASS_MCP_CACHE_DIR": "/app/.cache",
+           "HASS_MCP_VECTOR_DB_ENABLED": "true",
+           "HASS_MCP_VECTOR_DB_BACKEND": "qdrant",
+           "HASS_MCP_QDRANT_URL": "http://your-qdrant-server:6333",
+           "HASS_MCP_EMBEDDING_MODEL": "openai",
+           "HASS_MCP_OPENAI_API_KEY": "your-openai-api-key"
+         }
+       }
+     }
+   }
+   ```
+
+   **Supported External VectorDB Backends** (when implemented):
+   - **Qdrant**: `HASS_MCP_VECTOR_DB_BACKEND=qdrant`, `HASS_MCP_QDRANT_URL=http://qdrant-server:6333`, `HASS_MCP_QDRANT_API_KEY=your-api-key` (optional)
+   - **Weaviate**: `HASS_MCP_VECTOR_DB_BACKEND=weaviate`, `HASS_MCP_WEAVIATE_URL=http://weaviate-server:8080`, `HASS_MCP_WEAVIATE_API_KEY=your-api-key` (optional)
+   - **Pinecone**: `HASS_MCP_VECTOR_DB_BACKEND=pinecone`, `HASS_MCP_PINECONE_API_KEY=your-api-key`, `HASS_MCP_PINECONE_ENVIRONMENT=us-east-1`
+
+   **Note**: When using external VectorDB servers with the base image, you need embedding models. You can:
+   - Use cloud embeddings (OpenAI, Cohere) with `HASS_MCP_EMBEDDING_MODEL=openai` or `cohere` (requires API keys)
+   - Or use the VectorDB image (`latest-vectordb`) which includes sentence-transformers for local embeddings
+
    #### Configuration Explanation
 
+   **Base Image (`latest`):**
+   - **Size**: ~200-300MB (no ML dependencies)
    - **File Cache**: `HASS_MCP_CACHE_BACKEND=file` enables persistent file-based caching
    - **Cache Directory**: `HASS_MCP_CACHE_DIR=/app/.cache` sets the cache location (mounted to `~/.hass-mcp/cache`)
-   - **Vector DB**: `HASS_MCP_VECTOR_DB_ENABLED=true` enables semantic search features
+   - **Vector DB**: `HASS_MCP_VECTOR_DB_ENABLED=false` by default (can be enabled for external servers)
+   - **Use Case**: Minimal deployments, external VectorDB servers, or when semantic search is not needed
+
+   **VectorDB Image (`latest-vectordb`):**
+   - **Size**: ~2GB (includes CPU-only PyTorch and sentence-transformers)
+   - **File Cache**: Same as base image
+   - **Vector DB**: `HASS_MCP_VECTOR_DB_ENABLED=true` by default
    - **Chroma Backend**: `HASS_MCP_VECTOR_DB_BACKEND=chroma` uses ChromaDB for vector storage
    - **Vector DB Path**: `HASS_MCP_VECTOR_DB_PATH=/app/.vectordb` sets the vector DB location (mounted to `~/.hass-mcp/vectordb`)
+   - **Embeddings**: Includes sentence-transformers for local embeddings (no API keys needed)
+   - **Use Case**: Full semantic search capabilities with built-in embeddings
 
    The volume mounts (`-v`) ensure that:
    - Cache data persists between container restarts
-   - Vector DB embeddings are preserved
+   - Vector DB embeddings are preserved (when using built-in ChromaDB)
    - Data is stored in your home directory for easy access
 
 3. **Create Directories (Optional but Recommended):**
