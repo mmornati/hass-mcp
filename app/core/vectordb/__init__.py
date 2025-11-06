@@ -13,6 +13,10 @@ from app.core.vectordb.classification import (
     refine_query,
 )
 from app.core.vectordb.config import VectorDBConfig, get_vectordb_config
+from app.core.vectordb.description import (
+    generate_entity_description_batch,
+    generate_entity_description_enhanced,
+)
 from app.core.vectordb.history import (
     boost_entity_ranking,
     clear_query_history,
@@ -47,6 +51,8 @@ __all__ = [
     "VectorDBManager",
     "get_vectordb_manager",
     "generate_entity_description",
+    "generate_entity_description_enhanced",
+    "generate_entity_description_batch",
     "generate_entity_metadata",
     "index_entity",
     "index_entities",
