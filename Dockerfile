@@ -11,8 +11,8 @@ COPY . .
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONPATH=/app
 
-# Install package with UV (using --system flag)
-RUN uv pip install --system -e .
+# Install package with UV (using --system flag) including vectordb dependencies
+RUN uv pip install --system -e ".[vectordb]"
 
 # Run the MCP server with stdio communication using the module directly
 ENTRYPOINT ["python", "-m", "app"]
