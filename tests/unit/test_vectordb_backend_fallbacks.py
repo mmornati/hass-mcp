@@ -17,9 +17,17 @@ class TestBackendFallbacks:
         config = VectorDBConfig()
         config._config_data["backend"] = "qdrant"
 
-        manager = VectorDBManager(config)
-        with pytest.raises(NotImplementedError, match="not yet implemented"):
-            await manager.initialize()
+        # Mock embedding model to avoid import errors
+        mock_embedding = MagicMock()
+        mock_embedding.initialize = AsyncMock()
+
+        with patch(
+            "app.core.vectordb.manager.EmbeddingModel",
+            return_value=mock_embedding,
+        ):
+            manager = VectorDBManager(config)
+            with pytest.raises(NotImplementedError, match="not yet implemented"):
+                await manager.initialize()
 
     @pytest.mark.asyncio
     async def test_weaviate_backend_not_implemented(self):
@@ -27,9 +35,17 @@ class TestBackendFallbacks:
         config = VectorDBConfig()
         config._config_data["backend"] = "weaviate"
 
-        manager = VectorDBManager(config)
-        with pytest.raises(NotImplementedError, match="not yet implemented"):
-            await manager.initialize()
+        # Mock embedding model to avoid import errors
+        mock_embedding = MagicMock()
+        mock_embedding.initialize = AsyncMock()
+
+        with patch(
+            "app.core.vectordb.manager.EmbeddingModel",
+            return_value=mock_embedding,
+        ):
+            manager = VectorDBManager(config)
+            with pytest.raises(NotImplementedError, match="not yet implemented"):
+                await manager.initialize()
 
     @pytest.mark.asyncio
     async def test_pinecone_backend_not_implemented(self):
@@ -37,9 +53,17 @@ class TestBackendFallbacks:
         config = VectorDBConfig()
         config._config_data["backend"] = "pinecone"
 
-        manager = VectorDBManager(config)
-        with pytest.raises(NotImplementedError, match="not yet implemented"):
-            await manager.initialize()
+        # Mock embedding model to avoid import errors
+        mock_embedding = MagicMock()
+        mock_embedding.initialize = AsyncMock()
+
+        with patch(
+            "app.core.vectordb.manager.EmbeddingModel",
+            return_value=mock_embedding,
+        ):
+            manager = VectorDBManager(config)
+            with pytest.raises(NotImplementedError, match="not yet implemented"):
+                await manager.initialize()
 
     @pytest.mark.asyncio
     async def test_invalid_backend_fallback(self):
@@ -47,9 +71,17 @@ class TestBackendFallbacks:
         config = VectorDBConfig()
         config._config_data["backend"] = "invalid_backend"
 
-        manager = VectorDBManager(config)
-        with pytest.raises(ValueError, match="Unsupported"):
-            await manager.initialize()
+        # Mock embedding model to avoid import errors
+        mock_embedding = MagicMock()
+        mock_embedding.initialize = AsyncMock()
+
+        with patch(
+            "app.core.vectordb.manager.EmbeddingModel",
+            return_value=mock_embedding,
+        ):
+            manager = VectorDBManager(config)
+            with pytest.raises(ValueError, match="Unsupported"):
+                await manager.initialize()
 
     @pytest.mark.asyncio
     async def test_chroma_backend_import_error(self):
@@ -76,9 +108,18 @@ class TestBackendFallbacks:
         mock_chroma_backend.initialize = AsyncMock(side_effect=Exception("Initialization error"))
         mock_chroma_backend.health_check = AsyncMock(return_value=True)
 
-        with patch(
-            "app.core.vectordb.manager.ChromaBackend",
-            return_value=mock_chroma_backend,
+        mock_embedding = MagicMock()
+        mock_embedding.initialize = AsyncMock()
+
+        with (
+            patch(
+                "app.core.vectordb.manager.ChromaBackend",
+                return_value=mock_chroma_backend,
+            ),
+            patch(
+                "app.core.vectordb.manager.EmbeddingModel",
+                return_value=mock_embedding,
+            ),
         ):
             manager = VectorDBManager(config)
             with pytest.raises(Exception, match="Initialization error"):

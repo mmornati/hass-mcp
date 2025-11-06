@@ -57,7 +57,9 @@ async def test_search_performance():
         pytest.skip("No entities available")
 
     # Index some entities
-    entity_ids = [e["entity_id"] for e in entities[:50]]
+    entity_ids = [e.get("entity_id") for e in entities[:50] if e.get("entity_id")]
+    if not entity_ids:
+        pytest.skip("No valid entity IDs available")
     await index_entities(entity_ids)
 
     # Test search performance with different queries
@@ -81,6 +83,14 @@ async def test_embedding_generation_performance():
     manager = get_vectordb_manager()
     if not manager.config.is_enabled():
         pytest.skip("Vector DB is not enabled")
+
+    # Check if embedding model is available
+    try:
+        await manager.initialize()
+    except (ImportError, Exception) as e:
+        if "not installed" in str(e).lower() or "not available" in str(e).lower():
+            pytest.skip(f"Embedding model not available: {e}")
+        raise
 
     # Test with different text lengths
     texts = [
@@ -120,7 +130,9 @@ async def test_concurrent_operations():
         pytest.skip("No entities available")
 
     # Index some entities
-    entity_ids = [e["entity_id"] for e in entities[:20]]
+    entity_ids = [e.get("entity_id") for e in entities[:20] if e.get("entity_id")]
+    if not entity_ids:
+        pytest.skip("No valid entity IDs available")
     await index_entities(entity_ids)
 
     # Perform concurrent searches
@@ -152,7 +164,9 @@ async def test_large_entity_set():
         pytest.skip("Not enough entities available for large set test")
 
     # Use up to 1000 entities
-    entity_ids = [e["entity_id"] for e in entities[:1000]]
+    entity_ids = [e.get("entity_id") for e in entities[:1000] if e.get("entity_id")]
+    if not entity_ids:
+        pytest.skip("No valid entity IDs available")
 
     start_time = time.time()
     result = await index_entities(entity_ids)
