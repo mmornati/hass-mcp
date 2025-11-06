@@ -96,6 +96,7 @@ nav:
     - Query History and Learning: vectordb-history.md
     - Entity Relationship Graph: vectordb-relationships.md
     - Natural Language Query Processing: query-processing.md
+    - Entity Description Generation: entity-descriptions.md
   - Advanced:
     - Prompts: prompts.md
     - Best Practices: best-practices.md

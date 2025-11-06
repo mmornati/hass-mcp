@@ -739,6 +739,47 @@ The tool processes queries through:
 
 For more details, see the [Natural Language Query Processing Guide](query-processing.md).
 
+## Entity Description Generation
+
+### Enhanced Description Generation
+
+The entity description generation module provides enhanced descriptions with templates and context-aware information:
+
+```python
+from app.core.vectordb.description import generate_entity_description_enhanced
+
+# Generate enhanced description
+description = await generate_entity_description_enhanced(
+    entity, use_template=True, language="en"
+)
+```
+
+### Description Templates
+
+The module uses domain-specific templates for consistent descriptions:
+- **Light**: Includes capabilities, manufacturer, model
+- **Sensor**: Includes device class, unit of measurement
+- **Climate**: Includes current and target temperature, HVAC mode
+- **Switch**: Includes device name and state
+- **Default**: Generic template for unknown domains
+
+### MCP Tools
+
+The description generation is available as MCP tools:
+
+```python
+from app.tools.entity_descriptions import generate_entity_description_tool
+
+# Generate description via MCP tool
+result = await generate_entity_description_tool(
+    entity_id="light.living_room",
+    use_template=True,
+    language="en",
+)
+```
+
+For more details, see the [Entity Description Generation Guide](entity-descriptions.md).
+
 ## Related Features
 
 - **US-VD-002**: Entity Embedding and Indexing (✅ Implemented)
@@ -749,6 +790,7 @@ For more details, see the [Natural Language Query Processing Guide](query-proces
 - **US-VD-008**: Entity Relationship Graph (✅ Implemented)
 - **US-VD-009**: Enhanced Entity Search Tool (✅ Implemented)
 - **US-VD-010**: Natural Language Query Processing (✅ Implemented)
+- **US-VD-011**: Entity Description Generation (✅ Implemented)
 
 ## See Also
 
