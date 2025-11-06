@@ -209,7 +209,7 @@ class TestMCPToolsFunctionality:
         ]
 
         with patch(
-            "app.tools.unified.get_entities", new_callable=AsyncMock, return_value=mock_entities
+            "app.api.entities.get_entities", new_callable=AsyncMock, return_value=mock_entities
         ):
             result = await search_entities(domain="light", search_mode="keyword")
 
@@ -279,7 +279,7 @@ class TestMCPToolsFunctionality:
         mock_version = "2025.3.0"
 
         with patch(
-            "app.tools.unified.system.get_hass_version",
+            "app.api.system.get_hass_version",
             new_callable=AsyncMock,
             return_value=mock_version,
         ):
@@ -401,7 +401,7 @@ class TestMCPToolsFunctionality:
         }
 
         with patch(
-            "app.tools.unified.system.get_system_overview",
+            "app.api.system.get_system_overview",
             new_callable=AsyncMock,
             return_value=mock_overview,
         ):
@@ -483,7 +483,7 @@ class TestMCPToolsFunctionality:
         ]
 
         with patch(
-            "app.tools.unified.webhooks.list_webhooks",
+            "app.api.webhooks.list_webhooks",
             new_callable=AsyncMock,
             return_value=mock_webhooks,
         ):
@@ -555,7 +555,7 @@ class TestMCPToolErrorHandling:
         error_response = {"error": "Connection error"}
 
         with patch(
-            "app.tools.unified.get_entities", new_callable=AsyncMock, return_value=error_response
+            "app.api.entities.get_entities", new_callable=AsyncMock, return_value=error_response
         ):
             result = await search_entities(search_mode="keyword")
 

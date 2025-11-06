@@ -208,13 +208,15 @@ class TestMCPServer:
         ]
 
         with patch(
-            "app.tools.unified.get_entities", new_callable=AsyncMock, return_value=mock_entities
+            "app.api.entities.get_entities", new_callable=AsyncMock, return_value=mock_entities
         ) as mock_get:
             # Test search with a valid query (keyword mode by default)
             result = await search_entities(query="living", search_mode="keyword")
 
             # Verify the function was called with the right parameters including lean format
-            mock_get.assert_called_once_with(search_query="living", limit=100, lean=True)
+            mock_get.assert_called_once_with(
+                domain=None, search_query="living", limit=100, lean=True
+            )
 
             # Check that the result contains the expected entity data
             assert result["count"] == 2
@@ -238,12 +240,12 @@ class TestMCPServer:
             # Test with custom limit as an integer
             mock_get.reset_mock()
             result = await search_entities(query="light", limit=5, search_mode="keyword")
-            mock_get.assert_called_once_with(search_query="light", limit=5, lean=True)
+            mock_get.assert_called_once_with(domain=None, search_query="light", limit=5, lean=True)
 
             # Test with a different limit to ensure it's respected
             mock_get.reset_mock()
             result = await search_entities(query="light", limit=10, search_mode="keyword")
-            mock_get.assert_called_once_with(search_query="light", limit=10, lean=True)
+            mock_get.assert_called_once_with(domain=None, search_query="light", limit=10, lean=True)
 
     @pytest.mark.asyncio
     async def test_get_system_data_domain_summary(self):
@@ -263,7 +265,7 @@ class TestMCPServer:
         }
 
         with patch(
-            "app.tools.unified.summarize_domain",
+            "app.api.entities.summarize_domain",
             new_callable=AsyncMock,
             return_value=mock_summary,
         ) as mock_summarize:
@@ -339,7 +341,7 @@ class TestMCPServer:
         }
 
         with patch(
-            "app.tools.unified.system.get_system_health",
+            "app.api.system.get_system_health",
             new_callable=AsyncMock,
             return_value=mock_health_data,
         ) as mock_get:
@@ -372,7 +374,7 @@ class TestMCPServer:
         }
 
         with patch(
-            "app.tools.unified.system.get_core_config",
+            "app.api.system.get_core_config",
             new_callable=AsyncMock,
             return_value=mock_config_data,
         ) as mock_get:
@@ -391,7 +393,7 @@ class TestMCPServer:
         # Test version info_type
         mock_version = "2025.3.0"
         with patch(
-            "app.tools.unified.system.get_hass_version",
+            "app.api.system.get_hass_version",
             new_callable=AsyncMock,
             return_value=mock_version,
         ) as mock_get:
