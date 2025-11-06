@@ -29,11 +29,10 @@ class TestMCPServerToolRegistration:
 
         # Expected tool categories and their counts
         expected_tools = {
-            # Entities (4 tools)
+            # Entities (3 tools)
             "get_entity",
             "entity_action",
-            "list_entities",
-            "search_entities_tool",
+            "search_entities",  # Unified tool replacing list_entities, search_entities_tool, semantic_search_entities_tool
             # Automations (10 tools)
             "list_automations",
             "get_automation_config",
@@ -50,18 +49,16 @@ class TestMCPServerToolRegistration:
             "get_script",
             "run_script",
             "reload_scripts",
-            # Devices (4 tools)
-            "list_devices",
-            "get_device",
-            "get_device_entities",
-            "get_device_stats",
-            # Areas (6 tools)
-            "list_areas",
-            "get_area_entities",
-            "create_area",
-            "update_area",
-            "delete_area",
-            "get_area_summary",
+            # Devices (3 tools)
+            "list_devices",  # Via list_items
+            "get_device",  # Via get_item
+            "get_item_entities",  # Unified tool replacing get_device_entities, get_area_entities
+            "get_item_summary",  # Unified tool replacing get_device_stats, get_area_summary
+            # Areas (4 tools)
+            "list_areas",  # Via list_items
+            "create_area",  # Via manage_item
+            "update_area",  # Via manage_item
+            "delete_area",  # Via manage_item
             # Scenes (5 tools)
             "list_scenes",
             "get_scene",
@@ -72,32 +69,20 @@ class TestMCPServerToolRegistration:
             "list_integrations",
             "get_integration_config",
             "reload_integration",
-            # System (8 tools)
-            "get_version",
-            "system_overview",
-            "get_error_log",
-            "system_health",
-            "core_config",
+            # System (3 tools)
+            "get_system_info",  # Unified tool replacing get_version, system_overview, system_health, core_config
+            "get_system_data",  # Unified tool replacing get_error_log, get_cache_statistics, get_history, domain_summary
             "restart_ha",
-            "get_history",
-            "domain_summary",
             # Services (1 tool)
             "call_service",
             # Templates (1 tool)
             "test_template",
-            # Logbook (3 tools)
-            "get_logbook",
-            "get_entity_logbook",
-            "search_logbook",
-            # Statistics (3 tools)
-            "get_entity_statistics",
-            "get_domain_statistics",
-            "analyze_usage_patterns",
-            # Diagnostics (4 tools)
-            "diagnose_entity",
-            "check_entity_dependencies",
-            "analyze_automation_conflicts",
-            "get_integration_errors",
+            # Logbook (1 tool)
+            "get_logbook",  # Unified tool replacing get_logbook, get_entity_logbook, search_logbook
+            # Statistics (1 tool)
+            "get_statistics",  # Unified tool replacing get_entity_statistics, get_domain_statistics, analyze_usage_patterns
+            # Diagnostics (1 tool)
+            "diagnose",  # Unified tool replacing diagnose_entity, check_entity_dependencies, analyze_automation_conflicts, get_integration_errors
             # Blueprints (4 tools)
             "list_blueprints",
             "get_blueprint",
@@ -108,14 +93,10 @@ class TestMCPServerToolRegistration:
             "create_zone",
             "update_zone",
             "delete_zone",
-            # Events (3 tools)
-            "fire_event",
-            "list_event_types",
-            "get_events",
-            # Notifications (3 tools)
-            "list_notification_services",
-            "send_notification",
-            "test_notification",
+            # Events (1 tool)
+            "manage_events",  # Unified tool replacing fire_event, list_event_types, get_events
+            # Notifications (1 tool)
+            "manage_notifications",  # Unified tool replacing list_notification_services, send_notification, test_notification
             # Calendars (3 tools)
             "list_calendars",
             "get_calendar_events",
@@ -129,9 +110,8 @@ class TestMCPServerToolRegistration:
             "create_tag",
             "delete_tag",
             "get_tag_automations",
-            # Webhooks (2 tools)
-            "list_webhooks",
-            "test_webhook",
+            # Webhooks (1 tool)
+            "manage_webhooks",  # Unified tool replacing list_webhooks, test_webhook
             # Backups (4 tools)
             "list_backups",
             "create_backup",
@@ -154,10 +134,9 @@ class TestMCPServerToolRegistration:
             get_automation_config_tool,
             get_automation_execution_log_tool,
             get_entity,
-            get_version,
+            get_system_info,  # Unified tool replacing get_version
             list_automations,
-            list_entities,
-            search_entities_tool,
+            search_entities,  # Unified tool replacing list_entities, search_entities_tool
             trigger_automation_tool,
             update_automation_tool,
             validate_automation_config_tool,
@@ -166,8 +145,7 @@ class TestMCPServerToolRegistration:
         # Verify functions exist and are callable
         assert callable(get_entity)
         assert callable(entity_action)
-        assert callable(list_entities)
-        assert callable(search_entities_tool)
+        assert callable(search_entities)  # Unified tool
         assert callable(list_automations)
         assert callable(get_automation_config_tool)
         assert callable(create_automation_tool)
@@ -179,12 +157,12 @@ class TestMCPServerToolRegistration:
         assert callable(get_automation_execution_log_tool)
         assert callable(validate_automation_config_tool)
         assert callable(call_service_tool)
-        assert callable(get_version)
+        assert callable(get_system_info)  # Unified tool replacing get_version
 
         # Verify they are async functions
         assert inspect.iscoroutinefunction(get_entity)
         assert inspect.iscoroutinefunction(entity_action)
-        assert inspect.iscoroutinefunction(list_entities)
+        assert inspect.iscoroutinefunction(search_entities)  # Unified tool
 
 
 class TestMCPToolsFunctionality:
@@ -221,9 +199,9 @@ class TestMCPToolsFunctionality:
             assert result["state"] == "on"
 
     @pytest.mark.asyncio
-    async def test_list_entities_tool(self):
-        """Test list_entities tool works correctly."""
-        from app.tools.entities import list_entities
+    async def test_search_entities_tool(self):
+        """Test search_entities unified tool works correctly."""
+        from app.tools.unified import search_entities
 
         mock_entities = [
             {"entity_id": "light.living_room", "state": "on"},
@@ -231,12 +209,13 @@ class TestMCPToolsFunctionality:
         ]
 
         with patch(
-            "app.tools.entities.get_entities", new_callable=AsyncMock, return_value=mock_entities
+            "app.tools.unified.get_entities", new_callable=AsyncMock, return_value=mock_entities
         ):
-            result = await list_entities(domain="light")
+            result = await search_entities(domain="light", search_mode="keyword")
 
-            assert isinstance(result, list)
-            assert len(result) == 2
+            assert isinstance(result, dict)
+            assert "results" in result
+            assert len(result["results"]) == 2
 
     @pytest.mark.asyncio
     async def test_entity_action_tool(self):
@@ -293,16 +272,18 @@ class TestMCPToolsFunctionality:
             assert "result" in result
 
     @pytest.mark.asyncio
-    async def test_get_version_tool(self):
-        """Test get_version tool works correctly."""
-        from app.tools.system import get_version
+    async def test_get_system_info_tool(self):
+        """Test get_system_info unified tool works correctly."""
+        from app.tools.unified import get_system_info
 
         mock_version = "2025.3.0"
 
         with patch(
-            "app.tools.system.get_hass_version", new_callable=AsyncMock, return_value=mock_version
+            "app.tools.unified.system.get_hass_version",
+            new_callable=AsyncMock,
+            return_value=mock_version,
         ):
-            result = await get_version()
+            result = await get_system_info(info_type="version")
 
             assert isinstance(result, str)
             assert result == "2025.3.0"
@@ -409,9 +390,9 @@ class TestMCPToolsFunctionality:
             assert len(result) == 1
 
     @pytest.mark.asyncio
-    async def test_system_overview_tool(self):
-        """Test system_overview tool works correctly."""
-        from app.tools.system import system_overview
+    async def test_get_system_info_overview(self):
+        """Test get_system_info unified tool with overview info_type."""
+        from app.tools.unified import get_system_info
 
         mock_overview = {
             "total_entities": 100,
@@ -420,11 +401,11 @@ class TestMCPToolsFunctionality:
         }
 
         with patch(
-            "app.tools.system.get_system_overview",
+            "app.tools.unified.system.get_system_overview",
             new_callable=AsyncMock,
             return_value=mock_overview,
         ):
-            result = await system_overview()
+            result = await get_system_info(info_type="overview")
 
             assert isinstance(result, dict)
             assert "total_entities" in result
@@ -490,9 +471,9 @@ class TestMCPToolsFunctionality:
             assert len(result) == 2
 
     @pytest.mark.asyncio
-    async def test_list_webhooks_tool(self):
-        """Test list_webhooks tool works correctly."""
-        from app.tools.webhooks import list_webhooks_tool
+    async def test_manage_webhooks_tool(self):
+        """Test manage_webhooks unified tool works correctly."""
+        from app.tools.unified import manage_webhooks
 
         mock_webhooks = [
             {
@@ -502,9 +483,11 @@ class TestMCPToolsFunctionality:
         ]
 
         with patch(
-            "app.tools.webhooks.list_webhooks", new_callable=AsyncMock, return_value=mock_webhooks
+            "app.tools.unified.webhooks.list_webhooks",
+            new_callable=AsyncMock,
+            return_value=mock_webhooks,
         ):
-            result = await list_webhooks_tool()
+            result = await manage_webhooks(action="list")
 
             assert isinstance(result, list)
             assert len(result) == 1
@@ -565,16 +548,16 @@ class TestMCPToolErrorHandling:
             assert "error" in result
 
     @pytest.mark.asyncio
-    async def test_list_entities_with_error(self):
-        """Test list_entities handles errors gracefully."""
-        from app.server import list_entities
+    async def test_search_entities_with_error(self):
+        """Test search_entities handles errors gracefully."""
+        from app.server import search_entities
 
         error_response = {"error": "Connection error"}
 
         with patch(
-            "app.tools.entities.get_entities", new_callable=AsyncMock, return_value=error_response
+            "app.tools.unified.get_entities", new_callable=AsyncMock, return_value=error_response
         ):
-            result = await list_entities()
+            result = await search_entities(search_mode="keyword")
 
             assert isinstance(result, dict)
             assert "error" in result
@@ -584,18 +567,16 @@ class TestMCPToolImportPaths:
     """Test that all tools can be imported from their new locations."""
 
     def test_entities_tools_import(self):
-        """Test entities tools can be imported from app.tools.entities."""
+        """Test entities tools can be imported from app.tools.entities and app.tools.unified."""
         from app.tools.entities import (
             entity_action,
             get_entity,
-            list_entities,
-            search_entities_tool,
         )
+        from app.tools.unified import search_entities
 
         assert callable(get_entity)
         assert callable(entity_action)
-        assert callable(list_entities)
-        assert callable(search_entities_tool)
+        assert callable(search_entities)  # Unified tool
 
     def test_automations_tools_import(self):
         """Test automations tools can be imported from app.tools.automations."""
@@ -612,16 +593,18 @@ class TestMCPToolImportPaths:
         assert callable(delete_automation_tool)
 
     def test_system_tools_import(self):
-        """Test system tools can be imported from app.tools.system."""
-        from app.tools.system import (
-            get_version,
-            system_health,
-            system_overview,
+        """Test system tools can be imported from app.tools.unified."""
+        from app.tools.unified import (
+            get_system_data,
+            get_system_info,
         )
 
-        assert callable(get_version)
-        assert callable(system_overview)
-        assert callable(system_health)
+        assert callable(
+            get_system_info
+        )  # Unified tool replacing get_version, system_overview, system_health, core_config
+        assert callable(
+            get_system_data
+        )  # Unified tool replacing get_error_log, get_cache_statistics, get_history, domain_summary
 
     def test_api_modules_import(self):
         """Test API modules can be imported correctly."""
