@@ -179,7 +179,7 @@ class TestGenerateEntityDescriptionsBatchTool:
     ):
         """Test successful batch description generation."""
         with (
-            patch("app.api.entities.get_entities", mock_get_entities),
+            patch("app.tools.entity_descriptions.get_entities", mock_get_entities),
             patch("app.tools.entity_descriptions.get_entity_state", mock_get_entity_state),
             patch(
                 "app.tools.entity_descriptions.generate_entity_description_batch",
@@ -202,7 +202,7 @@ class TestGenerateEntityDescriptionsBatchTool:
     ):
         """Test batch description generation for all entities."""
         with (
-            patch("app.api.entities.get_entities", mock_get_entities),
+            patch("app.tools.entity_descriptions.get_entities", mock_get_entities),
             patch(
                 "app.tools.entity_descriptions.generate_entity_description_batch",
                 mock_generate_entity_description_batch,
@@ -222,7 +222,7 @@ class TestGenerateEntityDescriptionsBatchTool:
         mock_generate_entity_description_batch.side_effect = Exception("Batch generation failed")
 
         with (
-            patch("app.api.entities.get_entities", mock_get_entities),
+            patch("app.tools.entity_descriptions.get_entities", mock_get_entities),
             patch(
                 "app.tools.entity_descriptions.generate_entity_description_batch",
                 mock_generate_entity_description_batch,
