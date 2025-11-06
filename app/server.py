@@ -46,6 +46,7 @@ from app.tools import (
     system,
     tags,
     templates,
+    unified,
     webhooks,
     zones,
 )  # noqa: E402
@@ -75,50 +76,31 @@ mcp.tool()(
     )
 )
 
-# Register automation tools with MCP instance
-mcp.tool()(async_handler("list_automations")(automations.list_automations))
-mcp.tool()(async_handler("get_automation_config")(automations.get_automation_config_tool))
-mcp.tool()(async_handler("create_automation")(automations.create_automation_tool))
-mcp.tool()(async_handler("update_automation")(automations.update_automation_tool))
-mcp.tool()(async_handler("delete_automation")(automations.delete_automation_tool))
-mcp.tool()(async_handler("enable_automation")(automations.enable_automation_tool))
-mcp.tool()(async_handler("disable_automation")(automations.disable_automation_tool))
-mcp.tool()(async_handler("trigger_automation")(automations.trigger_automation_tool))
+# Register unified tools (replaces multiple specialized tools)
+mcp.tool()(async_handler("list_items")(unified.list_items))
+mcp.tool()(async_handler("get_item")(unified.get_item))
+mcp.tool()(async_handler("manage_item")(unified.manage_item))
+
+# Register specialized automation tools (not replaced by unified tools)
 mcp.tool()(
     async_handler("get_automation_execution_log")(automations.get_automation_execution_log_tool)
 )
 mcp.tool()(async_handler("validate_automation_config")(automations.validate_automation_config_tool))
 
-# Register script tools with MCP instance
-mcp.tool()(async_handler("list_scripts")(scripts.list_scripts_tool))
-mcp.tool()(async_handler("get_script")(scripts.get_script_tool))
+# Register specialized script tools (run_script not replaced by unified tools)
 mcp.tool()(async_handler("run_script")(scripts.run_script_tool))
-mcp.tool()(async_handler("reload_scripts")(scripts.reload_scripts_tool))
 
-# Register device tools with MCP instance
-mcp.tool()(async_handler("list_devices")(devices.list_devices_tool))
-mcp.tool()(async_handler("get_device")(devices.get_device_tool))
+# Register specialized device tools (not replaced by unified tools)
 mcp.tool()(async_handler("get_device_entities")(devices.get_device_entities_tool))
 mcp.tool()(async_handler("get_device_stats")(devices.get_device_stats_tool))
 
-# Register area tools with MCP instance
-mcp.tool()(async_handler("list_areas")(areas.list_areas_tool))
+# Register specialized area tools (not replaced by unified tools)
 mcp.tool()(async_handler("get_area_entities")(areas.get_area_entities_tool))
-mcp.tool()(async_handler("create_area")(areas.create_area_tool))
-mcp.tool()(async_handler("update_area")(areas.update_area_tool))
-mcp.tool()(async_handler("delete_area")(areas.delete_area_tool))
 mcp.tool()(async_handler("get_area_summary")(areas.get_area_summary_tool))
 
-# Register scene tools with MCP instance
-mcp.tool()(async_handler("list_scenes")(scenes.list_scenes_tool))
-mcp.tool()(async_handler("get_scene")(scenes.get_scene_tool))
-mcp.tool()(async_handler("create_scene")(scenes.create_scene_tool))
-mcp.tool()(async_handler("activate_scene")(scenes.activate_scene_tool))
-mcp.tool()(async_handler("reload_scenes")(scenes.reload_scenes_tool))
+# Scene tools are now handled by unified tools (list_items, get_item, manage_item)
 
-# Register integration tools with MCP instance
-mcp.tool()(async_handler("list_integrations")(integrations.list_integrations))
-mcp.tool()(async_handler("get_integration_config")(integrations.get_integration_config_tool))
+# Register specialized integration tools (reload not replaced by unified tools)
 mcp.tool()(async_handler("reload_integration")(integrations.reload_integration_tool))
 
 # Register system tools with MCP instance
@@ -156,9 +138,7 @@ mcp.tool()(
 )
 mcp.tool()(async_handler("get_integration_errors")(diagnostics.get_integration_errors_tool))
 
-# Register blueprints tools with MCP instance
-mcp.tool()(async_handler("list_blueprints")(blueprints.list_blueprints_tool))
-mcp.tool()(async_handler("get_blueprint")(blueprints.get_blueprint_tool))
+# Register specialized blueprint tools (not replaced by unified tools)
 mcp.tool()(async_handler("import_blueprint")(blueprints.import_blueprint_tool))
 mcp.tool()(
     async_handler("create_automation_from_blueprint")(
@@ -166,11 +146,7 @@ mcp.tool()(
     )
 )
 
-# Register zones tools with MCP instance
-mcp.tool()(async_handler("list_zones")(zones.list_zones_tool))
-mcp.tool()(async_handler("create_zone")(zones.create_zone_tool))
-mcp.tool()(async_handler("update_zone")(zones.update_zone_tool))
-mcp.tool()(async_handler("delete_zone")(zones.delete_zone_tool))
+# Zone tools are now handled by unified tools (list_items, get_item, manage_item)
 
 # Register events tools with MCP instance
 mcp.tool()(async_handler("fire_event")(events.fire_event_tool))
@@ -184,31 +160,22 @@ mcp.tool()(
 mcp.tool()(async_handler("send_notification")(notifications.send_notification_tool))
 mcp.tool()(async_handler("test_notification")(notifications.test_notification_tool))
 
-# Register calendars tools with MCP instance
-mcp.tool()(async_handler("list_calendars")(calendars.list_calendars_tool))
+# Register specialized calendar tools (not replaced by unified tools)
 mcp.tool()(async_handler("get_calendar_events")(calendars.get_calendar_events_tool))
 mcp.tool()(async_handler("create_calendar_event")(calendars.create_calendar_event_tool))
 
-# Register helpers tools with MCP instance
-mcp.tool()(async_handler("list_helpers")(helpers.list_helpers_tool))
-mcp.tool()(async_handler("get_helper")(helpers.get_helper_tool))
+# Register specialized helper tools (update_helper not replaced by unified tools)
 mcp.tool()(async_handler("update_helper")(helpers.update_helper_tool))
 
-# Register tags tools with MCP instance
-mcp.tool()(async_handler("list_tags")(tags.list_tags_tool))
-mcp.tool()(async_handler("create_tag")(tags.create_tag_tool))
-mcp.tool()(async_handler("delete_tag")(tags.delete_tag_tool))
+# Register specialized tag tools (not replaced by unified tools)
 mcp.tool()(async_handler("get_tag_automations")(tags.get_tag_automations_tool))
 
 # Register webhooks tools with MCP instance
 mcp.tool()(async_handler("list_webhooks")(webhooks.list_webhooks_tool))
 mcp.tool()(async_handler("test_webhook")(webhooks.test_webhook_tool))
 
-# Register backups tools with MCP instance
-mcp.tool()(async_handler("list_backups")(backups.list_backups_tool))
-mcp.tool()(async_handler("create_backup")(backups.create_backup_tool))
+# Register specialized backup tools (restore not replaced by unified tools)
 mcp.tool()(async_handler("restore_backup")(backups.restore_backup_tool))
-mcp.tool()(async_handler("delete_backup")(backups.delete_backup_tool))
 
 # Re-export all tools for backward compatibility
 # This allows tests and other code to import them from app.server
