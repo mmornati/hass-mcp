@@ -81,7 +81,7 @@ Claude: [Uses entity_action with action="toggle"]
 
 ### `search_entities_tool`
 
-Search for entities by name, ID, or attributes.
+Search for entities by name, ID, or attributes (keyword search).
 
 **Parameters:**
 - `query` (required): Search query string
@@ -96,6 +96,64 @@ Claude: [Uses search_entities_tool]
 - sensor.outdoor_temperature
 ...
 ```
+
+### `semantic_search_entities_tool`
+
+Search for entities using semantic search with natural language queries.
+
+This tool combines semantic and keyword search to find entities more accurately using natural language. It supports three search modes:
+- **semantic**: Pure semantic search using vector embeddings
+- **keyword**: Pure keyword search (fallback)
+- **hybrid**: Combines both semantic and keyword search (default)
+
+**Parameters:**
+- `query` (required): Natural language search query (e.g., "living room lights", "temperature sensors")
+- `domain` (optional): Domain filter (e.g., "light", "sensor", "switch")
+- `area_id` (optional): Area/room filter (e.g., "living_room", "kitchen")
+- `limit` (optional): Maximum number of results (default: 10)
+- `similarity_threshold` (optional): Minimum similarity score (0.0-1.0, default: 0.7)
+- `search_mode` (optional): Search mode - "semantic", "keyword", or "hybrid" (default: "hybrid")
+
+**Example Usage:**
+```
+User: "Find lights in the living room"
+Claude: [Uses semantic_search_entities_tool]
+✅ Found 3 lights in living room:
+- light.living_room (similarity: 0.95) - "Living Room Light" (light) matched with 95% similarity
+- light.living_room_spot (similarity: 0.88) - "Living Room Spot" (light) matched with 88% similarity
+...
+```
+
+**Response Format:**
+```json
+{
+  "query": "living room lights",
+  "count": 3,
+  "results": [
+    {
+      "entity_id": "light.living_room",
+      "state": "on",
+      "domain": "light",
+      "friendly_name": "Living Room Light",
+      "similarity": 0.95,
+      "match_reason": "Entity 'Living Room Light' (light) matched with 95% similarity",
+      "metadata": {"domain": "light", "area_id": "living_room"}
+    }
+  ],
+  "search_mode": "hybrid",
+  "domains": {"light": 3}
+}
+```
+
+**Search Modes:**
+- **hybrid** (default): Combines semantic and keyword search for best results
+- **semantic**: Pure semantic search using vector embeddings (requires Vector DB)
+- **keyword**: Pure keyword search (fallback when Vector DB unavailable)
+
+**When to Use:**
+- Use `semantic_search_entities_tool` for natural language queries and better accuracy
+- Use `search_entities_tool` for simple keyword matching
+- Use `semantic_search_entities_tool` with `search_mode="hybrid"` for best results
 
 ## Use Cases
 
