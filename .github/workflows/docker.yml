@@ -23,6 +23,18 @@ jobs:
   docker:
     needs: test
     runs-on: ubuntu-latest
+    strategy:
+      # Parallelize builds for both images
+      matrix:
+        include:
+          - dockerfile: Dockerfile
+            tag_suffix: ""
+            name: "base image (without VectorDB)"
+          - dockerfile: Dockerfile.vectordb
+            tag_suffix: "-vectordb"
+            name: "VectorDB image"
+      fail-fast: false  # Continue building other images if one fails
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -60,13 +72,14 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build and push
+      - name: Build and push ${{ matrix.name }}
         uses: docker/build-push-action@v6
         with:
           context: .
+          file: ./${{ matrix.dockerfile }}
           platforms: ${{ env.PLATFORMS }}
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
+          tags: ${{ steps.meta.outputs.tags }}${{ matrix.tag_suffix }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=${{ matrix.dockerfile }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.dockerfile }}

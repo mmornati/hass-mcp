@@ -18,7 +18,21 @@ from app.api.entities import (
 )
 from app.core import async_handler
 
-mcp = FastMCP("Hass-MCP")
+# Get package version for server info
+try:
+    import importlib.metadata
+
+    __version__ = importlib.metadata.version("hass-mcp")
+except Exception:
+    # Fallback if metadata is not available (e.g., during development)
+    __version__ = "0.1.1"
+
+# Initialize FastMCP with server name and version
+# FastMCP will use this to provide serverInfo in the initialize response
+mcp = FastMCP(
+    name="Hass-MCP",
+    version=__version__,
+)
 
 # Import and register tools from tools modules
 # Tools are registered manually to avoid circular imports
