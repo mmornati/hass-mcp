@@ -3,6 +3,15 @@
 This module provides vector database infrastructure for semantic search capabilities.
 """
 
+from app.core.vectordb.classification import (
+    classify_intent,
+    extract_action,
+    extract_entities,
+    extract_parameters,
+    predict_domain,
+    process_query,
+    refine_query,
+)
 from app.core.vectordb.config import VectorDBConfig, get_vectordb_config
 from app.core.vectordb.indexing import (
     generate_entity_description,
@@ -29,4 +38,11 @@ __all__ = [
     "remove_entity_from_index",
     "get_indexing_status",
     "semantic_search",
+    "classify_intent",
+    "predict_domain",
+    "extract_action",
+    "extract_entities",
+    "extract_parameters",
+    "refine_query",
+    "process_query",
 ]
