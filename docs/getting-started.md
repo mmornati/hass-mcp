@@ -30,9 +30,11 @@ Docker is the easiest way to run Hass-MCP and is recommended for most users.
    docker pull mmornati/hass-mcp:latest
    ```
 
-2. **Configure Claude Desktop:**
+2. **Configure Claude Desktop or Cursor:**
 
-   Open Claude Desktop settings (Developer → Edit Config) and add:
+   Open your MCP client settings (Claude Desktop: Developer → Edit Config, or Cursor: Settings → MCP) and add:
+
+   #### Basic Configuration
 
    ```json
    {
@@ -54,14 +56,144 @@ Docker is the easiest way to run Hass-MCP and is recommended for most users.
    }
    ```
 
-3. **Update Configuration:**
+   #### Recommended Configuration with File Cache and Vector DB
+
+   For persistent cache and vector DB data, mount volumes to your home directory. **Important**: Docker doesn't expand `~`, so you must use the full path.
+
+   **macOS/Linux:**
+   ```json
+   {
+     "mcpServers": {
+       "hass-mcp": {
+         "command": "docker",
+         "args": [
+           "run", "-i", "--rm",
+           "-e", "HA_URL",
+           "-e", "HA_TOKEN",
+           "-e", "HASS_MCP_CACHE_BACKEND",
+           "-e", "HASS_MCP_CACHE_DIR",
+           "-e", "HASS_MCP_VECTOR_DB_ENABLED",
+           "-e", "HASS_MCP_VECTOR_DB_BACKEND",
+           "-e", "HASS_MCP_VECTOR_DB_PATH",
+           "-v", "/Users/YOUR_USERNAME/.hass-mcp/cache:/app/.cache",
+           "-v", "/Users/YOUR_USERNAME/.hass-mcp/vectordb:/app/.vectordb",
+           "mmornati/hass-mcp:latest"
+         ],
+         "env": {
+           "HA_URL": "http://homeassistant.local:8123",
+           "HA_TOKEN": "YOUR_LONG_LIVED_TOKEN",
+           "HASS_MCP_CACHE_BACKEND": "file",
+           "HASS_MCP_CACHE_DIR": "/app/.cache",
+           "HASS_MCP_VECTOR_DB_ENABLED": "true",
+           "HASS_MCP_VECTOR_DB_BACKEND": "chroma",
+           "HASS_MCP_VECTOR_DB_PATH": "/app/.vectordb"
+         }
+       }
+     }
+   }
+   ```
+
+   **Windows:**
+   ```json
+   {
+     "mcpServers": {
+       "hass-mcp": {
+         "command": "docker",
+         "args": [
+           "run", "-i", "--rm",
+           "-e", "HA_URL",
+           "-e", "HA_TOKEN",
+           "-e", "HASS_MCP_CACHE_BACKEND",
+           "-e", "HASS_MCP_CACHE_DIR",
+           "-e", "HASS_MCP_VECTOR_DB_ENABLED",
+           "-e", "HASS_MCP_VECTOR_DB_BACKEND",
+           "-e", "HASS_MCP_VECTOR_DB_PATH",
+           "-v", "C:\\Users\\YOUR_USERNAME\\.hass-mcp\\cache:/app/.cache",
+           "-v", "C:\\Users\\YOUR_USERNAME\\.hass-mcp\\vectordb:/app/.vectordb",
+           "mmornati/hass-mcp:latest"
+         ],
+         "env": {
+           "HA_URL": "http://homeassistant.local:8123",
+           "HA_TOKEN": "YOUR_LONG_LIVED_TOKEN",
+           "HASS_MCP_CACHE_BACKEND": "file",
+           "HASS_MCP_CACHE_DIR": "/app/.cache",
+           "HASS_MCP_VECTOR_DB_ENABLED": "true",
+           "HASS_MCP_VECTOR_DB_BACKEND": "chroma",
+           "HASS_MCP_VECTOR_DB_PATH": "/app/.vectordb"
+         }
+       }
+     }
+   }
+   ```
+
+   **Linux:**
+   ```json
+   {
+     "mcpServers": {
+       "hass-mcp": {
+         "command": "docker",
+         "args": [
+           "run", "-i", "--rm",
+           "-e", "HA_URL",
+           "-e", "HA_TOKEN",
+           "-e", "HASS_MCP_CACHE_BACKEND",
+           "-e", "HASS_MCP_CACHE_DIR",
+           "-e", "HASS_MCP_VECTOR_DB_ENABLED",
+           "-e", "HASS_MCP_VECTOR_DB_BACKEND",
+           "-e", "HASS_MCP_VECTOR_DB_PATH",
+           "-v", "/home/YOUR_USERNAME/.hass-mcp/cache:/app/.cache",
+           "-v", "/home/YOUR_USERNAME/.hass-mcp/vectordb:/app/.vectordb",
+           "mmornati/hass-mcp:latest"
+         ],
+         "env": {
+           "HA_URL": "http://homeassistant.local:8123",
+           "HA_TOKEN": "YOUR_LONG_LIVED_TOKEN",
+           "HASS_MCP_CACHE_BACKEND": "file",
+           "HASS_MCP_CACHE_DIR": "/app/.cache",
+           "HASS_MCP_VECTOR_DB_ENABLED": "true",
+           "HASS_MCP_VECTOR_DB_BACKEND": "chroma",
+           "HASS_MCP_VECTOR_DB_PATH": "/app/.vectordb"
+         }
+       }
+     }
+   }
+   ```
+
+   #### Configuration Explanation
+
+   - **File Cache**: `HASS_MCP_CACHE_BACKEND=file` enables persistent file-based caching
+   - **Cache Directory**: `HASS_MCP_CACHE_DIR=/app/.cache` sets the cache location (mounted to `~/.hass-mcp/cache`)
+   - **Vector DB**: `HASS_MCP_VECTOR_DB_ENABLED=true` enables semantic search features
+   - **Chroma Backend**: `HASS_MCP_VECTOR_DB_BACKEND=chroma` uses ChromaDB for vector storage
+   - **Vector DB Path**: `HASS_MCP_VECTOR_DB_PATH=/app/.vectordb` sets the vector DB location (mounted to `~/.hass-mcp/vectordb`)
+
+   The volume mounts (`-v`) ensure that:
+   - Cache data persists between container restarts
+   - Vector DB embeddings are preserved
+   - Data is stored in your home directory for easy access
+
+3. **Create Directories (Optional but Recommended):**
+
+   Before first run, create the directories to ensure proper permissions:
+
+   ```bash
+   # macOS/Linux
+   mkdir -p ~/.hass-mcp/cache ~/.hass-mcp/vectordb
+
+   # Windows (PowerShell)
+   New-Item -ItemType Directory -Path "$env:USERPROFILE\.hass-mcp\cache" -Force
+   New-Item -ItemType Directory -Path "$env:USERPROFILE\.hass-mcp\vectordb" -Force
+   ```
+
+4. **Update Configuration:**
    - Replace `YOUR_LONG_LIVED_TOKEN` with your actual token
+   - Replace `YOUR_USERNAME` with your actual username (for volume paths)
    - Update `HA_URL` based on your setup:
      - **Same machine (Docker Desktop)**: `http://host.docker.internal:8123`
      - **Local network**: `http://homeassistant.local:8123` or `http://192.168.1.100:8123`
      - **Remote**: `https://your-ha-instance.duckdns.org:8123`
 
-4. **Restart Claude Desktop**
+5. **Restart your MCP client** (Claude Desktop or Cursor)
 
 ### Python/uv Installation
 
