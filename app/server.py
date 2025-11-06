@@ -31,6 +31,7 @@ from app.tools import (
     devices,
     diagnostics,
     entities,
+    entity_descriptions,
     entity_suggestions,
     events,
     helpers,
@@ -60,6 +61,18 @@ mcp.tool()(async_handler("get_entity_suggestions")(entity_suggestions.get_entity
 # Register query processing tools with MCP instance
 mcp.tool()(
     async_handler("process_natural_language_query")(query_processing.process_natural_language_query)
+)
+
+# Register entity description tools with MCP instance
+mcp.tool()(
+    async_handler("generate_entity_description")(
+        entity_descriptions.generate_entity_description_tool
+    )
+)
+mcp.tool()(
+    async_handler("generate_entity_descriptions_batch")(
+        entity_descriptions.generate_entity_descriptions_batch_tool
+    )
 )
 
 # Register automation tools with MCP instance

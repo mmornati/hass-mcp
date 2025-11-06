@@ -11,6 +11,9 @@ from typing import Any
 from app.api.areas import get_areas
 from app.api.devices import get_device_details
 from app.api.entities import get_entities, get_entity_state
+from app.core.vectordb.description import (
+    generate_entity_description_enhanced,
+)
 from app.core.vectordb.manager import VectorDBManager, get_vectordb_manager
 
 logger = logging.getLogger(__name__)
@@ -228,8 +231,10 @@ async def index_entity(entity_id: str, manager: VectorDBManager | None = None) -
             except Exception as e:
                 logger.debug(f"Could not get device info for {device_id}: {e}")
 
-        # Generate description
-        description = generate_entity_description(entity, area_name, device_info)
+        # Generate description using enhanced version
+        description = await generate_entity_description_enhanced(
+            entity, area_name=area_name, device_info=device_info, use_template=True
+        )
 
         # Generate metadata
         metadata = await generate_entity_metadata(entity)
