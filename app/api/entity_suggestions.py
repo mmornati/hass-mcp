@@ -502,9 +502,7 @@ async def get_entity_suggestions(
 
     # Similar name
     if "similar_name" in relationship_types:
-        name_suggestions = await _find_entities_by_similar_name(
-            entity_id, friendly_name, limit
-        )
+        name_suggestions = await _find_entities_by_similar_name(entity_id, friendly_name, limit)
         all_suggestions.extend(name_suggestions)
 
     # Similar capabilities (vector similarity)

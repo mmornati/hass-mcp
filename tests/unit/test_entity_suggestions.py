@@ -264,8 +264,7 @@ class TestRankAndDeduplicate:
     def test_rank_with_limit(self):
         """Test ranking with limit."""
         suggestions = [
-            {"entity_id": f"light.{i}", "relationship_score": 1.0 - (i * 0.1)}
-            for i in range(10)
+            {"entity_id": f"light.{i}", "relationship_score": 1.0 - (i * 0.1)} for i in range(10)
         ]
 
         results = _rank_and_deduplicate(suggestions, limit=3)
@@ -397,8 +396,12 @@ class TestGetEntitySuggestions:
 
         with (
             patch("app.core.decorators.HA_TOKEN", "fake_token"),
-            patch("app.api.entity_suggestions.get_entity_state", AsyncMock(return_value=mock_entity)),
-            patch("app.api.entity_suggestions._find_entities_by_area", return_value=[]) as mock_area,
+            patch(
+                "app.api.entity_suggestions.get_entity_state", AsyncMock(return_value=mock_entity)
+            ),
+            patch(
+                "app.api.entity_suggestions._find_entities_by_area", return_value=[]
+            ) as mock_area,
             patch("app.api.entity_suggestions._find_entities_by_device") as mock_device,
             patch("app.api.entity_suggestions._find_entities_by_domain") as mock_domain,
         ):
