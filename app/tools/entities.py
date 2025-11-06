@@ -10,6 +10,7 @@ from typing import Any
 from app.api.entities import get_entities, get_entity_state
 from app.api.services import call_service
 from app.core.cache.decorator import invalidate_cache
+from app.core.vectordb.search import semantic_search  # noqa: PLC0415
 
 logger = logging.getLogger(__name__)
 
@@ -275,3 +276,278 @@ async def search_entities_tool(query: str, limit: int = 20) -> dict[str, Any]:
         "results": simplified_entities,
         "domains": domains_count,
     }
+
+
+async def semantic_search_entities_tool(  # noqa: PLR0915
+    query: str,
+    domain: str | None = None,
+    area_id: str | None = None,
+    limit: int = 10,
+    similarity_threshold: float = 0.7,
+    search_mode: str = "hybrid",
+) -> dict[str, Any]:
+    """
+    Search for entities using semantic search with natural language queries.
+
+    This tool combines semantic and keyword search to find entities more accurately
+    using natural language. It supports three search modes:
+    - "semantic": Pure semantic search using vector embeddings
+    - "keyword": Pure keyword search (fallback)
+    - "hybrid": Combines both semantic and keyword search (default)
+
+    Args:
+        query: Natural language search query (e.g., "living room lights", "temperature sensors")
+        domain: Optional domain filter (e.g., "light", "sensor", "switch")
+        area_id: Optional area/room filter (e.g., "living_room", "kitchen")
+        limit: Maximum number of results to return (default: 10)
+        similarity_threshold: Minimum similarity score (0.0-1.0, default: 0.7)
+        search_mode: Search mode - "semantic", "keyword", or "hybrid" (default: "hybrid")
+
+    Returns:
+        A dictionary containing search results and metadata:
+        - query: The original search query
+        - count: Total number of matching entities found
+        - results: List of matching entities with similarity scores and explanations
+        - search_mode: The search mode used
+        - domains: Map of domains with counts (e.g. {"light": 3, "sensor": 2})
+
+    Examples:
+        query="living room lights" - Find lights in living room using natural language
+        query="temperature sensors", domain="sensor" - Find temperature sensors
+        query="lights", area_id="kitchen", search_mode="semantic" - Pure semantic search
+        query="switches", similarity_threshold=0.8 - Higher similarity threshold
+    """
+    logger.info(
+        f"Semantic search for entities: '{query}' (mode: {search_mode}, domain: {domain}, area: {area_id})"
+    )
+
+    # Validate search_mode
+    if search_mode not in ["semantic", "keyword", "hybrid"]:
+        return {
+            "error": f"Invalid search_mode: {search_mode}. Must be 'semantic', 'keyword', or 'hybrid'",
+            "query": query,
+            "count": 0,
+            "results": [],
+            "search_mode": search_mode,
+            "domains": {},
+        }
+
+    # Handle empty query
+    if not query or not query.strip():
+        logger.info("Empty query - falling back to keyword search")
+        # Fall back to keyword search for empty queries
+        entities = await get_entities(domain=domain, limit=limit, lean=True)
+        if isinstance(entities, dict) and "error" in entities:
+            return {
+                "error": entities["error"],
+                "query": query,
+                "count": 0,
+                "results": [],
+                "search_mode": "keyword",
+                "domains": {},
+            }
+
+        # Format results similar to search_entities_tool
+        domains_count = {}
+        simplified_entities = []
+
+        for entity in entities:
+            entity_domain = entity["entity_id"].split(".")[0]
+            if domain and entity_domain != domain:
+                continue
+
+            if entity_domain not in domains_count:
+                domains_count[entity_domain] = 0
+            domains_count[entity_domain] += 1
+
+            simplified_entity = {
+                "entity_id": entity["entity_id"],
+                "state": entity["state"],
+                "domain": entity_domain,
+                "friendly_name": entity.get("attributes", {}).get(
+                    "friendly_name", entity["entity_id"]
+                ),
+                "similarity": 1.0,  # No similarity score for keyword-only
+                "match_reason": "Keyword match (empty query)",
+            }
+
+            simplified_entities.append(simplified_entity)
+
+        return {
+            "query": query,
+            "count": len(simplified_entities),
+            "results": simplified_entities,
+            "search_mode": "keyword",
+            "domains": domains_count,
+        }
+
+    try:
+        # Determine hybrid_search based on search_mode
+        hybrid_search = search_mode == "hybrid"
+
+        # Perform semantic search
+        if search_mode == "keyword":
+            # Use keyword search only
+            entities = await get_entities(domain=domain, search_query=query, limit=limit, lean=True)
+
+            if isinstance(entities, dict) and "error" in entities:
+                return {
+                    "error": entities["error"],
+                    "query": query,
+                    "count": 0,
+                    "results": [],
+                    "search_mode": "keyword",
+                    "domains": {},
+                }
+
+            # Format results
+            domains_count = {}
+            simplified_entities = []
+
+            for entity in entities:
+                entity_domain = entity["entity_id"].split(".")[0]
+                if entity_domain not in domains_count:
+                    domains_count[entity_domain] = 0
+                domains_count[entity_domain] += 1
+
+                simplified_entity = {
+                    "entity_id": entity["entity_id"],
+                    "state": entity["state"],
+                    "domain": entity_domain,
+                    "friendly_name": entity.get("attributes", {}).get(
+                        "friendly_name", entity["entity_id"]
+                    ),
+                    "similarity": 1.0,  # No similarity score for keyword-only
+                    "match_reason": f"Keyword match: '{query}'",
+                }
+
+                simplified_entities.append(simplified_entity)
+
+            return {
+                "query": query,
+                "count": len(simplified_entities),
+                "results": simplified_entities,
+                "search_mode": "keyword",
+                "domains": domains_count,
+            }
+
+        # Use semantic search (semantic or hybrid mode)
+        semantic_results = await semantic_search(
+            query=query,
+            domain=domain,
+            area_id=area_id,
+            limit=limit,
+            similarity_threshold=similarity_threshold,
+            hybrid_search=hybrid_search,
+        )
+
+        # Format results
+        domains_count = {}
+        simplified_entities = []
+
+        for result in semantic_results:
+            entity = result.get("entity", {})
+            entity_id = result.get("entity_id")
+            if not entity_id:
+                continue
+
+            entity_domain = entity_id.split(".")[0]
+            if domain and entity_domain != domain:
+                continue
+
+            if entity_domain not in domains_count:
+                domains_count[entity_domain] = 0
+            domains_count[entity_domain] += 1
+
+            # Build simplified entity
+            simplified_entity = {
+                "entity_id": entity_id,
+                "state": entity.get("state"),
+                "domain": entity_domain,
+                "friendly_name": entity.get("attributes", {}).get("friendly_name", entity_id),
+                "similarity": round(result.get("similarity_score", 0.0), 3),
+                "match_reason": result.get("explanation", "Semantic match"),
+            }
+
+            # Add metadata if available
+            metadata = result.get("metadata", {})
+            if metadata:
+                simplified_entity["metadata"] = metadata
+
+            # Add key attributes based on domain
+            attributes = entity.get("attributes", {})
+            if entity_domain == "light" and "brightness" in attributes:
+                simplified_entity["brightness"] = attributes["brightness"]
+            elif entity_domain == "sensor" and "unit_of_measurement" in attributes:
+                simplified_entity["unit"] = attributes["unit_of_measurement"]
+            elif entity_domain == "climate" and "temperature" in attributes:
+                simplified_entity["temperature"] = attributes["temperature"]
+            elif entity_domain == "media_player" and "media_title" in attributes:
+                simplified_entity["media_title"] = attributes["media_title"]
+
+            simplified_entities.append(simplified_entity)
+
+        return {
+            "query": query,
+            "count": len(simplified_entities),
+            "results": simplified_entities,
+            "search_mode": search_mode,
+            "domains": domains_count,
+        }
+
+    except Exception as e:
+        logger.error(f"Semantic search failed: {e}")
+        # Fall back to keyword search on error
+        try:
+            entities = await get_entities(domain=domain, search_query=query, limit=limit, lean=True)
+
+            if isinstance(entities, dict) and "error" in entities:
+                return {
+                    "error": entities["error"],
+                    "query": query,
+                    "count": 0,
+                    "results": [],
+                    "search_mode": "keyword",
+                    "domains": {},
+                }
+
+            # Format results
+            domains_count = {}
+            simplified_entities = []
+
+            for entity in entities:
+                entity_domain = entity["entity_id"].split(".")[0]
+                if entity_domain not in domains_count:
+                    domains_count[entity_domain] = 0
+                domains_count[entity_domain] += 1
+
+                simplified_entity = {
+                    "entity_id": entity["entity_id"],
+                    "state": entity["state"],
+                    "domain": entity_domain,
+                    "friendly_name": entity.get("attributes", {}).get(
+                        "friendly_name", entity["entity_id"]
+                    ),
+                    "similarity": 1.0,
+                    "match_reason": f"Keyword match (semantic search failed: {str(e)})",
+                }
+
+                simplified_entities.append(simplified_entity)
+
+            return {
+                "query": query,
+                "count": len(simplified_entities),
+                "results": simplified_entities,
+                "search_mode": "keyword",
+                "domains": domains_count,
+            }
+        except Exception as fallback_error:
+            logger.error(f"Keyword search fallback also failed: {fallback_error}")
+            return {
+                "error": f"Search failed: {str(e)}",
+                "query": query,
+                "count": 0,
+                "results": [],
+                "search_mode": "keyword",
+                "domains": {},
+            }

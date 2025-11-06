@@ -685,6 +685,31 @@ for entity_info in related:
 
 For more details, see the [Entity Relationship Graph Guide](vectordb-relationships.md).
 
+## Enhanced Entity Search Tool
+
+### MCP Tool Integration
+
+The semantic search functionality is available as an MCP tool:
+
+```python
+# Use semantic_search_entities_tool via MCP
+result = await semantic_search_entities_tool(
+    query="living room lights",
+    domain="light",
+    area_id="living_room",
+    limit=10,
+    similarity_threshold=0.7,
+    search_mode="hybrid",
+)
+```
+
+The tool supports three search modes:
+- **semantic**: Pure semantic search
+- **keyword**: Pure keyword search (fallback)
+- **hybrid**: Combines both (default)
+
+For more details, see the [Entities Tools Documentation](entities.md#semantic_search_entities_tool).
+
 ## Related Features
 
 - **US-VD-002**: Entity Embedding and Indexing (✅ Implemented)
@@ -693,6 +718,7 @@ For more details, see the [Entity Relationship Graph Guide](vectordb-relationshi
 - **US-VD-006**: Query Intent Classification (✅ Implemented)
 - **US-VD-007**: Query History and Learning (✅ Implemented)
 - **US-VD-008**: Entity Relationship Graph (✅ Implemented)
+- **US-VD-009**: Enhanced Entity Search Tool (✅ Implemented)
 
 ## See Also
 

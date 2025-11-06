@@ -53,6 +53,7 @@ mcp.tool()(async_handler("get_entity")(entities.get_entity))
 mcp.tool()(async_handler("entity_action")(entities.entity_action))
 mcp.tool()(async_handler("list_entities")(entities.list_entities))
 mcp.tool()(async_handler("search_entities_tool")(entities.search_entities_tool))
+mcp.tool()(async_handler("semantic_search_entities_tool")(entities.semantic_search_entities_tool))
 mcp.tool()(async_handler("get_entity_suggestions")(entity_suggestions.get_entity_suggestions_tool))
 
 # Register automation tools with MCP instance
