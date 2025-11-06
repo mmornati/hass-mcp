@@ -95,6 +95,7 @@ nav:
     - Query Intent Classification: vectordb-classification.md
     - Query History and Learning: vectordb-history.md
     - Entity Relationship Graph: vectordb-relationships.md
+    - Natural Language Query Processing: query-processing.md
   - Advanced:
     - Prompts: prompts.md
     - Best Practices: best-practices.md
