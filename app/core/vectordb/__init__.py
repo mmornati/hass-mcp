@@ -13,6 +13,14 @@ from app.core.vectordb.classification import (
     refine_query,
 )
 from app.core.vectordb.config import VectorDBConfig, get_vectordb_config
+from app.core.vectordb.history import (
+    boost_entity_ranking,
+    clear_query_history,
+    get_entity_popularity,
+    get_query_history,
+    get_query_statistics,
+    store_query_history,
+)
 from app.core.vectordb.indexing import (
     generate_entity_description,
     generate_entity_metadata,
@@ -45,4 +53,10 @@ __all__ = [
     "extract_parameters",
     "refine_query",
     "process_query",
+    "store_query_history",
+    "get_query_history",
+    "clear_query_history",
+    "get_query_statistics",
+    "get_entity_popularity",
+    "boost_entity_ranking",
 ]
