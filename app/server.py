@@ -31,7 +31,6 @@ from app.tools import (
     devices,
     diagnostics,
     entities,
-    entity_descriptions,
     entity_suggestions,
     events,
     helpers,
@@ -54,9 +53,7 @@ from app.tools import (
 # Register entity tools with MCP instance
 mcp.tool()(async_handler("get_entity")(entities.get_entity))
 mcp.tool()(async_handler("entity_action")(entities.entity_action))
-mcp.tool()(async_handler("list_entities")(entities.list_entities))
-mcp.tool()(async_handler("search_entities_tool")(entities.search_entities_tool))
-mcp.tool()(async_handler("semantic_search_entities_tool")(entities.semantic_search_entities_tool))
+mcp.tool()(async_handler("search_entities")(unified.search_entities))
 mcp.tool()(async_handler("get_entity_suggestions")(entity_suggestions.get_entity_suggestions_tool))
 
 # Register query processing tools with MCP instance
@@ -64,17 +61,8 @@ mcp.tool()(
     async_handler("process_natural_language_query")(query_processing.process_natural_language_query)
 )
 
-# Register entity description tools with MCP instance
-mcp.tool()(
-    async_handler("generate_entity_description")(
-        entity_descriptions.generate_entity_description_tool
-    )
-)
-mcp.tool()(
-    async_handler("generate_entity_descriptions_batch")(
-        entity_descriptions.generate_entity_descriptions_batch_tool
-    )
-)
+# Register unified entity description tool (replaces generate_entity_description and generate_entity_descriptions_batch)
+mcp.tool()(async_handler("generate_entity_description")(unified.generate_entity_description))
 
 # Register unified tools (replaces multiple specialized tools)
 mcp.tool()(async_handler("list_items")(unified.list_items))
@@ -90,29 +78,20 @@ mcp.tool()(async_handler("validate_automation_config")(automations.validate_auto
 # Register specialized script tools (run_script not replaced by unified tools)
 mcp.tool()(async_handler("run_script")(scripts.run_script_tool))
 
-# Register specialized device tools (not replaced by unified tools)
-mcp.tool()(async_handler("get_device_entities")(devices.get_device_entities_tool))
-mcp.tool()(async_handler("get_device_stats")(devices.get_device_stats_tool))
-
-# Register specialized area tools (not replaced by unified tools)
-mcp.tool()(async_handler("get_area_entities")(areas.get_area_entities_tool))
-mcp.tool()(async_handler("get_area_summary")(areas.get_area_summary_tool))
+# Register unified device/area tools (replaces get_device_entities, get_device_stats, get_area_entities, get_area_summary)
+mcp.tool()(async_handler("get_item_entities")(unified.get_item_entities))
+mcp.tool()(async_handler("get_item_summary")(unified.get_item_summary))
 
 # Scene tools are now handled by unified tools (list_items, get_item, manage_item)
 
 # Register specialized integration tools (reload not replaced by unified tools)
 mcp.tool()(async_handler("reload_integration")(integrations.reload_integration_tool))
 
-# Register system tools with MCP instance
-mcp.tool()(async_handler("get_version")(system.get_version))
-mcp.tool()(async_handler("system_overview")(system.system_overview))
-mcp.tool()(async_handler("get_error_log")(system.get_error_log))
-mcp.tool()(async_handler("system_health")(system.system_health))
-mcp.tool()(async_handler("get_cache_statistics")(system.get_cache_statistics_tool))
-mcp.tool()(async_handler("core_config")(system.core_config))
+# Register unified system tools (replaces get_version, system_overview, system_health, core_config, get_error_log, get_cache_statistics, get_history, domain_summary)
+mcp.tool()(async_handler("get_system_info")(unified.get_system_info))
+mcp.tool()(async_handler("get_system_data")(unified.get_system_data))
+# Keep restart_ha as separate tool (critical action)
 mcp.tool()(async_handler("restart_ha")(system.restart_ha))
-mcp.tool()(async_handler("get_history")(system.get_history))
-mcp.tool()(async_handler("domain_summary")(system.domain_summary_tool))
 
 # Register service tools with MCP instance
 mcp.tool()(async_handler("call_service")(services.call_service_tool))
@@ -120,23 +99,14 @@ mcp.tool()(async_handler("call_service")(services.call_service_tool))
 # Register template tools with MCP instance
 mcp.tool()(async_handler("test_template")(templates.test_template_tool))
 
-# Register logbook tools with MCP instance
-mcp.tool()(async_handler("get_logbook")(logbook.get_logbook_tool))
-mcp.tool()(async_handler("get_entity_logbook")(logbook.get_entity_logbook_tool))
-mcp.tool()(async_handler("search_logbook")(logbook.search_logbook_tool))
+# Register unified logbook tool (replaces get_logbook, get_entity_logbook, search_logbook)
+mcp.tool()(async_handler("get_logbook")(unified.get_logbook))
 
-# Register statistics tools with MCP instance
-mcp.tool()(async_handler("get_entity_statistics")(statistics.get_entity_statistics_tool))
-mcp.tool()(async_handler("get_domain_statistics")(statistics.get_domain_statistics_tool))
-mcp.tool()(async_handler("analyze_usage_patterns")(statistics.analyze_usage_patterns_tool))
+# Register unified statistics tool (replaces get_entity_statistics, get_domain_statistics, analyze_usage_patterns)
+mcp.tool()(async_handler("get_statistics")(unified.get_statistics))
 
-# Register diagnostics tools with MCP instance
-mcp.tool()(async_handler("diagnose_entity")(diagnostics.diagnose_entity_tool))
-mcp.tool()(async_handler("check_entity_dependencies")(diagnostics.check_entity_dependencies_tool))
-mcp.tool()(
-    async_handler("analyze_automation_conflicts")(diagnostics.analyze_automation_conflicts_tool)
-)
-mcp.tool()(async_handler("get_integration_errors")(diagnostics.get_integration_errors_tool))
+# Register unified diagnostics tool (replaces diagnose_entity, check_entity_dependencies, analyze_automation_conflicts, get_integration_errors)
+mcp.tool()(async_handler("diagnose")(unified.diagnose))
 
 # Register specialized blueprint tools (not replaced by unified tools)
 mcp.tool()(async_handler("import_blueprint")(blueprints.import_blueprint_tool))
@@ -148,17 +118,11 @@ mcp.tool()(
 
 # Zone tools are now handled by unified tools (list_items, get_item, manage_item)
 
-# Register events tools with MCP instance
-mcp.tool()(async_handler("fire_event")(events.fire_event_tool))
-mcp.tool()(async_handler("list_event_types")(events.list_event_types_tool))
-mcp.tool()(async_handler("get_events")(events.get_events_tool))
+# Register unified events tool (replaces fire_event, list_event_types, get_events)
+mcp.tool()(async_handler("manage_events")(unified.manage_events))
 
-# Register notifications tools with MCP instance
-mcp.tool()(
-    async_handler("list_notification_services")(notifications.list_notification_services_tool)
-)
-mcp.tool()(async_handler("send_notification")(notifications.send_notification_tool))
-mcp.tool()(async_handler("test_notification")(notifications.test_notification_tool))
+# Register unified notifications tool (replaces list_notification_services, send_notification, test_notification)
+mcp.tool()(async_handler("manage_notifications")(unified.manage_notifications))
 
 # Register specialized calendar tools (not replaced by unified tools)
 mcp.tool()(async_handler("get_calendar_events")(calendars.get_calendar_events_tool))
@@ -170,9 +134,8 @@ mcp.tool()(async_handler("update_helper")(helpers.update_helper_tool))
 # Register specialized tag tools (not replaced by unified tools)
 mcp.tool()(async_handler("get_tag_automations")(tags.get_tag_automations_tool))
 
-# Register webhooks tools with MCP instance
-mcp.tool()(async_handler("list_webhooks")(webhooks.list_webhooks_tool))
-mcp.tool()(async_handler("test_webhook")(webhooks.test_webhook_tool))
+# Register unified webhooks tool (replaces list_webhooks, test_webhook)
+mcp.tool()(async_handler("manage_webhooks")(unified.manage_webhooks))
 
 # Register specialized backup tools (restore not replaced by unified tools)
 mcp.tool()(async_handler("restore_backup")(backups.restore_backup_tool))
