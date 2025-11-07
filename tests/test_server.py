@@ -17,14 +17,23 @@ class TestMCPServer:
     """Test the MCP server functionality."""
 
     def test_server_version(self):
-        """Test that the server has a version attribute."""
+        """Test that the server is initialized with version for server info."""
         # Import the server module directly without mocking
         # This ensures we're testing the actual code
-        from app.server import mcp
+        from app.server import __version__, mcp
 
         # All MCP servers should have a name, and it should be "Hass-MCP"
         assert hasattr(mcp, "name")
         assert mcp.name == "Hass-MCP"
+
+        # Verify that __version__ is set in the server module
+        # FastMCP uses the version parameter internally to provide serverInfo
+        assert __version__ is not None
+        assert isinstance(__version__, str)
+        assert len(__version__) > 0
+
+        # The version should be a valid version string (e.g., "0.1.1")
+        assert "." in __version__  # Basic version format check
 
     def test_async_handler_decorator(self):
         """Test the async_handler decorator."""

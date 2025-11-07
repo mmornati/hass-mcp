@@ -16,10 +16,21 @@ class TestMCPServerToolRegistration:
     """Test that all tools are properly registered with the MCP server."""
 
     def test_server_initialization(self):
-        """Test that the MCP server is properly initialized."""
+        """Test that the MCP server is properly initialized with server info."""
+        from app.server import __version__
+
         assert mcp is not None
         assert hasattr(mcp, "name")
         assert mcp.name == "Hass-MCP"
+
+        # Verify that version is set in the server module
+        # FastMCP uses the version parameter internally to provide serverInfo
+        assert __version__ is not None
+        assert isinstance(__version__, str)
+        assert len(__version__) > 0
+
+        # The version should be a valid version string (e.g., "0.1.1")
+        assert "." in __version__  # Basic version format check
 
     def test_tools_registered(self):
         """Test that all expected tools are registered with the MCP server."""
