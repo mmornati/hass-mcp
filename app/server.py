@@ -27,12 +27,21 @@ except Exception:
     # Fallback if metadata is not available (e.g., during development)
     __version__ = "0.1.1"
 
-# Initialize FastMCP with server name and version
-# FastMCP will use this to provide serverInfo in the initialize response
-mcp = FastMCP(
-    name="Hass-MCP",
-    version=__version__,
-)
+# Initialize FastMCP with server name and version.
+# Newer FastMCP releases accept a ``version`` keyword. Older releases (<=1.21)
+# ignore it, so we fall back to manual assignment to remain compatible.
+try:
+    # Fast path for FastMCP versions that support passing version directly.
+    mcp = FastMCP(
+        name="Hass-MCP",
+        version=__version__,
+    )
+except TypeError:
+    # Backwards compatibility for FastMCP versions that don't accept "version".
+    mcp = FastMCP(name="Hass-MCP")
+    if hasattr(mcp, "_mcp_server"):
+        # The underlying low-level server supports ``version`` – set it manually.
+        mcp._mcp_server.version = __version__
 
 # Import and register tools from tools modules
 # Tools are registered manually to avoid circular imports
