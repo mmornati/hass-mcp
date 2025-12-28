@@ -432,7 +432,17 @@ This will bypass all cache operations without affecting functionality.
    ```bash
    export HA_URL="http://localhost:8123"
    export HA_TOKEN="your_long_lived_token"
+
+   # Optional: Configure SSL/TLS verification
+   # For system CA certificates (default):
+   export HA_SSL_VERIFY=true
+   # For self-signed certificates:
+   export HA_SSL_VERIFY=false
+   # For custom CA certificate:
+   export HA_SSL_VERIFY=/path/to/ca.pem
    ```
+
+   See [docs/configuration.md](docs/configuration.md) for full SSL/TLS configuration options and security considerations.
 
 ## Development Tools
 
