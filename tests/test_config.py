@@ -1,7 +1,7 @@
-from unittest.mock import patch
 import os
+from unittest.mock import patch
 
-from app.config import HA_URL, get_ha_headers, get_ssl_verify_value
+from app.config import HA_URL, get_ha_headers
 
 
 class TestConfig:
@@ -76,6 +76,7 @@ class TestSSLConfiguration:
                 del os.environ["HA_SSL_VERIFY"]
 
             from importlib import reload
+
             import app.config
 
             reload(app.config)
@@ -87,6 +88,7 @@ class TestSSLConfiguration:
         """Test 'true' string parses to True."""
         with patch.dict(os.environ, {"HA_SSL_VERIFY": "true"}):
             from importlib import reload
+
             import app.config
 
             reload(app.config)
@@ -98,6 +100,7 @@ class TestSSLConfiguration:
         """Test 'false' string parses to False."""
         with patch.dict(os.environ, {"HA_SSL_VERIFY": "false"}):
             from importlib import reload
+
             import app.config
 
             reload(app.config)
@@ -109,6 +112,7 @@ class TestSSLConfiguration:
         """Test '1' parses to True."""
         with patch.dict(os.environ, {"HA_SSL_VERIFY": "1"}):
             from importlib import reload
+
             import app.config
 
             reload(app.config)
@@ -120,6 +124,7 @@ class TestSSLConfiguration:
         """Test '0' parses to False."""
         with patch.dict(os.environ, {"HA_SSL_VERIFY": "0"}):
             from importlib import reload
+
             import app.config
 
             reload(app.config)
@@ -134,6 +139,7 @@ class TestSSLConfiguration:
 
         with patch.dict(os.environ, {"HA_SSL_VERIFY": str(ca_file)}):
             from importlib import reload
+
             import app.config
 
             reload(app.config)
@@ -145,6 +151,7 @@ class TestSSLConfiguration:
         """Test invalid CA path falls back to True."""
         with patch.dict(os.environ, {"HA_SSL_VERIFY": "/nonexistent/ca.pem"}):
             from importlib import reload
+
             import app.config
 
             reload(app.config)

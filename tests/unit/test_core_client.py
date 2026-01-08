@@ -1,7 +1,7 @@
 """Unit tests for app.core.client module."""
 
-from unittest.mock import AsyncMock, patch
 import os
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
@@ -89,22 +89,25 @@ class TestCoreClient:
 
         with (
             patch.dict(os.environ, {"HA_SSL_VERIFY": "false"}),
-            patch("httpx.AsyncClient", return_value=mock_client),
+            patch(
+                "app.core.client.httpx.AsyncClient", return_value=mock_client
+            ) as mock_async_client,
         ):
             # Need to reload config to pick up new env var
             import importlib
+
             import app.config
 
             importlib.reload(app.config)
+            # Also reload app.core.client to pick up the patch
+            importlib.reload(app.core.client)
 
-            # Re-import after reload
-            from app.core.client import get_client as reloaded_get_client
+            # Reset client after reload
+            app.core.client._client = None
 
-            client = await reloaded_get_client()
+            client = await get_client()
 
-            import httpx
-
-            httpx.AsyncClient.assert_called_once_with(timeout=10.0, verify=False)
+            mock_async_client.assert_called_once_with(timeout=10.0, verify=False)
 
     @pytest.mark.asyncio
     async def test_get_client_with_custom_ca_cert(self, tmp_path):
@@ -121,20 +124,24 @@ class TestCoreClient:
 
         with (
             patch.dict(os.environ, {"HA_SSL_VERIFY": str(ca_file)}),
-            patch("httpx.AsyncClient", return_value=mock_client),
+            patch(
+                "app.core.client.httpx.AsyncClient", return_value=mock_client
+            ) as mock_async_client,
         ):
             import importlib
+
             import app.config
 
             importlib.reload(app.config)
+            # Also reload app.core.client to pick up the patch
+            importlib.reload(app.core.client)
 
-            from app.core.client import get_client as reloaded_get_client
+            # Reset client after reload
+            app.core.client._client = None
 
-            client = await reloaded_get_client()
+            client = await get_client()
 
-            import httpx
-
-            httpx.AsyncClient.assert_called_once_with(timeout=10.0, verify=str(ca_file))
+            mock_async_client.assert_called_once_with(timeout=10.0, verify=str(ca_file))
 
     @pytest.mark.asyncio
     async def test_get_client_with_invalid_ca_path_falls_back(self):
@@ -147,18 +154,22 @@ class TestCoreClient:
 
         with (
             patch.dict(os.environ, {"HA_SSL_VERIFY": "/nonexistent/ca.pem"}),
-            patch("httpx.AsyncClient", return_value=mock_client),
+            patch(
+                "app.core.client.httpx.AsyncClient", return_value=mock_client
+            ) as mock_async_client,
         ):
             import importlib
+
             import app.config
 
             importlib.reload(app.config)
+            # Also reload app.core.client to pick up the patch
+            importlib.reload(app.core.client)
 
-            from app.core.client import get_client as reloaded_get_client
+            # Reset client after reload
+            app.core.client._client = None
 
-            client = await reloaded_get_client()
+            client = await get_client()
 
             # Should fall back to True (system CAs)
-            import httpx
-
-            httpx.AsyncClient.assert_called_once_with(timeout=10.0, verify=True)
+            mock_async_client.assert_called_once_with(timeout=10.0, verify=True)

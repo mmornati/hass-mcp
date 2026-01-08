@@ -1,6 +1,6 @@
+import logging
 import os
 import os.path
-import logging
 
 # Home Assistant configuration
 HA_URL: str = os.environ.get("HA_URL", "http://localhost:8123")
@@ -56,18 +56,16 @@ def get_ssl_verify_value() -> str | bool:
         lower_value = value.lower()
         if lower_value in ("true", "1", "yes"):
             return True
-        elif lower_value in ("false", "0", "no"):
+        if lower_value in ("false", "0", "no"):
             return False
-        else:
-            # Treat as file path - validate it exists
-            if os.path.isfile(value):
-                return value
-            else:
-                logger.warning(
-                    f"HA_SSL_VERIFY points to non-existent file: {value}. "
-                    f"Falling back to system CA certificates."
-                )
-                return True
+        # Treat as file path - validate it exists
+        if os.path.isfile(value):
+            return value
+        logger.warning(
+            f"HA_SSL_VERIFY points to non-existent file: {value}. "
+            f"Falling back to system CA certificates."
+        )
+        return True
 
     # Default to True (system CAs)
     return True
