@@ -375,6 +375,87 @@ async def restart_home_assistant() -> dict[str, Any]:
 
 
 @handle_api_errors
+async def check_configuration() -> dict[str, Any]:
+    """
+    Validate Home Assistant configuration without restarting.
+
+    This triggers a check of configuration.yaml and all other configuration files.
+    Use this to verify configuration changes before restarting.
+
+    Returns:
+        A dictionary containing:
+        - result: "valid" or "invalid"
+        - errors: Error message if configuration is invalid, null otherwise
+
+    Example response (valid):
+        {
+            "result": "valid",
+            "errors": null
+        }
+
+    Example response (invalid):
+        {
+            "result": "invalid",
+            "errors": "Integration not found: missing_integration:"
+        }
+
+    Note:
+        Requires the 'config' integration to be enabled in Home Assistant.
+        This endpoint only checks configuration files, not runtime state.
+
+    Best Practices:
+        - Always check configuration before restarting
+        - Fix any reported errors before applying changes
+        - Use this after editing configuration.yaml or other config files
+    """
+    client = await get_client()
+    response = await client.post(
+        f"{HA_URL}/api/config/core/check_config",
+        headers=get_ha_headers(),
+        json={},
+    )
+    response.raise_for_status()
+    return cast(dict[str, Any], response.json())
+
+
+@handle_api_errors
+@cached(ttl=TTL_VERY_LONG, key_prefix="system")
+async def get_components() -> list[str]:
+    """
+    Get list of currently loaded components/integrations.
+
+    Returns:
+        List of component names that are currently loaded in Home Assistant.
+        Each component is a string like "sensor.mqtt" or "light.hue".
+
+    Example response:
+        [
+            "sensor.mqtt",
+            "light.hue",
+            "automation",
+            "script",
+            "scene",
+            "input_boolean",
+            ...
+        ]
+
+    Note:
+        This returns ALL loaded components, including core components,
+        integration platforms, and custom components.
+        Use get_core_config() for the same information plus additional config details.
+
+    Best Practices:
+        - Use this to check if a specific integration is loaded
+        - Verify component availability before using domain-specific features
+        - Useful for debugging integration issues
+    """
+    client = await get_client()
+    response = await client.get(f"{HA_URL}/api/components", headers=get_ha_headers())
+    response.raise_for_status()
+    return cast(list[str], response.json())
+
+
+@handle_api_errors
 async def get_cache_configuration() -> dict[str, Any]:
     """
     Get the current cache configuration.

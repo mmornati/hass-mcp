@@ -20,8 +20,10 @@ from app.api import (
     devices,
     diagnostics,
     events,
+    floors,
     helpers,
     integrations,
+    labels,
     logbook,
     notifications,
     scenes,
@@ -55,6 +57,8 @@ ITEM_TYPE_MODULES = {
     "helper": helpers,
     "calendar": calendars,
     "backup": backups,
+    "label": labels,
+    "floor": floors,
 }
 
 # Mapping of item types to their list functions
@@ -71,6 +75,8 @@ LIST_FUNCTIONS = {
     "helper": helpers.list_helpers,
     "calendar": calendars.list_calendars,
     "backup": backups.list_backups,
+    "label": labels.get_labels,
+    "floor": floors.get_floors,
 }
 
 # Mapping of item types to their get functions
@@ -89,6 +95,8 @@ GET_FUNCTIONS = {
     "helper": helpers.get_helper,
     "calendar": None,  # No get_calendar function, will find from list
     "backup": None,  # No get_backup function, will find from list
+    "label": labels.get_label,
+    "floor": floors.get_floor,
 }
 
 
@@ -118,6 +126,8 @@ async def list_items(
             - "helper": List all helpers (optionally filtered by helper_type)
             - "calendar": List all calendars
             - "backup": List all backups
+            - "label": List all labels
+            - "floor": List all floors
         domain: Optional domain filter (for devices, integrations, blueprints)
         search_query: Optional search query to filter results
         limit: Maximum number of items to return (default: 100)
@@ -130,6 +140,8 @@ async def list_items(
         item_type="script" - List all scripts
         item_type="device", domain="hue" - List Hue devices
         item_type="helper", search_query="temperature" - Search helpers
+        item_type="label" - List all labels
+        item_type="floor" - List all floors
     """
     logger.info(
         f"Listing {item_type} items with filters: domain={domain}, search={search_query}, limit={limit}"
@@ -200,6 +212,8 @@ async def get_item(item_type: str, item_id: str) -> dict[str, Any]:
             - "helper": Get helper state and configuration
             - "calendar": Get calendar details
             - "backup": Get backup details
+            - "label": Get label details
+            - "floor": Get floor details
         item_id: The item ID (without type prefix, e.g., "turn_on_lights" not "automation.turn_on_lights")
 
     Returns:
@@ -209,6 +223,8 @@ async def get_item(item_type: str, item_id: str) -> dict[str, Any]:
         item_type="automation", item_id="turn_on_lights" - Get automation config
         item_type="script", item_id="notify" - Get script config
         item_type="scene", item_id="living_room_dim" - Get scene config
+        item_type="label", item_id="smart_lights" - Get label details
+        item_type="floor", item_id="ground_floor" - Get floor details
     """
     logger.info(f"Getting {item_type} item: {item_id}")
 
@@ -901,7 +917,7 @@ async def manage_webhooks(
         return {"error": f"Failed to manage webhooks: {str(e)}"}
 
 
-async def get_system_info(info_type: str) -> dict[str, Any] | str:
+async def get_system_info(info_type: str) -> dict[str, Any] | str | list[str]:
     """
     Unified system info tool that replaces get_version, system_overview, system_health, and core_config.
 
@@ -911,15 +927,19 @@ async def get_system_info(info_type: str) -> dict[str, Any] | str:
             - "overview": Get comprehensive system overview
             - "health": Get system health information
             - "config": Get core configuration
+            - "check_config": Validate configuration.yaml without restarting
+            - "components": Get list of loaded components/integrations
 
     Returns:
-        System information dictionary or version string
+        System information dictionary, version string, or list of components
 
     Examples:
         info_type="version" - Get HA version
         info_type="overview" - Get system overview
         info_type="health" - Get system health
         info_type="config" - Get core config
+        info_type="check_config" - Validate HA configuration
+        info_type="components" - List loaded components
     """
     logger.info(f"Getting system info: type={info_type}")
 
@@ -932,8 +952,12 @@ async def get_system_info(info_type: str) -> dict[str, Any] | str:
             return await system.get_system_health()
         if info_type == "config":
             return await system.get_core_config()
+        if info_type == "check_config":
+            return await system.check_configuration()
+        if info_type == "components":
+            return await system.get_components()
         return {
-            "error": f"Invalid info_type: {info_type}. Valid types: version, overview, health, config"
+            "error": f"Invalid info_type: {info_type}. Valid types: version, overview, health, config, check_config, components"
         }
 
     except Exception as e:

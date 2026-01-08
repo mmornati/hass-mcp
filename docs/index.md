@@ -6,7 +6,7 @@ Hass-MCP enables AI assistants like Claude to interact directly with your Home A
 
 ## What is Hass-MCP?
 
-Hass-MCP is a Model Context Protocol (MCP) server that bridges the gap between AI assistants and Home Assistant. It provides **86+ tools** organized into **20+ categories** that allow AI assistants to:
+Hass-MCP is a Model Context Protocol (MCP) server that bridges the gap between AI assistants and Home Assistant. It provides **15 unified tools + specialized tools** (consolidated from 92 original tools) organized into **20+ categories** that allow AI assistants to:
 
 - **Query** the state of devices, sensors, and entities
 - **Control** lights, switches, climate, and other home automation devices

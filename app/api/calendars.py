@@ -31,44 +31,51 @@ async def list_calendars() -> list[dict[str, Any]]:
     Returns:
         List of calendar dictionaries containing:
         - entity_id: The calendar entity ID
-        - state: Current state of the calendar
-        - friendly_name: Display name of the calendar
-        - supported_features: Bitmask of supported features
+        - name: Display name of the calendar
 
     Example response:
         [
             {
                 "entity_id": "calendar.google",
-                "state": "idle",
-                "friendly_name": "Google Calendar",
-                "supported_features": 3
+                "name": "Google Calendar"
+            },
+            {
+                "entity_id": "calendar.personal",
+                "name": "Personal Calendar"
             }
         ]
 
     Note:
+        Uses the dedicated /api/calendars endpoint which is more efficient
+        than filtering calendar entities from the states API.
         Calendars are entities that support calendar functionality.
-        Supported features indicate which operations are available
-        (e.g., CREATE_EVENT, DELETE_EVENT).
 
     Best Practices:
         - Use this to discover available calendars
-        - Check supported_features to see what operations are available
         - Use to find calendar entities before getting events
+        - For detailed attributes, get individual entity state
     """
-    calendar_entities = await get_entities(domain="calendar", lean=True)
-
-    calendars = []
-    for entity in calendar_entities:
-        calendars.append(
-            {
-                "entity_id": entity.get("entity_id"),
-                "state": entity.get("state"),
-                "friendly_name": entity.get("attributes", {}).get("friendly_name"),
-                "supported_features": entity.get("attributes", {}).get("supported_features", 0),
-            }
+    try:
+        # Use the dedicated /api/calendars endpoint
+        response = await _calendars_api.get("/api/calendars")
+        return cast(list[dict[str, Any]], response)
+    except Exception as e:
+        # Fallback to entity-based listing if /api/calendars is not available
+        logger.warning(
+            f"Failed to use /api/calendars endpoint: {e}, falling back to entity listing"
         )
+        calendar_entities = await get_entities(domain="calendar", lean=True)
 
-    return calendars
+        calendars = []
+        for entity in calendar_entities:
+            calendars.append(
+                {
+                    "entity_id": entity.get("entity_id"),
+                    "name": entity.get("attributes", {}).get("friendly_name"),
+                }
+            )
+
+        return calendars
 
 
 @handle_api_errors

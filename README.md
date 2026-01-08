@@ -2,7 +2,7 @@
 
 A Model Context Protocol (MCP) server for Home Assistant integration with Claude and other LLMs.
 
-> **Note**: This README is for developers and contributors. For user documentation, see [docs/](docs/) or visit [the documentation site](https://mmornati.github.io/hass-mcp).
+> **Note**: This README is for developers and contributors. For user documentation, see [docs/](docs/) or visit [the documentation site](https://mmornati.github.io/hass-mcp). For AI coding agents, see [AGENTS.md](AGENTS.md).
 
 ## About This Fork
 
@@ -14,11 +14,11 @@ This fork includes significant improvements:
 
 - **Modular Architecture**: Complete refactoring from monolithic files into a modular architecture with clear separation of concerns
 - **Comprehensive Testing**: Unit and integration tests with >80% coverage
-- **Enhanced Toolset**: 33 unified tools (reduced from 92) organized across 20+ categories
+- **Enhanced Toolset**: 15 unified tools + specialized tools (consolidated from 92 original tools) across 20+ categories including entities, automations, devices, areas, scenes, scripts, integrations, helpers, calendars, notifications, webhooks, backups, blueprints, zones, tags, diagnostics, statistics, and more
 - **CI/CD Pipeline**: Automated testing, validation, and deployment
 - **Developer Tooling**: Pre-commit hooks, linting, type checking, and security scanning
 - **Documentation**: Comprehensive documentation site built with MkDocs
-- **Additional Features**: Blueprints, calendars, helpers, tags, webhooks, backups, and more
+- **Additional Features**: VectorDB for semantic entity search, blueprints, calendars, helpers, tags, webhooks, backups, cache backends (memory, Redis, file), and more
 
 ### Original Repository
 

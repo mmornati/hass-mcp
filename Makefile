@@ -1,4 +1,4 @@
-.PHONY: help install install-dev test test-cov lint format type-check security check all clean setup
+.PHONY: help install install-dev test test-cov lint format type-check security check all clean setup env-check
 
 help: ## Show this help message
 	@echo 'Usage: make [target]'
@@ -16,6 +16,30 @@ setup: ## Setup development environment (install deps + pre-commit hooks)
 	uv sync --extra dev
 	uv run pre-commit install
 	@echo "✅ Development environment setup complete!"
+	@echo ""
+	@echo "Quick reference:"
+	@echo "  make test          - Run tests"
+	@echo "  make format        - Format code"
+	@echo "  make lint          - Check code quality"
+	@echo "  make pre-commit    - Run all pre-commit hooks"
+
+env-check: ## Check if development environment is properly configured
+	@echo "Checking development environment..."
+	@command -v uv >/dev/null 2>&1 || { echo "❌ uv is not installed. Install it from https://docs.astral.sh/uv/"; exit 1; }
+	@echo "✅ uv is installed: $$(uv --version)"
+	@if [ -d ".venv" ]; then \
+		echo "✅ Virtual environment exists at .venv"; \
+	else \
+		echo "⚠️  No virtual environment found. Run 'make setup' to create one."; \
+	fi
+	@if [ -f ".venv/bin/ruff" ] || uv run which ruff >/dev/null 2>&1; then \
+		echo "✅ ruff is available"; \
+	else \
+		echo "❌ ruff not found. Run 'make install-dev' to install dependencies."; \
+		exit 1; \
+	fi
+	@echo "✅ Environment is properly configured!"
+
 
 test: ## Run tests
 	uv run pytest tests/

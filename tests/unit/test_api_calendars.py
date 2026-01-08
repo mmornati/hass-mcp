@@ -27,64 +27,57 @@ class TestListCalendars:
 
     @pytest.mark.asyncio
     async def test_list_calendars_success(self):
-        """Test successful retrieval of calendars."""
-        mock_entities = [
+        """Test successful retrieval of calendars using /api/calendars endpoint."""
+        mock_calendars = [
             {
                 "entity_id": "calendar.google",
-                "state": "idle",
-                "attributes": {
-                    "friendly_name": "Google Calendar",
-                    "supported_features": 3,
-                },
+                "name": "Google Calendar",
             },
             {
                 "entity_id": "calendar.local",
-                "state": "idle",
-                "attributes": {
-                    "friendly_name": "Local Calendar",
-                    "supported_features": 1,
-                },
+                "name": "Local Calendar",
             },
         ]
 
-        with patch("app.api.calendars.get_entities", return_value=mock_entities):
+        with patch("app.api.calendars._calendars_api.get", return_value=mock_calendars):
             result = await list_calendars()
 
             assert isinstance(result, list)
             assert len(result) == 2
             assert result[0]["entity_id"] == "calendar.google"
-            assert result[0]["friendly_name"] == "Google Calendar"
-            assert result[0]["supported_features"] == 3
+            assert result[0]["name"] == "Google Calendar"
             assert result[1]["entity_id"] == "calendar.local"
 
     @pytest.mark.asyncio
     async def test_list_calendars_empty(self):
         """Test when no calendars are found."""
-        with patch("app.api.calendars.get_entities", return_value=[]):
+        with patch("app.api.calendars._calendars_api.get", return_value=[]):
             result = await list_calendars()
 
             assert isinstance(result, list)
             assert len(result) == 0
 
     @pytest.mark.asyncio
-    async def test_list_calendars_missing_attributes(self):
-        """Test when calendar entities have missing attributes."""
+    async def test_list_calendars_fallback_on_error(self):
+        """Test fallback to entity-based listing when /api/calendars fails."""
         mock_entities = [
             {
                 "entity_id": "calendar.simple",
                 "state": "idle",
-                "attributes": {},
+                "attributes": {"friendly_name": "Simple Calendar"},
             }
         ]
 
-        with patch("app.api.calendars.get_entities", return_value=mock_entities):
+        with (
+            patch("app.api.calendars._calendars_api.get", side_effect=Exception("API error")),
+            patch("app.api.calendars.get_entities", return_value=mock_entities),
+        ):
             result = await list_calendars()
 
             assert isinstance(result, list)
             assert len(result) == 1
             assert result[0]["entity_id"] == "calendar.simple"
-            assert result[0]["friendly_name"] is None
-            assert result[0]["supported_features"] == 0
+            assert result[0]["name"] == "Simple Calendar"
 
 
 class TestGetCalendarEvents:

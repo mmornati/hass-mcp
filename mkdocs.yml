@@ -97,6 +97,7 @@ nav:
     - Entity Relationship Graph: vectordb-relationships.md
     - Natural Language Query Processing: query-processing.md
     - Entity Description Generation: entity-descriptions.md
+    - Testing: vectordb-testing.md
   - Advanced:
     - Prompts: prompts.md
     - Best Practices: best-practices.md
