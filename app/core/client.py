@@ -7,6 +7,8 @@ import logging
 
 import httpx
 
+from app.config import get_ssl_verify_value
+
 logger = logging.getLogger(__name__)
 
 # HTTP client instance
@@ -20,6 +22,11 @@ async def get_client() -> httpx.AsyncClient:
     The client is created on first call and reused for subsequent calls.
     This ensures connection pooling and efficient resource usage.
 
+    SSL/TLS verification is configured via the HA_SSL_VERIFY environment variable:
+    - "true" (default): Use system CA certificates
+    - "false": Disable SSL verification (useful for self-signed certificates)
+    - "/path/to/ca.pem": Use custom CA certificate bundle
+
     Returns:
         An httpx.AsyncClient instance
 
@@ -29,8 +36,9 @@ async def get_client() -> httpx.AsyncClient:
     """
     global _client
     if _client is None:
-        logger.debug("Creating new HTTP client")
-        _client = httpx.AsyncClient(timeout=10.0)
+        ssl_verify = get_ssl_verify_value()
+        logger.debug(f"Creating new HTTP client with SSL verify: {ssl_verify}")
+        _client = httpx.AsyncClient(timeout=10.0, verify=ssl_verify)
     return _client
 
 

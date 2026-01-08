@@ -1,6 +1,7 @@
 from unittest.mock import patch
+import os
 
-from app.config import HA_URL, get_ha_headers
+from app.config import HA_URL, get_ha_headers, get_ssl_verify_value
 
 
 class TestConfig:
@@ -62,3 +63,91 @@ class TestConfig:
             # Check custom values
             assert app.config.HA_URL == "http://homeassistant.local:8123"
             assert app.config.HA_TOKEN == "custom_token"
+
+
+class TestSSLConfiguration:
+    """Test SSL/TLS configuration parsing."""
+
+    def test_ssl_verify_default_true(self):
+        """Test default SSL verification is True."""
+        with patch.dict(os.environ, {}, clear=False):
+            # Remove HA_SSL_VERIFY if it exists
+            if "HA_SSL_VERIFY" in os.environ:
+                del os.environ["HA_SSL_VERIFY"]
+
+            from importlib import reload
+            import app.config
+
+            reload(app.config)
+
+            result = app.config.get_ssl_verify_value()
+            assert result is True
+
+    def test_ssl_verify_true_string(self):
+        """Test 'true' string parses to True."""
+        with patch.dict(os.environ, {"HA_SSL_VERIFY": "true"}):
+            from importlib import reload
+            import app.config
+
+            reload(app.config)
+
+            result = app.config.get_ssl_verify_value()
+            assert result is True
+
+    def test_ssl_verify_false_string(self):
+        """Test 'false' string parses to False."""
+        with patch.dict(os.environ, {"HA_SSL_VERIFY": "false"}):
+            from importlib import reload
+            import app.config
+
+            reload(app.config)
+
+            result = app.config.get_ssl_verify_value()
+            assert result is False
+
+    def test_ssl_verify_numeric_one(self):
+        """Test '1' parses to True."""
+        with patch.dict(os.environ, {"HA_SSL_VERIFY": "1"}):
+            from importlib import reload
+            import app.config
+
+            reload(app.config)
+
+            result = app.config.get_ssl_verify_value()
+            assert result is True
+
+    def test_ssl_verify_numeric_zero(self):
+        """Test '0' parses to False."""
+        with patch.dict(os.environ, {"HA_SSL_VERIFY": "0"}):
+            from importlib import reload
+            import app.config
+
+            reload(app.config)
+
+            result = app.config.get_ssl_verify_value()
+            assert result is False
+
+    def test_ssl_verify_custom_ca_path(self, tmp_path):
+        """Test custom CA certificate path."""
+        ca_file = tmp_path / "ca.pem"
+        ca_file.write_text("FAKE CA")
+
+        with patch.dict(os.environ, {"HA_SSL_VERIFY": str(ca_file)}):
+            from importlib import reload
+            import app.config
+
+            reload(app.config)
+
+            result = app.config.get_ssl_verify_value()
+            assert result == str(ca_file)
+
+    def test_ssl_verify_invalid_path_fallback(self):
+        """Test invalid CA path falls back to True."""
+        with patch.dict(os.environ, {"HA_SSL_VERIFY": "/nonexistent/ca.pem"}):
+            from importlib import reload
+            import app.config
+
+            reload(app.config)
+
+            result = app.config.get_ssl_verify_value()
+            assert result is True

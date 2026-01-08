@@ -25,6 +25,15 @@ Hass-MCP uses the following environment variables:
 - **`LOG_LEVEL`**: Logging level (default: `INFO`)
   - Options: `DEBUG`, `INFO`, `WARNING`, `ERROR`
 
+### SSL/TLS Configuration
+
+- **`HA_SSL_VERIFY`**: SSL certificate verification mode (default: `true`)
+  - `true` - Use system CA certificates (default, secure)
+  - `false` - Disable SSL verification (for self-signed certificates)
+  - `/path/to/ca.pem` - Use custom CA certificate bundle
+
+  **Security Warning**: Disabling SSL verification (`HA_SSL_VERIFY=false`) makes connections vulnerable to man-in-the-middle attacks. Only use in trusted networks with self-signed certificates. For production, use proper SSL certificates or custom CA bundles.
+
 ### Cache Configuration Variables
 
 - **`HASS_MCP_CACHE_ENABLED`**: Enable/disable caching (default: `true`)
@@ -94,6 +103,57 @@ Hass-MCP uses the following environment variables:
   }
 }
 ```
+
+### With Self-Signed Certificates
+
+For Home Assistant instances using self-signed SSL certificates:
+
+```json
+{
+  "mcpServers": {
+    "hass-mcp": {
+      "command": "docker",
+      "args": ["run", "-i", "--rm", "-e", "HA_URL", "-e", "HA_TOKEN", "-e", "HA_SSL_VERIFY", "mmornati/hass-mcp"],
+      "env": {
+        "HA_URL": "https://homeassistant.local:8123",
+        "HA_TOKEN": "your_token_here",
+        "HA_SSL_VERIFY": "false"
+      }
+    }
+  }
+}
+```
+
+**Security Warning**: Only disable SSL verification in trusted networks. This makes connections vulnerable to man-in-the-middle attacks.
+
+### With Custom CA Certificate
+
+For Home Assistant instances using a custom CA certificate:
+
+```json
+{
+  "mcpServers": {
+    "hass-mcp": {
+      "command": "docker",
+      "args": [
+        "run", "-i", "--rm",
+        "-v", "/path/to/certs:/certs:ro",
+        "-e", "HA_URL",
+        "-e", "HA_TOKEN",
+        "-e", "HA_SSL_VERIFY",
+        "mmornati/hass-mcp"
+      ],
+      "env": {
+        "HA_URL": "https://homeassistant.local:8123",
+        "HA_TOKEN": "your_token_here",
+        "HA_SSL_VERIFY": "/certs/ca.pem"
+      }
+    }
+  }
+}
+```
+
+**Note**: The volume mount (`-v /path/to/certs:/certs:ro`) is required to make the CA certificate accessible inside the Docker container. Replace `/path/to/certs` with the actual path to your certificate directory.
 
 ### Docker with Network Configuration
 

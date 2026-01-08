@@ -52,14 +52,28 @@ class BaseAPI:
             Response JSON data (dict or list)
 
         Raises:
+            httpx.SSLError: If SSL verification fails
             httpx.HTTPStatusError: If the request fails
             httpx.RequestError: If the request cannot be completed
         """
         client = await self._get_client()
         url = f"{HA_URL}{endpoint}"
-        response = await client.get(url, headers=get_ha_headers(), params=params)
-        response.raise_for_status()
-        return cast(dict[str, Any], response.json())
+        try:
+            response = await client.get(url, headers=get_ha_headers(), params=params)
+            response.raise_for_status()
+            return cast(dict[str, Any], response.json())
+        except httpx.SSLError as e:
+            error_msg = (
+                f"SSL verification failed for {url}: {str(e)}\n\n"
+                f"Troubleshooting:\n"
+                f"  - For self-signed certificates: Set HA_SSL_VERIFY=false\n"
+                f"  - For custom CA certificates: Set HA_SSL_VERIFY=/path/to/ca.pem\n"
+                f"  - For system CA certificates: Set HA_SSL_VERIFY=true (default)\n\n"
+                f"Security Warning: Disabling SSL verification makes connections "
+                f"vulnerable to attacks. Use only in trusted networks."
+            )
+            logger.error(error_msg)
+            raise
 
     async def post(self, endpoint: str, data: dict[str, Any] | None = None) -> dict[str, Any]:
         """
@@ -73,14 +87,28 @@ class BaseAPI:
             Response JSON data
 
         Raises:
+            httpx.SSLError: If SSL verification fails
             httpx.HTTPStatusError: If the request fails
             httpx.RequestError: If the request cannot be completed
         """
         client = await self._get_client()
         url = f"{HA_URL}{endpoint}"
-        response = await client.post(url, headers=get_ha_headers(), json=data or {})
-        response.raise_for_status()
-        return cast(dict[str, Any], response.json())
+        try:
+            response = await client.post(url, headers=get_ha_headers(), json=data or {})
+            response.raise_for_status()
+            return cast(dict[str, Any], response.json())
+        except httpx.SSLError as e:
+            error_msg = (
+                f"SSL verification failed for {url}: {str(e)}\n\n"
+                f"Troubleshooting:\n"
+                f"  - For self-signed certificates: Set HA_SSL_VERIFY=false\n"
+                f"  - For custom CA certificates: Set HA_SSL_VERIFY=/path/to/ca.pem\n"
+                f"  - For system CA certificates: Set HA_SSL_VERIFY=true (default)\n\n"
+                f"Security Warning: Disabling SSL verification makes connections "
+                f"vulnerable to attacks. Use only in trusted networks."
+            )
+            logger.error(error_msg)
+            raise
 
     async def put(self, endpoint: str, data: dict[str, Any] | None = None) -> dict[str, Any]:
         """
@@ -94,14 +122,28 @@ class BaseAPI:
             Response JSON data
 
         Raises:
+            httpx.SSLError: If SSL verification fails
             httpx.HTTPStatusError: If the request fails
             httpx.RequestError: If the request cannot be completed
         """
         client = await self._get_client()
         url = f"{HA_URL}{endpoint}"
-        response = await client.put(url, headers=get_ha_headers(), json=data or {})
-        response.raise_for_status()
-        return cast(dict[str, Any], response.json())
+        try:
+            response = await client.put(url, headers=get_ha_headers(), json=data or {})
+            response.raise_for_status()
+            return cast(dict[str, Any], response.json())
+        except httpx.SSLError as e:
+            error_msg = (
+                f"SSL verification failed for {url}: {str(e)}\n\n"
+                f"Troubleshooting:\n"
+                f"  - For self-signed certificates: Set HA_SSL_VERIFY=false\n"
+                f"  - For custom CA certificates: Set HA_SSL_VERIFY=/path/to/ca.pem\n"
+                f"  - For system CA certificates: Set HA_SSL_VERIFY=true (default)\n\n"
+                f"Security Warning: Disabling SSL verification makes connections "
+                f"vulnerable to attacks. Use only in trusted networks."
+            )
+            logger.error(error_msg)
+            raise
 
     async def delete(self, endpoint: str) -> dict[str, Any]:
         """
@@ -114,14 +156,28 @@ class BaseAPI:
             Response JSON data
 
         Raises:
+            httpx.SSLError: If SSL verification fails
             httpx.HTTPStatusError: If the request fails
             httpx.RequestError: If the request cannot be completed
         """
         client = await self._get_client()
         url = f"{HA_URL}{endpoint}"
-        response = await client.delete(url, headers=get_ha_headers())
-        response.raise_for_status()
-        return cast(dict[str, Any], response.json())
+        try:
+            response = await client.delete(url, headers=get_ha_headers())
+            response.raise_for_status()
+            return cast(dict[str, Any], response.json())
+        except httpx.SSLError as e:
+            error_msg = (
+                f"SSL verification failed for {url}: {str(e)}\n\n"
+                f"Troubleshooting:\n"
+                f"  - For self-signed certificates: Set HA_SSL_VERIFY=false\n"
+                f"  - For custom CA certificates: Set HA_SSL_VERIFY=/path/to/ca.pem\n"
+                f"  - For system CA certificates: Set HA_SSL_VERIFY=true (default)\n\n"
+                f"Security Warning: Disabling SSL verification makes connections "
+                f"vulnerable to attacks. Use only in trusted networks."
+            )
+            logger.error(error_msg)
+            raise
 
     async def patch(self, endpoint: str, data: dict[str, Any] | None = None) -> dict[str, Any]:
         """
@@ -135,11 +191,25 @@ class BaseAPI:
             Response JSON data
 
         Raises:
+            httpx.SSLError: If SSL verification fails
             httpx.HTTPStatusError: If the request fails
             httpx.RequestError: If the request cannot be completed
         """
         client = await self._get_client()
         url = f"{HA_URL}{endpoint}"
-        response = await client.patch(url, headers=get_ha_headers(), json=data or {})
-        response.raise_for_status()
-        return cast(dict[str, Any], response.json())
+        try:
+            response = await client.patch(url, headers=get_ha_headers(), json=data or {})
+            response.raise_for_status()
+            return cast(dict[str, Any], response.json())
+        except httpx.SSLError as e:
+            error_msg = (
+                f"SSL verification failed for {url}: {str(e)}\n\n"
+                f"Troubleshooting:\n"
+                f"  - For self-signed certificates: Set HA_SSL_VERIFY=false\n"
+                f"  - For custom CA certificates: Set HA_SSL_VERIFY=/path/to/ca.pem\n"
+                f"  - For system CA certificates: Set HA_SSL_VERIFY=true (default)\n\n"
+                f"Security Warning: Disabling SSL verification makes connections "
+                f"vulnerable to attacks. Use only in trusted networks."
+            )
+            logger.error(error_msg)
+            raise
