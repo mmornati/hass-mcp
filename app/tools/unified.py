@@ -966,25 +966,38 @@ async def get_system_info(info_type: str) -> dict[str, Any] | str | list[str]:
 
 
 async def get_system_data(
-    data_type: str, entity_id: str | None = None, domain: str | None = None
+    data_type: str,
+    entity_id: str | None = None,
+    domain: str | None = None,
+    level: str | None = None,
+    integration: str | None = None,
+    search_term: str | None = None,
+    lines: int | None = None,
 ) -> dict[str, Any]:
     """
     Unified system data tool that replaces get_error_log, get_cache_statistics, get_history, and domain_summary.
 
     Args:
         data_type: Type of system data. Options:
-            - "error_log": Get error log
+            - "error_log": Get error log (supports level, integration, search_term, lines filters)
             - "cache_statistics": Get cache statistics
             - "history": Get entity history (requires entity_id)
             - "domain_summary": Get domain summary (requires domain)
         entity_id: Entity ID (required for "history" type)
         domain: Domain name (required for "domain_summary" type)
+        level: Filter error log by level (e.g., "ERROR", "WARNING")
+        integration: Filter error log by integration name
+        search_term: Filter error log by text search
+        lines: Limit error log to N most recent lines
 
     Returns:
         System data dictionary
 
     Examples:
-        data_type="error_log" - Get error log
+        data_type="error_log" - Get full error log
+        data_type="error_log", level="ERROR" - Get only errors
+        data_type="error_log", integration="mqtt" - Filter by integration
+        data_type="error_log", level="ERROR", integration="hue", lines=50 - Combined filters
         data_type="cache_statistics" - Get cache statistics
         data_type="history", entity_id="sensor.temperature" - Get entity history
         data_type="domain_summary", domain="light" - Get domain summary
@@ -993,7 +1006,9 @@ async def get_system_data(
 
     try:
         if data_type == "error_log":
-            return await system.get_hass_error_log()
+            return await system.get_hass_error_log(
+                level=level, integration=integration, search_term=search_term, lines=lines
+            )
         if data_type == "cache_statistics":
             return await system.get_cache_statistics()
         if data_type == "history":

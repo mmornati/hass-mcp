@@ -45,25 +45,42 @@ async def get_hass_version() -> str:
 # NOTE: This function is explicitly excluded from caching (US-006)
 # Error logs are highly dynamic and time-sensitive, so they should not be cached
 @handle_api_errors
-async def get_hass_error_log() -> dict[str, Any]:
+async def get_hass_error_log(
+    level: str | None = None,
+    integration: str | None = None,
+    search_term: str | None = None,
+    lines: int | None = None,
+) -> dict[str, Any]:
     """
     Get the Home Assistant error log for troubleshooting.
 
+    Args:
+        level: Optional filter for log level (e.g., "ERROR", "WARNING").
+        integration: Optional filter for integration name (e.g., "mqtt", "hue").
+        search_term: Optional text search filter.
+        lines: Optional number of most recent lines to include (if less than total).
+
     Returns:
         A dictionary containing:
-        - log_text: The full error log text
+        - log_text: The full error log text (filtered if filters applied)
         - error_count: Number of ERROR entries found
         - warning_count: Number of WARNING entries found
+        - total_lines: Total number of lines in the returned log
         - integration_mentions: Map of integration names to mention counts
+        - filters_applied: Which filters were active (if any)
 
     Example response:
         {
             "log_text": "...",
             "error_count": 5,
             "warning_count": 10,
+            "total_lines": 50,
             "integration_mentions": {
                 "hue": 3,
                 "mqtt": 2
+            },
+            "filters_applied": {
+                "level": "ERROR"
             }
         }
 
@@ -84,6 +101,36 @@ async def get_hass_error_log() -> dict[str, Any]:
         if response.status_code == 200:
             log_text = response.text
 
+            # Apply filters (AND semantics)
+            filters_applied: dict[str, str | int] = {}
+            filtered = True
+
+            if level:
+                filters_applied["level"] = level
+                log_text = "\n".join(line for line in log_text.split("\n") if level in line.upper())
+
+            if integration:
+                filters_applied["integration"] = integration
+                log_text = "\n".join(
+                    line for line in log_text.split("\n") if integration.lower() in line.lower()
+                )
+
+            if search_term:
+                filters_applied["search_term"] = search_term
+                log_text = "\n".join(
+                    line for line in log_text.split("\n") if search_term.lower() in line.lower()
+                )
+
+            if lines and lines > 0:
+                filters_applied["lines"] = lines
+                log_lines = log_text.split("\n")
+                log_text = "\n".join(log_lines[-lines:])
+
+            if not filters_applied:
+                filtered = False
+
+            total_lines = len(log_text.split("\n")) if log_text.strip() else 0
+
             # Count errors and warnings
             error_count = log_text.count("ERROR")
             warning_count = log_text.count("WARNING")
@@ -93,23 +140,31 @@ async def get_hass_error_log() -> dict[str, Any]:
 
             # Look for patterns like [mqtt], [zwave], etc.
             for match in re.finditer(r"\[([a-zA-Z0-9_]+)\]", log_text):
-                integration = match.group(1).lower()
-                if integration not in integration_mentions:
-                    integration_mentions[integration] = 0
-                integration_mentions[integration] += 1
+                integration_name = match.group(1).lower()
+                integration_mentions[integration_name] = (
+                    integration_mentions.get(integration_name, 0) + 1
+                )
 
-            return {
+            result: dict[str, Any] = {
                 "log_text": log_text,
                 "error_count": error_count,
                 "warning_count": warning_count,
+                "total_lines": total_lines,
                 "integration_mentions": integration_mentions,
             }
+
+            if filtered:
+                result["filters_applied"] = filters_applied
+
+            return result
+
         return {
             "error": f"Error retrieving error log: {response.status_code} {response.reason_phrase}",
             "details": response.text,
             "log_text": "",
             "error_count": 0,
             "warning_count": 0,
+            "total_lines": 0,
             "integration_mentions": {},
         }
     except Exception as e:
@@ -119,6 +174,7 @@ async def get_hass_error_log() -> dict[str, Any]:
             "log_text": "",
             "error_count": 0,
             "warning_count": 0,
+            "total_lines": 0,
             "integration_mentions": {},
         }
 

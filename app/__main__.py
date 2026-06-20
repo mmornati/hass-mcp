@@ -1,12 +1,20 @@
 #!/usr/bin/env python
 """Entry point for running Hass-MCP as a module"""
 
-from app.server import mcp
+from app.server import run_server
 
 
 def main():
-    """Run the MCP server with stdio communication"""
-    mcp.run()
+    """Run the MCP server with transport selected via environment variables.
+
+    Transport is configured through these environment variables:
+        - MCP_TRANSPORT: Transport mode ("stdio", "sse", or "streamable-http").
+                         Defaults to "stdio".
+        - MCP_HOST: Host address to bind (default: "127.0.0.1").
+        - MCP_PORT: Port to bind (default: "8000").
+        - PORT: Alternative port variable (Smithery compatibility).
+    """
+    run_server()
 
 
 if __name__ == "__main__":

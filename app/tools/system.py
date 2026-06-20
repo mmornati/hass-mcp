@@ -56,16 +56,29 @@ async def system_overview() -> dict[str, Any]:
     return await get_system_overview()
 
 
-async def get_error_log() -> dict[str, Any]:
+async def get_error_log(
+    level: str | None = None,
+    integration: str | None = None,
+    search_term: str | None = None,
+    lines: int | None = None,
+) -> dict[str, Any]:
     """
     Get the Home Assistant error log for troubleshooting.
 
+    Args:
+        level: Optional filter for log level (e.g., "ERROR", "WARNING").
+        integration: Optional filter for integration name (e.g., "mqtt", "hue").
+        search_term: Optional text search filter.
+        lines: Optional number of most recent lines to include (if less than total).
+
     Returns:
         A dictionary containing:
-        - log_text: The full error log text
+        - log_text: The filtered error log text
         - error_count: Number of ERROR entries found
         - warning_count: Number of WARNING entries found
+        - total_lines: Total number of lines in the returned log
         - integration_mentions: Map of integration names to mention counts
+        - filters_applied: Which filters were active (if any)
         - error: Error message if retrieval failed
 
     Examples:
@@ -76,9 +89,13 @@ async def get_error_log() -> dict[str, Any]:
         - Look for patterns in repeated errors
         - Pay attention to timestamps to correlate errors with events
         - Focus on integrations with many mentions in the log
+        - Use level="ERROR" to see only errors
+        - Use integration="mqtt" to filter for specific integration
     """
-    logger.info("Getting Home Assistant error log")
-    return await get_hass_error_log()
+    logger.info(f"Getting Home Assistant error log (level={level}, integration={integration})")
+    return await get_hass_error_log(
+        level=level, integration=integration, search_term=search_term, lines=lines
+    )
 
 
 async def system_health() -> dict[str, Any]:

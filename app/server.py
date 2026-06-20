@@ -1,5 +1,6 @@
 import json
 import logging
+import os
 
 # Set up logging
 logging.basicConfig(
@@ -812,3 +813,33 @@ mcp.prompt()(dashboard_layout_generator)
 
 # System tools (get_history, get_error_log, system_health, core_config) are now in app.tools.system module
 # They are registered above after creating the mcp instance
+
+
+def run_server() -> None:
+    """Run the MCP server with transport selected via environment variables.
+
+    Transport is configured through these environment variables:
+        - MCP_TRANSPORT: Transport mode ("stdio", "sse", or "streamable-http").
+                         Defaults to "stdio".
+        - MCP_HOST: Host address to bind (default: "127.0.0.1").
+                    Used only for "sse" and "streamable-http" transports.
+        - MCP_PORT: Port to bind (default: "8000"). Used only for server transports.
+        - PORT: Alternative port variable (Smithery compatibility). Overridden by MCP_PORT.
+    """
+    transport = os.environ.get("MCP_TRANSPORT", "stdio")
+
+    if transport in ("sse", "streamable-http"):
+        host = os.environ.get("MCP_HOST", "127.0.0.1")
+        port = int(os.environ.get("MCP_PORT", os.environ.get("PORT", "8000")))
+
+        logger.info(
+            "Starting server with transport=%s on %s:%s",
+            transport,
+            host,
+            port,
+        )
+        mcp.run(transport=transport)  # type: ignore[arg-type]
+
+    else:
+        logger.info("Starting server with transport=stdio")
+        mcp.run()
