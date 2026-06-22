@@ -73,8 +73,14 @@ def handle_api_errors(func: F) -> F:
                 f"Timeout error: Home Assistant at {HA_URL} did not respond in time"
             )
         except httpx.HTTPStatusError as e:
+            body = ""
+            try:
+                body = f" - {e.response.json().get('message', '')}"
+            except Exception:
+                if e.response.text:
+                    body = f" - {e.response.text[:500]}"
             return format_error(
-                f"HTTP error: {e.response.status_code} - {e.response.reason_phrase}"
+                f"HTTP error: {e.response.status_code} {e.response.reason_phrase}{body}"
             )
         except httpx.RequestError as e:
             return format_error(f"Error connecting to Home Assistant: {str(e)}")

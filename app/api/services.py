@@ -40,10 +40,12 @@ async def call_service(
     Args:
         domain: The service domain (e.g., 'light', 'switch', 'automation')
         service: The service name (e.g., 'turn_on', 'turn_off', 'toggle')
-        data: Optional dictionary of service data/parameters
+        data: Optional dictionary of service data/parameters. Pass an empty
+            dict {} or None for services that accept no parameters
+            (reload, restart, refresh, etc.).
         return_response: If True, request response data from services that support it.
             Some services return structured data (e.g., weather.get_forecasts).
-            If the service doesn't support responses, this may cause an error.
+            If the service doesn't support responses, this may cause a 400 error.
 
     Returns:
         Response from the service call. Without return_response, usually returns
@@ -62,21 +64,23 @@ async def call_service(
         }
 
     Examples:
-        # Turn on a light
+        # Turn on a light (service that accepts data)
         await call_service("light", "turn_on", {"entity_id": "light.living_room"})
 
         # Get weather forecast (with response data)
         await call_service("weather", "get_forecasts",
             {"entity_id": "weather.home", "type": "daily"}, return_response=True)
 
-        # Toggle a switch
-        await call_service("switch", "toggle", {"entity_id": "switch.garden_lights"})
+        # Reload scenes (service that accepts NO data)
+        await call_service("scene", "reload", {})
 
     Note:
-        Services are used by many other domains and are generic and reusable patterns.
-        Common domains include light, switch, fan, cover, climate, etc.
-        Service data varies by domain and service type.
+        Services like scene.reload, automation.reload, homeassistant.restart,
+        homeassistant.reload_core_config accept NO service data. Passing any
+        data to them will cause a 400 Bad Request error from Home Assistant.
         Use return_response=True only for services that support response data.
+        Passing return_response=True on a service that doesn't support it
+        will also cause a 400 error.
 
     Best Practices:
         - Check service availability before calling
@@ -96,3 +100,24 @@ async def call_service(
     response = await client.post(url, headers=get_ha_headers(), json=data)
     response.raise_for_status()
     return cast(dict[str, Any], response.json())
+
+
+async def get_service_definitions() -> list[dict[str, Any]]:
+    """Fetch all available Home Assistant service definitions with their field schemas.
+
+    Calls GET /api/services which returns service definitions organized by domain.
+    Each service includes its name, description, and field schema.
+
+    Returns:
+        List of service definition dicts, each containing:
+            domain (str): The service domain
+            services (list[dict]): Available services with name, description, fields
+
+    Example:
+        await get_service_definitions()
+    """
+    client = await get_client()
+    url = f"{HA_URL}/api/services"
+    response = await client.get(url, headers=get_ha_headers())
+    response.raise_for_status()
+    return cast(list[dict[str, Any]], response.json())

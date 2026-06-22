@@ -119,6 +119,8 @@ mcp.tool()(async_handler("restart_ha")(system.restart_ha))
 
 # Register service tools with MCP instance
 mcp.tool()(async_handler("call_service")(services.call_service_tool))
+mcp.tool()(async_handler("call_service_simple")(services.call_service_simple_tool))
+mcp.tool()(async_handler("list_services")(services.list_services_tool))
 
 # Register template tools with MCP instance
 mcp.tool()(async_handler("test_template")(templates.test_template_tool))
